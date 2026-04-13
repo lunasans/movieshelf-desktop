@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "MovieShelf Desktop – Filmsammlung lokal verwalten & mit deiner Shelf synchronisieren",
   "main": "dist-electron/main.js",
-  "author": "Lunasans",
+  "author": "Rene Neuhaus",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
@@ -14,16 +14,18 @@
   },
   "dependencies": {
     "axios": "^1.7.2",
-    "better-sqlite3": "^9.6.0",
+    "better-sqlite3": "^12.9.0",
+    "bootstrap-icons": "^1.13.1",
     "pinia": "^2.1.7",
     "vue": "^3.4.29",
     "vue-router": "^4.3.3"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@vitejs/plugin-vue": "^5.0.5",
     "autoprefixer": "^10.4.19",
     "concurrently": "^8.2.2",
-    "electron": "^31.0.2",
+    "electron": "^31.7.7",
     "electron-builder": "^24.13.3",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
@@ -35,22 +37,25 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "at.neuhaus.movieshelf.desktop",
+    "appId": "info.movieshelf.desktop",
     "productName": "MovieShelf",
     "directories": {
       "output": "release"
     },
     "win": {
-      "target": "nsis",
+      "target": [
+        "nsis",
+        "portable"
+      ],
       "icon": "public/icon.ico"
     },
     "mac": {
       "target": "dmg",
-      "icon": "public/icon.icns"
+      "icon": "public/icon.ico"
     },
     "linux": {
       "target": "AppImage",
-      "icon": "public/icon.png"
+      "icon": "public/icon.ico"
     }
   }
 }

@@ -9,19 +9,19 @@
         @keyup.enter="search"
         type="text"
         placeholder="Filmtitel eingeben..."
-        class="flex-1 bg-[#12121a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50"
+        class="flex-1 bg-[#12121a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-red-500/50"
       />
       <button
         @click="search"
         :disabled="loading"
-        class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold px-5 py-3 rounded-xl transition-colors text-sm"
+        class="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold px-5 py-3 rounded-xl transition-colors text-sm"
       >
         Suchen
       </button>
     </div>
 
     <div v-if="loading" class="flex justify-center py-16">
-      <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div class="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
     <div v-else class="grid grid-cols-4 xl:grid-cols-6 gap-4">
@@ -31,7 +31,7 @@
         class="group cursor-pointer"
         @click="importMovie(result)"
       >
-        <div class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-[#12121a] border border-white/10 hover:border-blue-500/50 transition-all duration-300 group-hover:scale-105">
+        <div class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-[#12121a] border border-white/10 hover:border-red-500/50 transition-all duration-300 group-hover:scale-105">
           <img
             v-if="result.poster_path"
             :src="`https://image.tmdb.org/t/p/w300${result.poster_path}`"

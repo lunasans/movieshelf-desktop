@@ -1,35 +1,69 @@
 <template>
   <div
-    class="flex items-center justify-between h-10 px-4 bg-[#0d0d14] border-b border-white/5 select-none"
+    class="flex items-center justify-between h-10 px-4 bg-[var(--bg-sidebar)] border-b border-[var(--border-ui)] select-none"
     style="-webkit-app-region: drag"
   >
-    <!-- Logo -->
-    <div class="flex items-center gap-2" style="-webkit-app-region: no-drag">
-      <span class="text-blue-500 text-lg">🎬</span>
-      <span class="text-sm font-bold text-white/80 tracking-widest uppercase">MovieShelf</span>
-    </div>
-
-    <!-- Mode indicator -->
-    <div class="flex items-center gap-2">
-      <span
-        :class="isOnline ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'"
-        class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border"
+    <!-- Logo & Toggle -->
+    <div class="flex items-center gap-4" style="-webkit-app-region: no-drag">
+      <button 
+        @click="ui.toggleSidebar" 
+        class="w-8 h-8 rounded-lg hover:bg-[var(--border-ui)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+        title="Sidebar umschalten"
       >
-        {{ isOnline ? 'Online · ' + shelfUrl : 'Offline' }}
-      </span>
+        <i class="bi bi-list text-lg"></i>
+      </button>
+
+      <div class="flex items-center gap-2">
+        <i class="bi bi-film text-[var(--movie-red)] text-base"></i>
+        <span class="text-sm font-bold text-[var(--text-main)] tracking-widest uppercase">MovieShelf</span>
+      </div>
     </div>
 
-    <!-- Window controls -->
-    <div class="flex items-center gap-1" style="-webkit-app-region: no-drag">
-      <button @click="minimize" class="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
-        <svg width="10" height="2" viewBox="0 0 10 2" fill="currentColor"><rect width="10" height="2"/></svg>
-      </button>
-      <button @click="maximize" class="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="0.75" y="0.75" width="8.5" height="8.5"/></svg>
-      </button>
-      <button @click="close" class="w-7 h-7 rounded-lg hover:bg-red-500/80 flex items-center justify-center text-white/50 hover:text-white transition-colors">
-        <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg>
-      </button>
+    <!-- Center Section: Dynamic Title/Status -->
+    <div class="flex-1 flex items-center justify-center min-w-0 px-8">
+      <Transition name="header-fade" mode="out-in">
+        <!-- Case 1: Active Movie Title -->
+        <span 
+          v-if="ui.headerTitle" 
+          key="title"
+          class="text-xs font-black text-[var(--text-main)] uppercase tracking-[0.2em] truncate whitespace-nowrap opacity-80"
+        >
+          {{ ui.headerTitle }}
+        </span>
+
+        <!-- Case 2: Online/Offline Status (Default) -->
+        <div v-else key="status" class="flex items-center gap-2">
+          <span
+            :class="isOnline 
+              ? 'border-[var(--status-green)]/20' 
+              : 'border-[var(--border-ui)]'"
+            :style="isOnline ? { color: 'var(--status-green)', backgroundColor: 'var(--status-green-bg)' } : {}"
+            class="text-[9px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full border flex items-center gap-2 transition-all duration-300"
+          >
+            <div class="w-1 h-1 rounded-full bg-current"></div>
+            {{ isOnline ? 'Online · ' + shelfUrl : 'Offline' }}
+          </span>
+        </div>
+      </Transition>
+    </div>
+
+    <!-- Right Section: Theme Switcher & Window controls -->
+    <div class="flex items-center gap-4" style="-webkit-app-region: no-drag">
+      <!-- Theme Switcher -->
+      <ThemeSwitcher />
+
+      <!-- Window controls -->
+      <div class="flex items-center gap-1">
+        <button @click="minimize" class="w-8 h-8 rounded-lg hover:bg-[var(--border-ui)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
+          <i class="bi bi-dash-lg text-sm"></i>
+        </button>
+        <button @click="maximize" class="w-8 h-8 rounded-lg hover:bg-[var(--border-ui)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
+          <i class="bi bi-app text-[10px]"></i>
+        </button>
+        <button @click="close" class="w-8 h-8 rounded-lg hover:bg-red-500/80 flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors">
+          <i class="bi bi-x-lg text-sm"></i>
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -37,8 +71,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
+import { useUiStore } from '@/stores/ui'
+import ThemeSwitcher from '@/components/ui/ThemeSwitcher.vue'
 
 const settings = useSettingsStore()
+const ui = useUiStore()
 
 const isOnline = computed(() => settings.mode === 'online')
 const shelfUrl = computed(() => settings.shelfUrl)
@@ -47,3 +84,20 @@ const minimize = () => window.electron.window.minimize()
 const maximize = () => window.electron.window.maximize()
 const close    = () => window.electron.window.close()
 </script>
+
+<style scoped>
+.header-fade-enter-active,
+.header-fade-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.header-fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.header-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>

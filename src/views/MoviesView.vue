@@ -8,36 +8,42 @@
       </div>
       <router-link
         to="/movies/new"
-        class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+        class="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
       >
-        <span>+</span> Film hinzufügen
+        <i class="bi bi-plus-lg"></i> Film hinzufügen
       </router-link>
     </div>
 
     <!-- Search -->
     <div class="relative mb-6">
+      <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-white/20"></i>
       <input
         v-model="query"
         @input="onSearch"
         type="text"
         placeholder="Titel, Regisseur, Genre suchen..."
-        class="w-full bg-[#12121a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50"
+        class="w-full bg-[#12121a] border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-red-500/50"
       />
     </div>
 
-    <!-- Loading -->
-    <div v-if="store.loading" class="flex items-center justify-center py-20">
-      <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <!-- Loading (Initial) -->
+    <div v-if="store.loading && !store.loadingMore" class="flex items-center justify-center py-20">
+      <div class="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
     <!-- Grid -->
-    <div v-else class="grid grid-cols-4 xl:grid-cols-6 gap-4">
+    <div v-else :class="{ 'opacity-50': store.loading && !store.loadingMore }" class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-6">
       <MovieCard
         v-for="movie in store.movies"
         :key="movie.id"
         :movie="movie"
         @delete="store.deleteMovie(movie.id)"
       />
+    </div>
+
+    <!-- Loading More -->
+    <div v-if="store.loadingMore" class="flex items-center justify-center py-10">
+      <div class="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
     <!-- Empty -->
@@ -48,10 +54,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useMovieStore } from '@/stores/movies'
 import MovieCard from '@/components/movies/MovieCard.vue'
 
+const route = useRoute()
 const store = useMovieStore()
 const query = ref('')
 
@@ -64,5 +72,49 @@ function onSearch() {
   }, 300)
 }
 
-onMounted(() => store.fetchMovies())
+function handleScroll(e: Event) {
+  // Prevent double fetching or fetching when all movies are loaded
+  if (store.loading || store.loadingMore || store.movies.length === 0 || store.movies.length >= store.total) {
+    return
+  }
+
+  const target = e.target as HTMLElement
+  const scrollBottom = target.scrollTop + target.clientHeight
+  // Trigger earlier (500px from bottom) for smoother experience
+  const threshold = target.scrollHeight - 500
+
+  if (scrollBottom > threshold) {
+    store.fetchMovies({ 
+      q: query.value || undefined, 
+      page: store.page + 1 
+    }, true)
+  }
+}
+
+function handleQueryChange() {
+  const q = route.query.q as string
+  if (q) {
+    query.value = q
+    store.fetchMovies({ q })
+  } else {
+    query.value = ''
+    store.fetchMovies()
+  }
+}
+
+onMounted(() => {
+  handleQueryChange()
+  const main = document.querySelector('main')
+  if (main) main.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  const main = document.querySelector('main')
+  if (main) main.removeEventListener('scroll', handleScroll)
+})
+
+// Watch for query changes (e.g. searching for a different actor while already on the movies view)
+watch(() => route.query.q, () => {
+  handleQueryChange()
+})
 </script>

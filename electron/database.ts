@@ -34,12 +34,14 @@ function runMigrations(): void {
       overview    TEXT,
       cover_path  TEXT,
       backdrop_path TEXT,
+      actors_names TEXT,
       trailer_url TEXT,
       collection_type TEXT DEFAULT 'Film',
       tag         TEXT,
       tmdb_id     INTEGER,
       remote_id   INTEGER,
       synced_at   TEXT,
+      is_deleted  INTEGER DEFAULT 0,
       created_at  TEXT    DEFAULT (datetime('now')),
       updated_at  TEXT    DEFAULT (datetime('now'))
     );
@@ -49,10 +51,80 @@ function runMigrations(): void {
       value TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS actors (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      remote_id       INTEGER UNIQUE,
+      name            TEXT NOT NULL,
+      bio             TEXT,
+      birthday        TEXT,
+      place_of_birth  TEXT,
+      image_path      TEXT,
+      tmdb_id         INTEGER,
+      created_at      TEXT DEFAULT (datetime('now')),
+      updated_at      TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS film_actor (
+      film_id         INTEGER,
+      actor_id        INTEGER,
+      role            TEXT,
+      is_main_role    INTEGER DEFAULT 0,
+      PRIMARY KEY (film_id, actor_id),
+      FOREIGN KEY (film_id) REFERENCES movies(id) ON DELETE CASCADE,
+      FOREIGN KEY (actor_id) REFERENCES actors(id) ON DELETE CASCADE
+    );
+
     -- Default settings
     INSERT OR IGNORE INTO settings (key, value) VALUES
       ('mode', 'standalone'),
       ('shelf_url', ''),
       ('shelf_token', '');
+  `)
+
+  // Migrations for existing tables
+  try { db.exec('ALTER TABLE movies ADD COLUMN actors_names TEXT') } catch (e) {}
+  try { db.exec('ALTER TABLE movies ADD COLUMN backdrop_path TEXT') } catch (e) {}
+  try { db.exec('ALTER TABLE movies ADD COLUMN trailer_url TEXT') } catch (e) {}
+  try { db.exec('ALTER TABLE movies ADD COLUMN is_deleted INTEGER DEFAULT 0') } catch (e) {}
+  
+  // Cleanup duplicates before creating unique index
+  try {
+    db.exec(`
+      DELETE FROM movies 
+      WHERE id NOT IN (
+        SELECT MAX(id) 
+        FROM movies 
+        WHERE remote_id IS NOT NULL 
+        GROUP BY remote_id
+      ) AND remote_id IS NOT NULL
+    `)
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_movies_remote_id ON movies(remote_id)')
+  } catch (e) {
+    console.error('Migration failed:', e)
+  }
+
+  // New tables for profiles
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS actors (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      remote_id       INTEGER UNIQUE,
+      name            TEXT NOT NULL,
+      bio             TEXT,
+      birthday        TEXT,
+      place_of_birth  TEXT,
+      image_path      TEXT,
+      tmdb_id         INTEGER,
+      created_at      TEXT DEFAULT (datetime('now')),
+      updated_at      TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS film_actor (
+      film_id         INTEGER,
+      actor_id        INTEGER,
+      role            TEXT,
+      is_main_role    INTEGER DEFAULT 0,
+      PRIMARY KEY (film_id, actor_id),
+      FOREIGN KEY (film_id) REFERENCES movies(id) ON DELETE CASCADE,
+      FOREIGN KEY (actor_id) REFERENCES actors(id) ON DELETE CASCADE
+    );
   `)
 }

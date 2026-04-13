@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApi } from '@/composables/useApi'
+import { useSettingsStore } from '@/stores/settings'
 
 export interface Movie {
   id: number
@@ -14,6 +15,10 @@ export interface Movie {
   overview: string | null
   cover_path: string | null
   cover_url?: string | null
+  backdrop_path: string | null
+  backdrop_url?: string | null
+  actors_names: string | null
+  trailer_url: string | null
   collection_type: string
   tag: string | null
   tmdb_id: number | null
@@ -26,26 +31,49 @@ export const useMovieStore = defineStore('movies', () => {
   const movies  = ref<Movie[]>([])
   const total   = ref(0)
   const loading = ref(false)
+  const loadingMore = ref(false)
   const page    = ref(1)
   const perPage = ref(30)
 
   const { isOnline, apiGet } = useApi()
+  const settings = useSettingsStore()
 
-  async function fetchMovies(params: { q?: string; page?: number } = {}) {
-    loading.value = true
+  async function fetchMovies(params: { q?: string; page?: number } = {}, append = false) {
+    if (!append) {
+      loading.value = true
+      page.value = 1
+    } else {
+      loadingMore.value = true
+    }
+
     try {
+      const currentPage = params.page ?? page.value
+      const currentPerPage = perPage.value
+
       if (isOnline.value) {
-        const data = await apiGet('/movies', { per_page: perPage.value, ...params })
-        movies.value = data.data
+        const data = await apiGet('/movies', { 
+          per_page: currentPerPage, 
+          page: currentPage,
+          ...params 
+        })
+        const newMovies = data.data as Movie[]
+        movies.value = append ? [...movies.value, ...newMovies] : newMovies
         total.value  = data.meta?.total ?? data.data.length
+        page.value   = currentPage
       } else {
-        const result = await window.electron.db.movies.list({ ...params, perPage: perPage.value })
-        movies.value = result.data
+        const result = await window.electron.db.movies.list({ 
+          ...params, 
+          page: currentPage,
+          perPage: currentPerPage 
+        })
+        const newMovies = result.data as Movie[]
+        movies.value = append ? [...movies.value, ...newMovies] : newMovies
         total.value  = result.total
         page.value   = result.page
       }
     } finally {
       loading.value = false
+      loadingMore.value = false
     }
   }
 
@@ -60,5 +88,5 @@ export const useMovieStore = defineStore('movies', () => {
     total.value--
   }
 
-  return { movies, total, loading, page, perPage, fetchMovies, deleteMovie }
+  return { movies, total, loading, loadingMore, page, perPage, fetchMovies, deleteMovie }
 })

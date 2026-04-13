@@ -29,6 +29,11 @@ const router = createRouter({
       component: () => import('@/views/MovieDetailView.vue'),
     },
     {
+      path: '/actors/:id',
+      name: 'actors.show',
+      component: () => import('@/views/ActorDetailView.vue'),
+    },
+    {
       path: '/tmdb',
       name: 'tmdb',
       component: () => import('@/views/TmdbSearchView.vue'),

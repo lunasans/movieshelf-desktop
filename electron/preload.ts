@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('electron', {
+  getIsDev: () => ipcRenderer.invoke('get-is-dev'),
+  getVersion: () => ipcRenderer.invoke('app:get-version'),
   // Window controls
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
@@ -16,8 +18,27 @@ contextBridge.exposeInMainWorld('electron', {
       create:  (data: object)          => ipcRenderer.invoke('db:movies:create', data),
       update:  (id: number, data: object) => ipcRenderer.invoke('db:movies:update', id, data),
       delete:  (id: number)            => ipcRenderer.invoke('db:movies:delete', id),
-      search:  (query: string)         => ipcRenderer.invoke('db:movies:search', query),
+      download: (url: string, id: number, type: 'cover' | 'backdrop' | 'actor') => ipcRenderer.invoke('media:download', { url, id, type }),
+      exists:   (id: number, type: 'cover' | 'backdrop' | 'actor')           => ipcRenderer.invoke('media:exists',   { id, type }),
+      actors: {
+        getForMovie: (movieId: number) => ipcRenderer.invoke('db:movies:actors', movieId),
+        upsert: (data: any) => ipcRenderer.invoke('db:actors:upsert', data),
+        link:   (params: any) => ipcRenderer.invoke('db:actors:link', params),
+        get:    (id: number) => ipcRenderer.invoke('db:actors:get', id),
+        movies: (actorId: number) => ipcRenderer.invoke('db:actors:movies', actorId),
+      },
+      sync: {
+        dirty:      () => ipcRenderer.invoke('db:sync:dirty'),
+        markSynced: (p: any) => ipcRenderer.invoke('db:sync:mark-synced', p),
+        hardDelete: (id: number) => ipcRenderer.invoke('db:sync:hard-delete', id),
+      },
+      clear: () => ipcRenderer.invoke('db:movies:clear'),
     },
+  },
+
+  // Navigation from main process
+  onNavigate: (callback: (path: string) => void) => {
+    ipcRenderer.on('navigate-to', (_event, path) => callback(path))
   },
 
   // Settings
