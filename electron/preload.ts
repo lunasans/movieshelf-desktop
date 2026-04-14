@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('electron', {
         markSynced: (p: any) => ipcRenderer.invoke('db:sync:mark-synced', p),
         hardDelete: (id: number) => ipcRenderer.invoke('db:sync:hard-delete', id),
       },
+      checkTmdbIds: (ids: number[]) => ipcRenderer.invoke('db:movies:check-tmdb-ids', ids),
       clear: () => ipcRenderer.invoke('db:movies:clear'),
     },
   },
@@ -39,6 +40,14 @@ contextBridge.exposeInMainWorld('electron', {
   // Navigation from main process
   onNavigate: (callback: (path: string) => void) => {
     ipcRenderer.on('navigate-to', (_event, path) => callback(path))
+  },
+
+  // Updater
+  update: {
+    install:    (url: string, sha256?: string) => ipcRenderer.invoke('update:install', url, sha256),
+    onProgress: (callback: (percent: number) => void) => {
+      ipcRenderer.on('update:progress', (_event, percent) => callback(percent))
+    },
   },
 
   // Settings

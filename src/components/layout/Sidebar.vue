@@ -11,7 +11,7 @@
 
     <div class="px-3 mt-4 border-t border-[var(--border-ui)] border-ui pt-4 space-y-1">
       <SidebarItem to="/sync" icon="arrow-left-right" label="Synchronisation" />
-      <SidebarItem to="/settings" icon="gear-fill" label="Einstellungen" />
+      <SidebarItem to="/settings" icon="gear-fill" label="Einstellungen" :badge="settings.updateAvailable" />
       
       <!-- Version display -->
       <div v-if="!ui.isSidebarCollapsed" class="px-3 pt-4 opacity-20 hover:opacity-100 transition-opacity">

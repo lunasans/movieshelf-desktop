@@ -14,12 +14,12 @@ export function useUpdateService() {
       // const isDev = await window.electron.getIsDev()
       
       const response = await axios.get(UPDATE_URL)
-      const remoteVersion = response.data.version
-      
-      settings.newestVersion = remoteVersion
-      
-      // Einfacher Versionsvergleich (String-Vergleich)
-      // Für professionellere Vergleiche könnte man 'semver' nutzen
+      const { version: remoteVersion, url, sha256 } = response.data
+
+      settings.newestVersion   = remoteVersion
+      settings.updateUrl       = url ? `https://movieshelf.info${url.startsWith('/') ? '' : '/'}${url}` : ''
+      settings.updateSha256    = sha256 ?? ''
+
       if (remoteVersion !== settings.appVersion) {
         settings.updateAvailable = compareVersions(remoteVersion, settings.appVersion) > 0
       } else {

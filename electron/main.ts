@@ -1,5 +1,9 @@
 import { app, BrowserWindow, ipcMain, shell, protocol, net } from 'electron'
-import { join } from 'path'
+import { join, sep } from 'path'
+import { createWriteStream, existsSync, unlinkSync } from 'fs'
+import { tmpdir } from 'os'
+import { createHash } from 'crypto'
+import axios from 'axios'
 import { setupDatabase, getDb } from './database'
 import { registerMovieHandlers } from './handlers/movies'
 import { registerSettingsHandlers } from './handlers/settings'
@@ -34,7 +38,9 @@ function createWindow() {
   }
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    if (url.startsWith('https://') || url.startsWith('http://')) {
+      shell.openExternal(url)
+    }
     return { action: 'deny' }
   })
 
@@ -89,8 +95,15 @@ app.whenReady().then(() => {
 
   // Register local resource protocol
   protocol.handle('movie-resource', (request) => {
-    const fileName = request.url.replace('movie-resource://', '')
-    const filePath = join(app.getPath('userData'), 'covers', fileName)
+    const coversDir = join(app.getPath('userData'), 'covers')
+    const raw = request.url.slice('movie-resource://'.length)
+    // Strip any path separators to prevent directory traversal
+    const fileName = raw.replace(/[/\\]/g, '')
+    const filePath = join(coversDir, fileName)
+    // Ensure the resolved path stays inside the covers directory
+    if (!filePath.startsWith(coversDir + sep)) {
+      return new Response('Forbidden', { status: 403 })
+    }
     return net.fetch('file://' + filePath)
   })
 
@@ -122,3 +135,52 @@ ipcMain.on('window:close', () => {
 
 ipcMain.handle('get-is-dev', () => isDev)
 ipcMain.handle('app:get-version', () => app.getVersion())
+
+ipcMain.handle('update:install', async (_event, url: string, sha256?: string) => {
+  const fileName = url.split('/').pop() || 'update.exe'
+  const destPath = join(tmpdir(), fileName)
+
+  // Remove stale file if present
+  if (existsSync(destPath)) unlinkSync(destPath)
+
+  try {
+    const response = await axios({ url, method: 'GET', responseType: 'stream' })
+    const total: number = parseInt(response.headers['content-length'] ?? '0', 10)
+    let received = 0
+
+    await new Promise<void>((resolve, reject) => {
+      const writer = createWriteStream(destPath)
+      response.data.on('data', (chunk: Buffer) => {
+        received += chunk.length
+        if (total > 0 && mainWindow) {
+          mainWindow.webContents.send('update:progress', Math.round((received / total) * 100))
+        }
+      })
+      response.data.pipe(writer)
+      writer.on('finish', resolve)
+      writer.on('error', reject)
+    })
+
+    // SHA256 verification
+    if (sha256) {
+      const fileHash = await new Promise<string>((resolve, reject) => {
+        const hash = createHash('sha256')
+        const { createReadStream } = require('fs')
+        const stream = createReadStream(destPath)
+        stream.on('data', (d: Buffer) => hash.update(d))
+        stream.on('end', () => resolve(hash.digest('hex')))
+        stream.on('error', reject)
+      })
+      if (fileHash.toLowerCase() !== sha256.toLowerCase()) {
+        unlinkSync(destPath)
+        return { success: false, error: 'SHA256-Prüfung fehlgeschlagen — Datei wurde gelöscht.' }
+      }
+    }
+
+    shell.openPath(destPath)
+    return { success: true }
+  } catch (e: any) {
+    if (existsSync(destPath)) unlinkSync(destPath)
+    return { success: false, error: e.message }
+  }
+})

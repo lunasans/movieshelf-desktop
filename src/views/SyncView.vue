@@ -77,7 +77,10 @@
       <div v-if="log.length > 0" class="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-ui)] p-6">
         <p class="text-xs font-black uppercase tracking-widest text-[var(--text-muted)] opacity-40 mb-4">Protokoll</p>
         <div class="space-y-1.5 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-          <p v-for="(line, i) in log" :key="i" class="text-xs font-mono text-[var(--text-main)] opacity-70" v-html="line"></p>
+          <p v-for="(line, i) in log" :key="i" class="text-xs font-mono opacity-70"
+            :class="line.type === 'error' ? 'text-red-400' : line.type === 'bold' ? 'text-[var(--text-main)] font-bold' : 'text-[var(--text-main)]'">
+            {{ line.text }}
+          </p>
         </div>
       </div>
     </template>
@@ -92,8 +95,14 @@ import { useApi } from '@/composables/useApi'
 const settings = useSettingsStore()
 const { apiGet, apiPost, apiPut, apiDelete, resolveMediaUrl } = useApi()
 
+type LogLine = { text: string; type: 'info' | 'bold' | 'error' }
+
 const syncing = ref(false)
-const log = ref<string[]>([])
+const log = ref<LogLine[]>([])
+
+function logInfo(text: string)  { log.value.push({ text, type: 'info' }) }
+function logBold(text: string)  { log.value.push({ text, type: 'bold' }) }
+function logError(text: string) { log.value.push({ text, type: 'error' }) }
 
 async function fullSync() {
   await syncFromShelf(false)
@@ -103,33 +112,33 @@ async function fullSync() {
 async function syncToShelf() {
   syncing.value = true
   if (log.value.length === 0) log.value = []
-  log.value.push('<b>Push-Sync gestartet...</b>')
-  
+  logBold('Push-Sync gestartet...')
+
   try {
     const dirty = await window.electron.db.sync.dirty()
     if (dirty.length === 0) {
-      log.value.push('Keine lokalen Änderungen zum Hochladen gefunden.')
+      logInfo('Keine lokalen Änderungen zum Hochladen gefunden.')
       return
     }
 
-    log.value.push(`${dirty.length} lokale Änderungen werden verarbeitet...`)
-    
+    logInfo(`${dirty.length} lokale Änderungen werden verarbeitet...`)
+
     for (const movie of dirty) {
       try {
         if (movie.is_deleted) {
           if (movie.remote_id) {
-            log.value.push(`Lösche remote: ${movie.title}...`)
+            logInfo(`Lösche remote: ${movie.title}...`)
             await apiDelete(`/admin/movies/${movie.remote_id}`)
           }
           await window.electron.db.sync.hardDelete(movie.id)
-        } 
+        }
         else if (!movie.remote_id) {
-          log.value.push(`Erstelle remote: ${movie.title}...`)
+          logInfo(`Erstelle remote: ${movie.title}...`)
           let res
           if (movie.tmdb_id) {
-            res = await apiPost('/tmdb/import', { 
-              tmdb_id: movie.tmdb_id, 
-              type: movie.collection_type === 'Serie' ? 'tv' : 'movie' 
+            res = await apiPost('/tmdb/import', {
+              tmdb_id: movie.tmdb_id,
+              type: movie.collection_type === 'Serie' ? 'tv' : 'movie'
             })
           } else {
             res = await apiPost('/admin/movies', {
@@ -147,7 +156,7 @@ async function syncToShelf() {
               trailer_url: movie.trailer_url
             })
           }
-          
+
           await window.electron.db.sync.markSynced({
             id: movie.id,
             remote_id: res.data.id,
@@ -155,7 +164,7 @@ async function syncToShelf() {
           })
         }
         else {
-          log.value.push(`Aktualisiere remote: ${movie.title}...`)
+          logInfo(`Aktualisiere remote: ${movie.title}...`)
           await apiPut(`/admin/movies/${movie.remote_id}`, {
             title: movie.title,
             year: movie.year,
@@ -170,7 +179,7 @@ async function syncToShelf() {
             tmdb_id: movie.tmdb_id,
             trailer_url: movie.trailer_url
           })
-          
+
           await window.electron.db.sync.markSynced({
             id: movie.id,
             remote_id: movie.remote_id,
@@ -178,12 +187,12 @@ async function syncToShelf() {
           })
         }
       } catch (e: any) {
-        log.value.push(`<span class="text-red-400">Fehler bei ${movie.title}: ${e.message}</span>`)
+        logError(`Fehler bei ${movie.title}: ${e.message}`)
       }
     }
-    log.value.push('✓ Push-Sync abgeschlossen.')
+    logInfo('✓ Push-Sync abgeschlossen.')
   } catch (e: any) {
-    log.value.push(`<span class="text-red-400">Fataler Fehler: ${e.message}</span>`)
+    logError(`Fataler Fehler: ${e.message}`)
   } finally {
     syncing.value = false
   }
@@ -192,14 +201,14 @@ async function syncToShelf() {
 async function syncFromShelf(resetLog = true) {
   syncing.value = true
   if (resetLog) log.value = []
-  log.value.push('<b>Pull-Sync gestartet...</b>')
-  
-  try {
-    log.value.push('Verbinde mit MovieShelf...')
-    const data = await apiGet('/admin/export')
-    log.value.push(`${data.count} Filme in der Cloud gefunden.`)
+  logBold('Pull-Sync gestartet...')
 
-    log.value.push('Synchronisiere Metadaten...')
+  try {
+    logInfo('Verbinde mit MovieShelf...')
+    const data = await apiGet('/admin/export')
+    logInfo(`${data.count} Filme in der Cloud gefunden.`)
+
+    logInfo('Synchronisiere Metadaten...')
     for (const movie of data.movies) {
       // Create/Update locally
       const localMovie = await window.electron.db.movies.create({
@@ -245,7 +254,7 @@ async function syncFromShelf(resetLog = true) {
           })
 
           await window.electron.db.movies.actors.link({
-            film_id: localMovie.id, 
+            film_id: localMovie.id,
             actor_id: localActorId,
             role: actorData.role,
             is_main_role: actorData.is_main_role
@@ -254,10 +263,10 @@ async function syncFromShelf(resetLog = true) {
       }
     }
 
-    log.value.push(`✓ Metadaten erfolgreich aktualisiert.`)
+    logInfo('✓ Metadaten erfolgreich aktualisiert.')
 
     // Media Sync
-    log.value.push('Prüfe auf neue Medien (Bilder)...')
+    logInfo('Prüfe auf neue Medien (Bilder)...')
     let downloaded = 0
     const processedActors = new Set<number>()
 
@@ -287,9 +296,9 @@ async function syncFromShelf(resetLog = true) {
         }
       }
     }
-    log.value.push(`✓ Medien-Sync abgeschlossen. ${downloaded} Dateien verarbeitet.`)
+    logInfo(`✓ Medien-Sync abgeschlossen. ${downloaded} Dateien verarbeitet.`)
   } catch (e: any) {
-    log.value.push(`<span class="text-red-400">Fehler: ${e.message}</span>`)
+    logError(`Fehler: ${e.message}`)
     console.error(e)
   } finally {
     if (resetLog) syncing.value = false

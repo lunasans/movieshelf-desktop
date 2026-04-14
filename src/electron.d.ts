@@ -1,28 +1,51 @@
-export {}
+interface Window {
+  electron: {
+    getIsDev:   () => Promise<boolean>
+    getVersion: () => Promise<string>
 
-declare global {
-  interface Window {
-    electron: {
-      window: {
-        minimize: () => void
-        maximize: () => void
-        close: () => void
-      }
-      db: {
-        movies: {
-          list:   (params?: { page?: number; perPage?: number; q?: string }) => Promise<{ data: unknown[]; total: number; page: number; perPage: number }>
-          get:    (id: number) => Promise<unknown>
-          create: (data: Record<string, unknown>) => Promise<unknown>
-          update: (id: number, data: Record<string, unknown>) => Promise<unknown>
-          delete: (id: number) => Promise<{ success: boolean }>
-          search: (query: string) => Promise<unknown[]>
+    window: {
+      minimize: () => void
+      maximize: () => void
+      close:    () => void
+    }
+
+    db: {
+      movies: {
+        list:         (params?: { page?: number; perPage?: number; q?: string }) => Promise<{ data: unknown[]; total: number; page: number; perPage: number }>
+        get:          (id: number) => Promise<unknown>
+        create:       (data: Record<string, unknown>) => Promise<unknown>
+        update:       (id: number, data: Record<string, unknown>) => Promise<unknown>
+        delete:       (id: number) => Promise<{ success: boolean }>
+        download:     (url: string, id: number, type: 'cover' | 'backdrop' | 'actor') => Promise<{ success: boolean; path?: string; error?: string }>
+        exists:       (id: number, type: 'cover' | 'backdrop' | 'actor') => Promise<boolean>
+        checkTmdbIds: (ids: number[]) => Promise<number[]>
+        clear:        () => Promise<{ success: boolean }>
+        actors: {
+          getForMovie: (movieId: number) => Promise<unknown[]>
+          upsert:      (data: Record<string, unknown>) => Promise<number>
+          link:        (params: { film_id: number; actor_id: number; role?: string; is_main_role?: boolean }) => Promise<unknown>
+          get:         (id: number) => Promise<unknown>
+          movies:      (actorId: number) => Promise<unknown[]>
+        }
+        sync: {
+          dirty:      () => Promise<unknown[]>
+          markSynced: (p: { id: number; remote_id: number; synced_at: string }) => Promise<unknown>
+          hardDelete: (id: number) => Promise<unknown>
         }
       }
-      settings: {
-        get:    (key: string) => Promise<string | null>
-        set:    (key: string, value: unknown) => Promise<boolean>
-        getAll: () => Promise<Record<string, string>>
-      }
+    }
+
+    onNavigate: (callback: (path: string) => void) => void
+
+    update: {
+      install:    (url: string, sha256?: string) => Promise<{ success: boolean; error?: string }>
+      onProgress: (callback: (percent: number) => void) => void
+    }
+
+    settings: {
+      get:    (key: string) => Promise<string | null>
+      set:    (key: string, value: unknown) => Promise<boolean>
+      getAll: () => Promise<Record<string, string>>
     }
   }
 }

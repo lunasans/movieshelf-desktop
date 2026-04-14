@@ -1,6 +1,12 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../database'
 
+const ALLOWED_MOVIE_COLUMNS = new Set([
+  'title', 'year', 'genre', 'director', 'runtime', 'rating', 'rating_age',
+  'overview', 'cover_path', 'backdrop_path', 'actors_names', 'trailer_url',
+  'collection_type', 'tag', 'tmdb_id', 'remote_id', 'synced_at', 'is_deleted',
+])
+
 export function registerMovieHandlers(): void {
   const db = () => getDb()
 
@@ -36,6 +42,29 @@ export function registerMovieHandlers(): void {
 
   ipcMain.handle('db:movies:create', (_event, data: Record<string, unknown>) => {
     const now = new Date().toISOString()
+
+    // If the incoming record has both remote_id and tmdb_id, check whether a local-only
+    // film with the same tmdb_id exists (remote_id IS NULL). If so, merge into it instead
+    // of inserting a duplicate.
+    if (data.remote_id != null && data.tmdb_id != null) {
+      const orphan = db().prepare(
+        'SELECT id FROM movies WHERE tmdb_id = ? AND remote_id IS NULL AND is_deleted = 0'
+      ).get(data.tmdb_id) as { id: number } | undefined
+
+      if (orphan) {
+        db().prepare(`
+          UPDATE movies SET
+            remote_id = @remote_id, title = @title, year = @year, genre = @genre,
+            director = @director, runtime = @runtime, rating = @rating, rating_age = @rating_age,
+            overview = @overview, cover_path = @cover_path, backdrop_path = @backdrop_path,
+            actors_names = @actors_names, trailer_url = @trailer_url,
+            collection_type = @collection_type, tag = @tag, updated_at = @updated_at
+          WHERE id = @id
+        `).run({ ...data, updated_at: data.updated_at || now, id: orphan.id })
+        return db().prepare('SELECT * FROM movies WHERE id = ?').get(orphan.id)
+      }
+    }
+
     const stmt = db().prepare(`
       INSERT INTO movies (title, year, genre, director, runtime, rating, rating_age, overview,
         cover_path, backdrop_path, actors_names, trailer_url, collection_type, tag, tmdb_id, remote_id, created_at, updated_at)
@@ -125,9 +154,12 @@ export function registerMovieHandlers(): void {
 
   ipcMain.handle('db:movies:update', (_event, id: number, data: Record<string, unknown>) => {
     const now = new Date().toISOString()
-    const fields = Object.keys(data).map(k => `${k} = @${k}`).join(', ')
+    const safeKeys = Object.keys(data).filter(k => ALLOWED_MOVIE_COLUMNS.has(k))
+    if (safeKeys.length === 0) return db().prepare('SELECT * FROM movies WHERE id = ?').get(id)
+    const fields = safeKeys.map(k => `${k} = @${k}`).join(', ')
+    const safeData = Object.fromEntries(safeKeys.map(k => [k, data[k]]))
     db().prepare(`UPDATE movies SET ${fields}, updated_at = @updated_at WHERE id = @id`)
-      .run({ ...data, updated_at: now, id })
+      .run({ ...safeData, updated_at: now, id })
     return db().prepare('SELECT * FROM movies WHERE id = ?').get(id)
   })
 
@@ -163,6 +195,15 @@ export function registerMovieHandlers(): void {
 
   ipcMain.handle('db:sync:hard-delete', (_event, id: number) => {
     return db().prepare('DELETE FROM movies WHERE id = ?').run(id)
+  })
+
+  ipcMain.handle('db:movies:check-tmdb-ids', (_event, tmdbIds: number[]) => {
+    if (!Array.isArray(tmdbIds) || tmdbIds.length === 0) return []
+    const placeholders = tmdbIds.map(() => '?').join(', ')
+    const rows = db().prepare(
+      `SELECT tmdb_id FROM movies WHERE is_deleted = 0 AND tmdb_id IN (${placeholders})`
+    ).all(...tmdbIds) as { tmdb_id: number }[]
+    return rows.map(r => r.tmdb_id)
   })
 
   ipcMain.handle('db:movies:clear', () => {

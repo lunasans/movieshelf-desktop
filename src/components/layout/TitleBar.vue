@@ -14,8 +14,7 @@
       </button>
 
       <div class="flex items-center gap-2">
-        <i class="bi bi-film text-[var(--movie-red)] text-base"></i>
-        <span class="text-sm font-bold text-[var(--text-main)] tracking-widest uppercase">MovieShelf</span>
+        <img src="/logo_small.png" alt="MovieShelf" class="h-5 w-auto" />
       </div>
     </div>
 

@@ -3,8 +3,8 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-black text-white uppercase tracking-tight">Filme</h1>
-        <p class="text-sm text-white/40">{{ store.total }} Filme in der Sammlung</p>
+        <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight">Filme</h1>
+        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ store.total }} Filme in der Sammlung</p>
       </div>
       <router-link
         to="/movies/new"
@@ -16,13 +16,13 @@
 
     <!-- Search -->
     <div class="relative mb-6">
-      <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-white/20"></i>
+      <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] opacity-40"></i>
       <input
         v-model="query"
         @input="onSearch"
         type="text"
         placeholder="Titel, Regisseur, Genre suchen..."
-        class="w-full bg-[#12121a] border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-red-500/50"
+        class="w-full bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl pl-12 pr-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors"
       />
     </div>
 
@@ -47,7 +47,7 @@
     </div>
 
     <!-- Empty -->
-    <div v-if="!store.loading && store.movies.length === 0" class="text-center py-20 text-white/20 text-sm">
+    <div v-if="!store.loading && store.movies.length === 0" class="text-center py-20 text-[var(--text-muted)] opacity-40 text-sm">
       Keine Filme gefunden.
     </div>
   </div>
