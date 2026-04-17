@@ -86,6 +86,7 @@ function runMigrations(): void {
   try { db.exec('ALTER TABLE movies ADD COLUMN backdrop_path TEXT') } catch (e) {}
   try { db.exec('ALTER TABLE movies ADD COLUMN trailer_url TEXT') } catch (e) {}
   try { db.exec('ALTER TABLE movies ADD COLUMN is_deleted INTEGER DEFAULT 0') } catch (e) {}
+  try { db.exec('ALTER TABLE movies ADD COLUMN tag TEXT') } catch (e) {}
   
   // Cleanup duplicates before creating unique index
   try {
@@ -103,28 +104,23 @@ function runMigrations(): void {
     console.error('Migration failed:', e)
   }
 
-  // New tables for profiles
+  // Custom lists
   db.exec(`
-    CREATE TABLE IF NOT EXISTS actors (
-      id              INTEGER PRIMARY KEY AUTOINCREMENT,
-      remote_id       INTEGER UNIQUE,
-      name            TEXT NOT NULL,
-      bio             TEXT,
-      birthday        TEXT,
-      place_of_birth  TEXT,
-      image_path      TEXT,
-      tmdb_id         INTEGER,
-      created_at      TEXT DEFAULT (datetime('now')),
-      updated_at      TEXT DEFAULT (datetime('now'))
+    CREATE TABLE IF NOT EXISTS lists (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      name       TEXT    NOT NULL,
+      created_at TEXT    DEFAULT (datetime('now')),
+      updated_at TEXT    DEFAULT (datetime('now'))
     );
-    CREATE TABLE IF NOT EXISTS film_actor (
-      film_id         INTEGER,
-      actor_id        INTEGER,
-      role            TEXT,
-      is_main_role    INTEGER DEFAULT 0,
-      PRIMARY KEY (film_id, actor_id),
-      FOREIGN KEY (film_id) REFERENCES movies(id) ON DELETE CASCADE,
-      FOREIGN KEY (actor_id) REFERENCES actors(id) ON DELETE CASCADE
+
+    CREATE TABLE IF NOT EXISTS list_movies (
+      list_id    INTEGER NOT NULL,
+      movie_id   INTEGER NOT NULL,
+      added_at   TEXT    DEFAULT (datetime('now')),
+      PRIMARY KEY (list_id, movie_id),
+      FOREIGN KEY (list_id)  REFERENCES lists(id)  ON DELETE CASCADE,
+      FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE
     );
   `)
+
 }

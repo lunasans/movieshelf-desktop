@@ -20,7 +20,8 @@ export const useSettingsStore = defineStore('settings', () => {
   async function load() {
     const all = await window.electron.settings.getAll()
     mode.value       = all.mode     === 'online' ? 'online' : 'standalone'
-    theme.value      = all.theme    ?? 'dark'
+    const validThemes = ['light', 'dark', 'system'] as const
+    theme.value      = (validThemes as readonly string[]).includes(all.theme) ? all.theme as 'light' | 'dark' | 'system' : 'dark'
     shelfUrl.value   = all.shelf_url  ?? ''
     token.value      = all.shelf_token ?? ''
     tmdbApiKey.value = all.tmdb_api_key ?? ''

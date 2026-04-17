@@ -33,6 +33,35 @@ interface Window {
           hardDelete: (id: number) => Promise<unknown>
         }
       }
+      lists: {
+        list:        ()                                 => Promise<unknown[]>
+        get:         (id: number)                      => Promise<unknown>
+        create:      (name: string)                    => Promise<unknown>
+        update:      (id: number, name: string)        => Promise<unknown>
+        delete:      (id: number)                      => Promise<{ success: boolean }>
+        addMovie:    (listId: number, movieId: number) => Promise<{ success: boolean }>
+        removeMovie: (listId: number, movieId: number) => Promise<{ success: boolean }>
+        forMovie:    (movieId: number)                 => Promise<number[]>
+      }
+    }
+
+    trailer?: {
+      open: (url: string) => Promise<void>
+    }
+
+    stats: {
+      openWindow: () => Promise<void>
+      get: () => Promise<{
+        totalMovies:   number
+        totalRuntime:  number
+        watchedMovies: number
+        ratedMovies:   number
+        genres:    { name: string; count: number }[]
+        byYear:    { year: number; count: number }[]
+        topActors: { name: string; image_path: string | null; movie_count: number }[]
+        byType:    { collection_type: string; count: number }[]
+        byRuntime: { label: string; count: number }[]
+      }>
     }
 
     onNavigate: (callback: (path: string) => void) => void

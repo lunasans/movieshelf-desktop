@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, shell, protocol, net } from 'electron'
-import { join, sep } from 'path'
+import { join, sep, extname } from 'path'
 import { createWriteStream, existsSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { createHash } from 'crypto'
@@ -8,6 +8,8 @@ import { setupDatabase, getDb } from './database'
 import { registerMovieHandlers } from './handlers/movies'
 import { registerSettingsHandlers } from './handlers/settings'
 import { registerMediaHandlers } from './handlers/media'
+import { registerListHandlers } from './handlers/lists'
+import { registerStatsHandlers } from './handlers/stats'
 
 const isDev = !app.isPackaged || process.env.NODE_ENV === 'development'
 
@@ -26,6 +28,7 @@ function createWindow() {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      webviewTag: false,
     },
     icon: join(__dirname, '../public/icon.png'),
   })
@@ -92,6 +95,8 @@ app.whenReady().then(() => {
   registerMovieHandlers()
   registerSettingsHandlers()
   registerMediaHandlers()
+  registerListHandlers()
+  registerStatsHandlers()
 
   // Register local resource protocol
   protocol.handle('movie-resource', (request) => {
@@ -133,11 +138,54 @@ ipcMain.on('window:close', () => {
   }
 })
 
+ipcMain.handle('trailer:open', (_event, url: string) => {
+  // Only allow YouTube watch URLs
+  let parsedUrl: URL
+  try { parsedUrl = new URL(url) } catch { return }
+  if (parsedUrl.protocol !== 'https:') return
+  if (!/^(www\.)?youtube\.com$/.test(parsedUrl.hostname)) return
+  if (!parsedUrl.pathname.startsWith('/watch')) return
+
+  const win = new BrowserWindow({
+    width: 1280,
+    height: 720,
+    backgroundColor: '#000000',
+    autoHideMenuBar: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  win.webContents.setUserAgent(
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+  )
+  win.loadURL(url)
+
+  win.webContents.on('before-input-event', (_e, input) => {
+    if (input.key === 'Escape') win.close()
+  })
+})
+
 ipcMain.handle('get-is-dev', () => isDev)
 ipcMain.handle('app:get-version', () => app.getVersion())
 
+const ALLOWED_UPDATE_EXTENSIONS = new Set(['.exe', '.dmg', '.appimage', '.deb', '.rpm', '.zip'])
+
 ipcMain.handle('update:install', async (_event, url: string, sha256?: string) => {
-  const fileName = url.split('/').pop() || 'update.exe'
+  // Validate URL: must be HTTPS with an allowed installer extension
+  let parsedUrl: URL
+  try { parsedUrl = new URL(url) } catch {
+    return { success: false, error: 'Ungültige URL.' }
+  }
+  if (parsedUrl.protocol !== 'https:') {
+    return { success: false, error: 'Nur HTTPS-URLs erlaubt.' }
+  }
+  if (!ALLOWED_UPDATE_EXTENSIONS.has(extname(parsedUrl.pathname).toLowerCase())) {
+    return { success: false, error: 'Ungültiges Dateiformat.' }
+  }
+
+  const fileName = parsedUrl.pathname.split('/').pop() || 'update.exe'
   const destPath = join(tmpdir(), fileName)
 
   // Remove stale file if present

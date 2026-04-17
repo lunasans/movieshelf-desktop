@@ -14,8 +14,8 @@
 
       <!-- Play Button -->
       <div v-if="movie.trailer_url" class="absolute inset-0 flex items-center justify-center z-20">
-        <button 
-          @click="showTrailer = true"
+        <button
+          @click="openTrailer"
           class="w-20 h-20 bg-red-600/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-2xl shadow-red-600/40 border-4 border-white/20"
         >
           <i class="bi bi-play-fill text-4xl ml-1"></i>
@@ -36,12 +36,6 @@
       </div>
     </div>
 
-    <!-- Video Modal -->
-    <VideoModal 
-      :show="showTrailer" 
-      :videoUrl="embedUrl" 
-      @close="showTrailer = false" 
-    />
 
     <!-- Content Over Backdrop -->
     <div class="px-12 -mt-32 relative z-10 pb-20">
@@ -164,6 +158,38 @@
             class="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-red-600/20">
             Film bearbeiten
           </router-link>
+
+          <!-- Listen -->
+          <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-4 space-y-3">
+            <p class="text-[var(--text-muted)] opacity-50 text-[10px] font-black uppercase tracking-[0.15em]">Listen</p>
+
+            <div v-if="listStore.lists.length === 0" class="text-xs text-[var(--text-muted)] opacity-40 italic">
+              Noch keine Listen vorhanden.
+            </div>
+
+            <div
+              v-for="list in listStore.lists"
+              :key="list.id"
+              @click="toggleList(list.id)"
+              class="flex items-center gap-3 cursor-pointer group"
+            >
+              <div
+                class="w-4 h-4 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0"
+                :class="movieListIds.has(list.id)
+                  ? 'bg-red-600 border-red-600'
+                  : 'border-[var(--border-ui)] group-hover:border-red-500/50'"
+              >
+                <i v-if="movieListIds.has(list.id)" class="bi bi-check text-white text-[10px] leading-none"></i>
+              </div>
+              <span class="text-sm text-[var(--text-main)] truncate">{{ list.name }}</span>
+            </div>
+
+            <router-link to="/lists"
+              class="flex items-center gap-2 text-xs text-[var(--text-muted)] hover:text-red-500 opacity-60 hover:opacity-100 transition-all pt-1">
+              <i class="bi bi-plus-circle"></i> Listen verwalten
+            </router-link>
+          </div>
+
           <router-link to="/movies"
             class="flex items-center justify-center w-full bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-4 rounded-2xl transition-colors">
             Zurück zur Sammlung
@@ -179,14 +205,15 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { useUiStore } from '@/stores/ui'
-import VideoModal from '@/components/ui/VideoModal.vue'
-
+import { useListStore } from '@/stores/lists'
 const route = useRoute()
 const { isOnline, apiGet, resolveMediaUrl } = useApi()
 const ui = useUiStore()
+const listStore = useListStore()
 const movie = ref<any>(null)
+const localMovieId = ref<number | null>(null)
+const movieListIds = ref<Set<number>>(new Set())
 const linkedActors = ref<any[]>([])
-const showTrailer = ref(false)
 const isSticky = ref(false)
 
 const titleRef = ref<HTMLElement | null>(null)
@@ -210,18 +237,10 @@ const handleScroll = (e: Event) => {
   }
 }
 
-function searchYouTube() {
-  const query = `${movie.value?.title} ${movie.value?.year || ''} trailer`.trim()
-  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`
-  window.open(url, '_blank')
-}
-
 const embedUrl = computed(() => {
   if (!movie.value?.trailer_url) return null
-  
-  let videoId = ''
   const url = movie.value.trailer_url
-  
+  let videoId = ''
   if (url.includes('v=')) {
     videoId = url.split('v=')[1].split('&')[0]
   } else if (url.includes('youtu.be/')) {
@@ -231,16 +250,39 @@ const embedUrl = computed(() => {
   } else {
     videoId = url
   }
-  
   return `https://www.youtube.com/embed/${videoId}?autoplay=1`
 })
+
+function openTrailer() {
+  const url = movie.value?.trailer_url
+  if (!url) return
+
+  let videoId = ''
+  if (url.includes('v='))        videoId = url.split('v=')[1].split('&')[0]
+  else if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1].split('?')[0]
+  else if (url.includes('embed/'))    videoId = url.split('embed/')[1].split('?')[0]
+  else                                videoId = url
+
+  const watchUrl = `https://www.youtube.com/watch?v=${videoId}`
+
+  if (window.electron?.trailer) {
+    window.electron.trailer.open(watchUrl)
+  } else {
+    window.open(watchUrl, '_blank')
+  }
+}
+
+function searchYouTube() {
+  const query = `${movie.value?.title} ${movie.value?.year || ''} trailer`.trim()
+  window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, '_blank')
+}
 
 const parsedOverview = computed(() => {
   const text = movie.value?.overview as string
   if (!text) return []
 
   const cleaned = text.replace(/<[^>]*>?/gm, '')
-  const segments: { type: 'text' | 'actor', value: string }[] = []
+  const segments: { type: 'text' | 'actor', value: string, id?: number | null }[] = []
   const regex = /\{!Actor\}(.*?)\}|\(\[!Actor\](.*?)\)\)?/g
   let lastIndex = 0
   let match
@@ -265,9 +307,52 @@ const parsedOverview = computed(() => {
   return segments
 })
 
+async function ensureLocalMovie(): Promise<number | null> {
+  if (localMovieId.value !== null) return localMovieId.value
+  if (!movie.value) return null
+  // Film existiert noch nicht lokal — automatisch anlegen (ohne Cover-Download)
+  const m = movie.value as any
+  const created = await window.electron.db.movies.create({
+    title:           m.title,
+    year:            m.year,
+    genre:           m.genre,
+    director:        m.director,
+    runtime:         m.runtime,
+    rating:          m.rating,
+    rating_age:      m.rating_age,
+    overview:        m.overview,
+    collection_type: m.collection_type ?? 'Film',
+    tag:             m.tag,
+    tmdb_id:         m.tmdb_id,
+    remote_id:       m.id,
+    cover_path:      m.cover_url ?? null,
+    backdrop_path:   m.backdrop_url ?? null,
+    actors_names:    m.actors_names ?? null,
+    trailer_url:     m.trailer_url ?? null,
+  }) as any
+  if (!created?.id) return null
+  localMovieId.value = created.id
+  return created.id
+}
+
+async function toggleList(listId: number) {
+  if (!movie.value) return
+  const movieId = await ensureLocalMovie()
+  if (movieId === null) return
+  if (movieListIds.value.has(listId)) {
+    await listStore.removeMovie(listId, movieId)
+    movieListIds.value.delete(listId)
+  } else {
+    await listStore.addMovie(listId, movieId)
+    movieListIds.value.add(listId)
+  }
+  // Force reactivity update
+  movieListIds.value = new Set(movieListIds.value)
+}
+
 onMounted(async () => {
   const id = Number(route.params.id)
-  
+
   const scroller = document.querySelector('main')
   if (scroller) {
     scroller.addEventListener('scroll', handleScroll)
@@ -286,6 +371,16 @@ onMounted(async () => {
   } else {
     movie.value = await window.electron.db.movies.get(id)
     linkedActors.value = await window.electron.db.movies.actors.getForMovie(id)
+  }
+
+  // Lokale ID ermitteln (im Online-Modus ist route param die Remote-ID)
+  const localMovie = await window.electron.db.movies.get(id) as any
+  localMovieId.value = localMovie?.id ?? null   // null = Film noch nicht lokal synchronisiert
+
+  await listStore.fetchLists()
+  if (localMovieId.value !== null) {
+    const ids = await window.electron.db.lists.forMovie(localMovieId.value)
+    movieListIds.value = new Set(ids)
   }
 })
 

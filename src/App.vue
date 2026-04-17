@@ -1,14 +1,14 @@
 <template>
-  <div class="flex flex-col h-screen overflow-hidden">
-    <!-- Custom Title Bar -->
+  <!-- Popup mode (stats window etc.) — no sidebar/titlebar -->
+  <div v-if="isPopup" class="h-screen overflow-y-auto bg-[var(--bg-app)]">
+    <router-view />
+  </div>
+
+  <!-- Normal app layout -->
+  <div v-else class="flex flex-col h-screen overflow-hidden">
     <TitleBar />
-
-    <!-- Main Layout -->
     <div class="flex flex-1 overflow-hidden">
-      <!-- Sidebar -->
       <Sidebar />
-
-      <!-- Content -->
       <main class="flex-1 overflow-y-auto">
         <router-view />
       </main>
@@ -22,6 +22,8 @@ import { useSettingsStore } from '@/stores/settings'
 import { useUpdateService } from '@/services/updateService'
 import TitleBar from '@/components/layout/TitleBar.vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
+
+const isPopup = new URLSearchParams(window.location.search).get('popup') === '1'
 
 const settings = useSettingsStore()
 const { checkForUpdates } = useUpdateService()

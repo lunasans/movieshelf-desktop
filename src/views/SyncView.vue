@@ -25,7 +25,7 @@
             <p class="text-xs text-[var(--text-muted)] opacity-60 mb-6">Filme von deiner Cloud herunterladen</p>
           </div>
           <button
-            @click="syncFromShelf"
+            @click="() => syncFromShelf()"
             :disabled="syncing"
             class="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-main)] text-sm font-bold px-4 py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
@@ -115,7 +115,7 @@ async function syncToShelf() {
   logBold('Push-Sync gestartet...')
 
   try {
-    const dirty = await window.electron.db.sync.dirty()
+    const dirty = await window.electron.db.movies.sync.dirty() as any[]
     if (dirty.length === 0) {
       logInfo('Keine lokalen Änderungen zum Hochladen gefunden.')
       return
@@ -130,7 +130,7 @@ async function syncToShelf() {
             logInfo(`Lösche remote: ${movie.title}...`)
             await apiDelete(`/admin/movies/${movie.remote_id}`)
           }
-          await window.electron.db.sync.hardDelete(movie.id)
+          await window.electron.db.movies.sync.hardDelete(movie.id)
         }
         else if (!movie.remote_id) {
           logInfo(`Erstelle remote: ${movie.title}...`)
@@ -157,7 +157,7 @@ async function syncToShelf() {
             })
           }
 
-          await window.electron.db.sync.markSynced({
+          await window.electron.db.movies.sync.markSynced({
             id: movie.id,
             remote_id: res.data.id,
             synced_at: new Date().toISOString()
@@ -180,7 +180,7 @@ async function syncToShelf() {
             trailer_url: movie.trailer_url
           })
 
-          await window.electron.db.sync.markSynced({
+          await window.electron.db.movies.sync.markSynced({
             id: movie.id,
             remote_id: movie.remote_id,
             synced_at: new Date().toISOString()
@@ -229,12 +229,12 @@ async function syncFromShelf(resetLog = true) {
         actors_names:    movie.actors_names,
         trailer_url:     movie.trailer_url,
         updated_at:      movie.updated_at,
-      })
+      }) as { id: number } | null
 
       if (!localMovie) continue
 
       // Update synced_at to prevent immediate re-push
-      await window.electron.db.sync.markSynced({
+      await window.electron.db.movies.sync.markSynced({
         id: localMovie.id,
         remote_id: movie.id,
         synced_at: new Date().toISOString()

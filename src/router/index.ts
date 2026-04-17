@@ -34,6 +34,16 @@ const router = createRouter({
       component: () => import('@/views/ActorDetailView.vue'),
     },
     {
+      path: '/lists',
+      name: 'lists',
+      component: () => import('@/views/ListsView.vue'),
+    },
+    {
+      path: '/lists/:id',
+      name: 'lists.show',
+      component: () => import('@/views/ListDetailView.vue'),
+    },
+    {
       path: '/tmdb',
       name: 'tmdb',
       component: () => import('@/views/TmdbSearchView.vue'),
@@ -47,6 +57,11 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SettingsView.vue'),
+    },
+    {
+      path: '/stats',
+      name: 'stats',
+      component: () => import('@/views/StatsView.vue'),
     },
   ],
 })

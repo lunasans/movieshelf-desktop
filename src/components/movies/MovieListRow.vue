@@ -4,7 +4,7 @@
     @click="router.push(`/movies/${movie.id}`)"
   >
     <div class="w-10 aspect-[2/3] rounded-lg overflow-hidden bg-[var(--bg-app)] border border-[var(--border-ui)] flex-shrink-0">
-      <img v-if="resolveMediaUrl(movie.cover_url || movie.cover_path, movie.remote_id)" :src="resolveMediaUrl(movie.cover_url || movie.cover_path, movie.remote_id)!" :alt="movie.title" class="w-full h-full object-cover" />
+      <img v-if="resolveMediaUrl(movie.cover_url || movie.cover_path, movie.remote_id ?? undefined)" :src="resolveMediaUrl(movie.cover_url || movie.cover_path, movie.remote_id ?? undefined)!" :alt="movie.title" class="w-full h-full object-cover" />
       <div v-else class="w-full h-full flex items-center justify-center text-[var(--text-muted)] opacity-20 text-xs">🎬</div>
     </div>
     <div class="flex-1 min-w-0">

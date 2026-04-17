@@ -38,6 +38,7 @@ export function registerMovieHandlers(): void {
 
   ipcMain.handle('db:movies:get', (_event, id: number) => {
     return db().prepare('SELECT * FROM movies WHERE id = ? AND is_deleted = 0').get(id)
+        ?? db().prepare('SELECT * FROM movies WHERE remote_id = ? AND is_deleted = 0').get(id)
   })
 
   ipcMain.handle('db:movies:create', (_event, data: Record<string, unknown>) => {
@@ -125,10 +126,13 @@ export function registerMovieHandlers(): void {
       tmdb_id: null
     }
 
-    stmt.run({ ...defaults, ...data, created_at: now, updated_at: now })
-    
-    const actor = db().prepare('SELECT id FROM actors WHERE remote_id = ?').get(data.remote_id) as { id: number }
-    return actor?.id
+    const result = stmt.run({ ...defaults, ...data, created_at: now, updated_at: now })
+
+    if (data.remote_id != null) {
+      const actor = db().prepare('SELECT id FROM actors WHERE remote_id = ?').get(data.remote_id) as { id: number }
+      return actor?.id
+    }
+    return result.lastInsertRowid ? Number(result.lastInsertRowid) : undefined
   })
 
   ipcMain.handle('db:actors:link', (_event, { film_id, actor_id, role, is_main_role }: any) => {
@@ -206,7 +210,8 @@ export function registerMovieHandlers(): void {
     return rows.map(r => r.tmdb_id)
   })
 
-  ipcMain.handle('db:movies:clear', () => {
+  ipcMain.handle('db:movies:clear', (_event, confirmed?: boolean) => {
+    if (!confirmed) return { success: false, error: 'Bestätigung erforderlich.' }
     db().prepare('DELETE FROM film_actor').run()
     db().prepare('DELETE FROM movies').run()
     db().prepare('DELETE FROM actors').run()

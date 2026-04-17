@@ -13,6 +13,12 @@ export function registerMediaHandlers(): void {
 
   ipcMain.handle('media:download', async (_event, { url, id, type }: { url: string; id: number; type: 'cover' | 'backdrop' | 'actor' }) => {
     if (!url) return { success: false, error: 'No URL provided' }
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol !== 'https:') throw new Error()
+    } catch {
+      return { success: false, error: 'Nur HTTPS-URLs erlaubt.' }
+    }
     
     let fileName = `${id}.jpg`
     if (type === 'backdrop') fileName = `${id}_backdrop.jpg`
