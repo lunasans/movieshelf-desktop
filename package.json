@@ -47,7 +47,9 @@
         "nsis",
         "portable"
       ],
-      "icon": "public/logo_small.png"
+      "icon": "public/logo_small.png",
+      "certificateFile": "cert.pfx",
+      "certificatePassword": "${env.CSC_KEY_PASSWORD}"
     },
     "mac": {
       "target": "dmg",
