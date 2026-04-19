@@ -47,8 +47,17 @@
     </div>
 
     <!-- Empty -->
-    <div v-if="!store.loading && store.movies.length === 0" class="text-center py-20 text-[var(--text-muted)] opacity-40 text-sm">
-      Keine Filme gefunden.
+    <div v-if="!store.loading && store.movies.length === 0" class="text-center py-20">
+      <template v-if="!settings.isOnline && !query">
+        <i class="bi bi-cloud-slash text-3xl text-[var(--text-muted)] opacity-30 block mb-3"></i>
+        <p class="text-[var(--text-muted)] opacity-60 text-sm mb-4">Lokale Datenbank ist leer.</p>
+        <router-link to="/sync" class="text-[var(--status-red)] text-sm font-bold hover:underline">
+          Jetzt mit Shelf synchronisieren →
+        </router-link>
+      </template>
+      <template v-else>
+        <p class="text-[var(--text-muted)] opacity-40 text-sm">Keine Filme gefunden.</p>
+      </template>
     </div>
   </div>
 </template>
@@ -57,10 +66,12 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useMovieStore } from '@/stores/movies'
+import { useSettingsStore } from '@/stores/settings'
 import MovieCard from '@/components/movies/MovieCard.vue'
 
 const route = useRoute()
 const store = useMovieStore()
+const settings = useSettingsStore()
 const query = ref('')
 
 let searchTimeout: ReturnType<typeof setTimeout>

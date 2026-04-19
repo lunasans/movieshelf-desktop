@@ -18,8 +18,9 @@ interface Window {
         delete:       (id: number) => Promise<{ success: boolean }>
         download:     (url: string, id: number, type: 'cover' | 'backdrop' | 'actor') => Promise<{ success: boolean; path?: string; error?: string }>
         exists:       (id: number, type: 'cover' | 'backdrop' | 'actor') => Promise<boolean>
-        checkTmdbIds: (ids: number[]) => Promise<number[]>
-        clear:        () => Promise<{ success: boolean }>
+        checkTmdbIds:      (ids: number[]) => Promise<number[]>
+        deleteByRemoteId:  (remoteId: number) => Promise<{ success: boolean; localId?: number }>
+        clear:             () => Promise<{ success: boolean }>
         actors: {
           getForMovie: (movieId: number) => Promise<unknown[]>
           upsert:      (data: Record<string, unknown>) => Promise<number>

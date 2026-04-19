@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('electron', {
         hardDelete: (id: number) => ipcRenderer.invoke('db:sync:hard-delete', id),
       },
       checkTmdbIds: (ids: number[]) => ipcRenderer.invoke('db:movies:check-tmdb-ids', ids),
+      deleteByRemoteId: (remoteId: number) => ipcRenderer.invoke('db:movies:delete-by-remote-id', remoteId),
       clear: () => ipcRenderer.invoke('db:movies:clear', true),
     },
     lists: {

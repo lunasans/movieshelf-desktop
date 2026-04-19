@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useApi } from '@/composables/useApi'
-import { useSettingsStore } from '@/stores/settings'
 
 export interface Movie {
   id: number
@@ -35,9 +33,6 @@ export const useMovieStore = defineStore('movies', () => {
   const page    = ref(1)
   const perPage = ref(30)
 
-  const { isOnline, apiGet } = useApi()
-  const settings = useSettingsStore()
-
   async function fetchMovies(params: { q?: string; page?: number } = {}, append = false) {
     if (!append) {
       loading.value = true
@@ -50,27 +45,15 @@ export const useMovieStore = defineStore('movies', () => {
       const currentPage = params.page ?? page.value
       const currentPerPage = perPage.value
 
-      if (isOnline.value) {
-        const data = await apiGet('/movies', { 
-          per_page: currentPerPage, 
-          page: currentPage,
-          ...params 
-        })
-        const newMovies = data.data as Movie[]
-        movies.value = append ? [...movies.value, ...newMovies] : newMovies
-        total.value  = data.meta?.total ?? data.data.length
-        page.value   = currentPage
-      } else {
-        const result = await window.electron.db.movies.list({ 
-          ...params, 
-          page: currentPage,
-          perPage: currentPerPage 
-        })
-        const newMovies = result.data as Movie[]
-        movies.value = append ? [...movies.value, ...newMovies] : newMovies
-        total.value  = result.total
-        page.value   = result.page
-      }
+      const result = await window.electron.db.movies.list({
+        ...params,
+        page: currentPage,
+        perPage: currentPerPage
+      })
+      const newMovies = result.data as Movie[]
+      movies.value = append ? [...movies.value, ...newMovies] : newMovies
+      total.value  = result.total
+      page.value   = result.page
     } finally {
       loading.value = false
       loadingMore.value = false
@@ -78,12 +61,7 @@ export const useMovieStore = defineStore('movies', () => {
   }
 
   async function deleteMovie(id: number) {
-    if (isOnline.value) {
-      const { apiDelete } = useApi()
-      await apiDelete(`/admin/movies/${id}`)
-    } else {
-      await window.electron.db.movies.delete(id)
-    }
+    await window.electron.db.movies.delete(id)
     movies.value = movies.value.filter(m => m.id !== id)
     total.value--
   }

@@ -3,7 +3,7 @@
     <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">
       {{ isEdit ? 'Film bearbeiten' : 'Film hinzufügen' }}
     </h1>
-    <p class="text-sm text-[var(--text-muted)] opacity-60 mb-8">{{ isEdit ? movie.title : 'Neuen Film zur Sammlung hinzufügen' }}</p>
+    <p class="text-sm text-[var(--text-muted)] opacity-60 mb-8">{{ isEdit ? form.title : 'Neuen Film zur Sammlung hinzufügen' }}</p>
 
     <form @submit.prevent="save" class="space-y-4">
       <FormRow label="Titel *">
@@ -92,15 +92,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useApi } from '@/composables/useApi'
 import FormRow from '@/components/ui/FormRow.vue'
 
 const route  = useRoute()
 const router = useRouter()
-const { isOnline, apiPost, apiPut } = useApi()
 
 const isEdit = computed(() => !!route.params.id)
-const movie  = ref<Record<string, unknown>>({})
 const saving = ref(false)
 
 const form = ref({
@@ -119,10 +116,7 @@ function searchYouTube() {
 onMounted(async () => {
   if (isEdit.value) {
     const id = Number(route.params.id)
-    const data = isOnline.value
-      ? (await useApi().apiGet(`/movies/${id}`)).data
-      : await window.electron.db.movies.get(id)
-    movie.value = data
+    const data = await window.electron.db.movies.get(id)
     Object.assign(form.value, data)
   }
 })
@@ -130,18 +124,10 @@ onMounted(async () => {
 async function save() {
   saving.value = true
   try {
-    if (isOnline.value) {
-      if (isEdit.value) {
-        await apiPut(`/admin/movies/${route.params.id}`, form.value)
-      } else {
-        await apiPost('/admin/movies', form.value)
-      }
+    if (isEdit.value) {
+      await window.electron.db.movies.update(Number(route.params.id), form.value)
     } else {
-      if (isEdit.value) {
-        await window.electron.db.movies.update(Number(route.params.id), form.value)
-      } else {
-        await window.electron.db.movies.create(form.value)
-      }
+      await window.electron.db.movies.create(form.value)
     }
     router.push('/movies')
   } finally {

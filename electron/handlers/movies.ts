@@ -210,6 +210,14 @@ export function registerMovieHandlers(): void {
     return rows.map(r => r.tmdb_id)
   })
 
+  ipcMain.handle('db:movies:delete-by-remote-id', (_event, remoteId: number) => {
+    const now = new Date().toISOString()
+    const row = db().prepare('SELECT id FROM movies WHERE remote_id = ? AND is_deleted = 0').get(remoteId) as { id: number } | undefined
+    if (!row) return { success: false }
+    db().prepare('UPDATE movies SET is_deleted = 1, updated_at = ? WHERE id = ?').run(now, row.id)
+    return { success: true, localId: row.id }
+  })
+
   ipcMain.handle('db:movies:clear', (_event, confirmed?: boolean) => {
     if (!confirmed) return { success: false, error: 'Bestätigung erforderlich.' }
     db().prepare('DELETE FROM film_actor').run()
