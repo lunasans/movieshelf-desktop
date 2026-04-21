@@ -104,6 +104,7 @@ export function registerMovieHandlers(): void {
         boxset_parent_id = EXCLUDED.boxset_parent_id,
         view_count = EXCLUDED.view_count,
         is_watched = EXCLUDED.is_watched,
+        in_collection = EXCLUDED.in_collection,
         updated_at = EXCLUDED.updated_at
       WHERE EXCLUDED.updated_at >= movies.updated_at
     `)
@@ -181,7 +182,7 @@ export function registerMovieHandlers(): void {
     return db().prepare(`
       SELECT m.* FROM movies m
       JOIN film_actor fa ON m.id = fa.film_id
-      WHERE fa.actor_id = ?
+      WHERE fa.actor_id = ? AND m.is_deleted = 0 AND m.in_collection = 1
       ORDER BY m.year DESC
     `).all(actorId)
   })
@@ -207,7 +208,7 @@ export function registerMovieHandlers(): void {
     const like = `%${query}%`
     return db().prepare(`
       SELECT * FROM movies
-      WHERE is_deleted = 0 AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)
+      WHERE is_deleted = 0 AND in_collection = 1 AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)
       ORDER BY title ASC LIMIT 50
     `).all(like, like, like)
   })

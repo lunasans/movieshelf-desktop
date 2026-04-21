@@ -43,6 +43,21 @@
         </button>
       </div>
 
+      <!-- Import Options -->
+      <div class="flex items-center justify-end gap-3 mb-6 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl px-5 py-3">
+        <span class="text-sm font-bold text-[var(--text-main)] opacity-70">In Sammlung aufnehmen</span>
+        <button 
+          @click="importToCollection = !importToCollection"
+          class="relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none"
+          :class="importToCollection ? 'bg-[var(--status-red)]' : 'bg-[var(--bg-elevated)] border border-[var(--border-ui)]'"
+        >
+          <div 
+            class="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200"
+            :class="importToCollection ? 'translate-x-6' : 'translate-x-0'"
+          ></div>
+        </button>
+      </div>
+
       <!-- Loading -->
       <div v-if="loading" class="flex justify-center py-16">
         <div class="w-8 h-8 border-2 border-[var(--status-red)] border-t-transparent rounded-full animate-spin"></div>
@@ -158,6 +173,7 @@ const importing   = ref<number | null>(null)
 const importedIds = ref(new Set<number>())
 const error       = ref('')
 const toast       = ref('')
+const importToCollection = ref(true)
 const listPickerFor = ref<number | null>(null)
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -206,9 +222,9 @@ async function importMovie(result: TmdbResult) {
   error.value = ''
   try {
     if (isOnline.value) {
-      await apiPost('/tmdb/import', { tmdb_id: result.id, type: 'movie' })
+      await apiPost('/tmdb/import', { tmdb_id: result.id, type: 'movie', in_collection: importToCollection.value })
     } else {
-      await importLocally(result.id)
+      await importLocally(result.id, importToCollection.value ? 1 : 0)
     }
     importedIds.value = new Set(importedIds.value).add(result.id)
     showToast(`„${result.title}" wurde zur Sammlung hinzugefügt.`)

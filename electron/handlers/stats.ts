@@ -97,7 +97,7 @@ export function registerStatsHandlers(): void {
     const byType = db().prepare(`
       SELECT collection_type, COUNT(*) as count
       FROM movies
-      WHERE is_deleted = 0
+      WHERE is_deleted = 0 AND in_collection = 1
       GROUP BY collection_type
       ORDER BY count DESC
     `).all() as { collection_type: string; count: number }[]
