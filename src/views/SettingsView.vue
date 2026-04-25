@@ -128,7 +128,7 @@
               class="flex items-center gap-2 bg-[var(--status-green)]/10 border border-[var(--status-green)]/20 rounded-xl px-3 py-1.5">
               <span class="flex h-2 w-2 rounded-full bg-[var(--status-green)] animate-pulse"></span>
               <span class="text-xs font-black text-[var(--status-green)] uppercase tracking-widest">
-                v{{ settings.newestVersion }} verfügbar
+                {{ settings.newestVersion }} verfügbar
               </span>
             </div>
             <span v-else class="text-xs text-[var(--text-muted)] opacity-50 font-bold uppercase tracking-widest">Aktuell</span>

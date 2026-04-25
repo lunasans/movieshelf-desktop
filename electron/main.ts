@@ -3,7 +3,8 @@ import { join, sep, extname } from 'path'
 import { createWriteStream, existsSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { createHash } from 'crypto'
-import axios from 'axios'
+import { get as httpsGet } from 'https'
+import { IncomingMessage } from 'http'
 import { setupDatabase, getDb } from './database'
 import { registerMovieHandlers } from './handlers/movies'
 import { registerSettingsHandlers } from './handlers/settings'
@@ -229,21 +230,35 @@ ipcMain.handle('update:install', async (_event, url: string, sha256?: string) =>
   if (existsSync(destPath)) unlinkSync(destPath)
 
   try {
-    const response = await axios({ url, method: 'GET', responseType: 'stream' })
-    const total: number = parseInt(response.headers['content-length'] ?? '0', 10)
-    let received = 0
-
     await new Promise<void>((resolve, reject) => {
-      const writer = createWriteStream(destPath)
-      response.data.on('data', (chunk: Buffer) => {
-        received += chunk.length
-        if (total > 0 && mainWindow) {
-          mainWindow.webContents.send('update:progress', Math.round((received / total) * 100))
-        }
-      })
-      response.data.pipe(writer)
-      writer.on('finish', resolve)
-      writer.on('error', reject)
+      const download = (downloadUrl: string, redirects = 0) => {
+        if (redirects > 5) { reject(new Error('Zu viele Redirects')); return }
+        httpsGet(downloadUrl, (res: IncomingMessage) => {
+          if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            res.resume()
+            download(res.headers.location, redirects + 1)
+            return
+          }
+          if (res.statusCode !== 200) {
+            reject(new Error(`HTTP-Fehler: ${res.statusCode}`))
+            return
+          }
+          const total = parseInt(res.headers['content-length'] ?? '0', 10)
+          let received = 0
+          const writer = createWriteStream(destPath)
+          res.on('data', (chunk: Buffer) => {
+            received += chunk.length
+            if (total > 0 && mainWindow) {
+              mainWindow.webContents.send('update:progress', Math.round((received / total) * 100))
+            }
+          })
+          res.pipe(writer)
+          writer.on('finish', resolve)
+          writer.on('error', reject)
+          res.on('error', reject)
+        }).on('error', reject)
+      }
+      download(url)
     })
 
     // SHA256 verification
