@@ -104,17 +104,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Website benachrichtigen
+        env:
+          ASSETS_JSON: ${{ steps.release.outputs.assets }}
+          CHANGELOG_BODY: ${{ steps.changelog.outputs.body }}
+          WEBHOOK_SECRET: ${{ secrets.DESKTOP_WEBHOOK_SECRET }}
+          WEBHOOK_URL: ${{ secrets.DESKTOP_WEBHOOK_URL }}
+          VERSION: ${{ github.ref_name }}
         run: |
-          CHANGELOG=$(cat << 'CHANGELOG_EOF'
-          ${{ steps.changelog.outputs.body }}
-          CHANGELOG_EOF
-          )
-          curl -fsSL -X POST https://movieshelf.info/api/desktop-version/webhook \
+          URL_WIN=$(echo "$ASSETS_JSON" | jq -r '[.[] | select(.name | endswith(".exe"))] | first | .browser_download_url // ""')
+          URL_DEB=$(echo "$ASSETS_JSON" | jq -r '[.[] | select(.name | endswith(".deb"))] | first | .browser_download_url // ""')
+          curl -fsSL -X POST "$WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.DESKTOP_WEBHOOK_SECRET }}" \
+            -H "Authorization: Bearer $WEBHOOK_SECRET" \
             -d "$(jq -n \
-              --arg version "${{ github.ref_name }}" \
-              --arg url_win "${{ fromJson(steps.release.outputs.assets)[0].browser_download_url }}" \
-              --arg url_deb "${{ fromJson(steps.release.outputs.assets)[1].browser_download_url }}" \
-              --arg changelog "$CHANGELOG" \
+              --arg version "$VERSION" \
+              --arg url_win "$URL_WIN" \
+              --arg url_deb "$URL_DEB" \
+              --arg changelog "$CHANGELOG_BODY" \
               '{version: $version, download_url: $url_win, download_url_linux_deb: $url_deb, changelog: $changelog}')"
