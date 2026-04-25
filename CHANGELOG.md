@@ -7,10 +7,6 @@
 - **Linux: Update-Installation**: `pkexec dpkg -i` öffnet nativen GUI-Passwort-Dialog; Fallback auf `xdg-open` (GDebi), danach Anleitung-Dialog mit Terminal-Befehl
 - **Linux: weißes Update-Fenster**: Hauptfenster wird erst nach vollständigem Rendern angezeigt (`ready-to-show`)
 
-### Hinzugefügt
-- **Automatische Release-Pipeline**: GitHub Actions baut `.deb` (Linux) und `.exe` (Windows) bei jedem Tag und benachrichtigt die Website automatisch
-- **Plattformspezifische Tags**: `-linux`-Suffix baut nur Linux, `-win`-Suffix nur Windows
-- **Eigenes GitHub-Repository**: Desktop-App unter `github.com/lunasans/movieshelf-desktop` ausgelagert
 
 ---
 
