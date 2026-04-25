@@ -83,9 +83,22 @@ jobs:
           merge-multiple: true
 
       - name: Release veröffentlichen
+        id: release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Website benachrichtigen
+        run: |
+          curl -fsSL -X POST https://movieshelf.info/api/desktop-version/webhook \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DESKTOP_WEBHOOK_SECRET }}" \
+            -d '{
+              "version":               "${{ github.ref_name }}",
+              "download_url":          "${{ fromJson(steps.release.outputs.assets)[0].browser_download_url }}",
+              "download_url_linux_deb":"${{ fromJson(steps.release.outputs.assets)[1].browser_download_url }}",
+              "changelog":             "Release ${{ github.ref_name }}"
+            }'

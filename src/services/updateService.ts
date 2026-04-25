@@ -10,15 +10,15 @@ export function useUpdateService() {
 
   async function checkForUpdates() {
     try {
-      // In Dev-Umgebung simulieren wir ggf. ein Update, falls gewünscht
-      // const isDev = await window.electron.getIsDev()
-      
-      const response = await axios.get(UPDATE_URL)
+      const platform = navigator.platform.toLowerCase().includes('linux') ? 'linux' : 'win'
+      const response = await axios.get(`${UPDATE_URL}?platform=${platform}`)
       const { version: remoteVersion, url, sha256 } = response.data
 
-      settings.newestVersion   = remoteVersion
-      settings.updateUrl       = url ? `https://movieshelf.info${url.startsWith('/') ? '' : '/'}${url}` : ''
-      settings.updateSha256    = sha256 ?? ''
+      settings.newestVersion = remoteVersion
+      settings.updateUrl     = url
+        ? (url.startsWith('http') ? url : `https://movieshelf.info${url.startsWith('/') ? '' : '/'}${url}`)
+        : ''
+      settings.updateSha256  = sha256 ?? ''
 
       if (remoteVersion !== settings.appVersion) {
         settings.updateAvailable = compareVersions(remoteVersion, settings.appVersion) > 0
