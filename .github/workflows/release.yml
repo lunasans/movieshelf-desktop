@@ -76,6 +76,18 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Changelog-Abschnitt extrahieren
+        id: changelog
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          BODY=$(awk "/^## \[${VERSION}\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Artefakte herunterladen
         uses: actions/download-artifact@v4
         with:
@@ -87,18 +99,22 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Website benachrichtigen
         run: |
+          CHANGELOG=$(cat << 'CHANGELOG_EOF'
+          ${{ steps.changelog.outputs.body }}
+          CHANGELOG_EOF
+          )
           curl -fsSL -X POST https://movieshelf.info/api/desktop-version/webhook \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.DESKTOP_WEBHOOK_SECRET }}" \
-            -d '{
-              "version":               "${{ github.ref_name }}",
-              "download_url":          "${{ fromJson(steps.release.outputs.assets)[0].browser_download_url }}",
-              "download_url_linux_deb":"${{ fromJson(steps.release.outputs.assets)[1].browser_download_url }}",
-              "changelog":             "Release ${{ github.ref_name }}"
-            }'
+            -d "$(jq -n \
+              --arg version "${{ github.ref_name }}" \
+              --arg url_win "${{ fromJson(steps.release.outputs.assets)[0].browser_download_url }}" \
+              --arg url_deb "${{ fromJson(steps.release.outputs.assets)[1].browser_download_url }}" \
+              --arg changelog "$CHANGELOG" \
+              '{version: $version, download_url: $url_win, download_url_linux_deb: $url_deb, changelog: $changelog}')"
