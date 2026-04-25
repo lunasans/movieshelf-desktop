@@ -103,6 +103,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: SHA256 berechnen
+        id: hashes
+        run: |
+          SHA256_WIN=$(find artifacts -iname "*setup*.exe" -exec sha256sum {} \; 2>/dev/null | awk '{print $1}' | head -1)
+          SHA256_DEB=$(find artifacts -name "*.deb"        -exec sha256sum {} \; 2>/dev/null | awk '{print $1}' | head -1)
+          echo "win=${SHA256_WIN}" >> $GITHUB_OUTPUT
+          echo "deb=${SHA256_DEB}" >> $GITHUB_OUTPUT
+
       - name: Website benachrichtigen
         env:
           ASSETS_JSON: ${{ steps.release.outputs.assets }}
@@ -110,15 +118,19 @@ jobs:
           WEBHOOK_SECRET: ${{ secrets.DESKTOP_WEBHOOK_SECRET }}
           WEBHOOK_URL: ${{ secrets.DESKTOP_WEBHOOK_URL }}
           VERSION: ${{ github.ref_name }}
+          SHA256_WIN: ${{ steps.hashes.outputs.win }}
+          SHA256_DEB: ${{ steps.hashes.outputs.deb }}
         run: |
-          URL_WIN=$(echo "$ASSETS_JSON" | jq -r '[.[] | select(.name | endswith(".exe"))] | first | .browser_download_url // ""')
-          URL_DEB=$(echo "$ASSETS_JSON" | jq -r '[.[] | select(.name | endswith(".deb"))] | first | .browser_download_url // ""')
+          URL_WIN=$(echo "$ASSETS_JSON" | jq -r '[.[] | select(.name | ascii_downcase | test("setup.*\\.exe$"))] | first | .browser_download_url // ""')
+          URL_DEB=$(echo "$ASSETS_JSON" | jq -r '[.[] | select(.name | endswith(".deb"))]              | first | .browser_download_url // ""')
           curl -fsSL -X POST "$WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $WEBHOOK_SECRET" \
             -d "$(jq -n \
-              --arg version "$VERSION" \
-              --arg url_win "$URL_WIN" \
-              --arg url_deb "$URL_DEB" \
-              --arg changelog "$CHANGELOG_BODY" \
-              '{version: $version, download_url: $url_win, download_url_linux_deb: $url_deb, changelog: $changelog}')"
+              --arg version    "$VERSION" \
+              --arg url_win    "$URL_WIN" \
+              --arg url_deb    "$URL_DEB" \
+              --arg hash_win   "$SHA256_WIN" \
+              --arg hash_deb   "$SHA256_DEB" \
+              --arg changelog  "$CHANGELOG_BODY" \
+              '{version: $version, download_url: $url_win, download_url_linux_deb: $url_deb, file_hash: $hash_win, file_hash_linux_deb: $hash_deb, changelog: $changelog}')"

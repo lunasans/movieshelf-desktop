@@ -408,7 +408,10 @@ async function doLogin() {
 }
 
 async function installUpdate() {
-  if (!settings.updateUrl) return
+  if (!settings.updateUrl) {
+    updateError.value = 'Keine Download-URL verfügbar – bitte wende dich an den Support.'
+    return
+  }
   downloading.value      = true
   downloadProgress.value = 0
   updateError.value      = ''
