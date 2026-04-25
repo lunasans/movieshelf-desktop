@@ -38,6 +38,7 @@ jobs:
 
   build-windows:
     name: Build Windows (.exe)
+    if: "!contains(github.ref_name, 'a') && !contains(github.ref_name, 'b')"
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -69,6 +70,7 @@ jobs:
   release:
     name: GitHub Release erstellen
     needs: [build-linux, build-windows]
+    if: always() && needs.build-linux.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
