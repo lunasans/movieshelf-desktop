@@ -262,8 +262,26 @@ ipcMain.handle('update:install', async (_event, url: string, sha256?: string) =>
       }
     }
 
-    shell.openPath(destPath)
-    setTimeout(() => app.quit(), 1500)
+    if (process.platform === 'linux') {
+      const { spawn } = require('child_process')
+      const child = spawn('xdg-open', [destPath], { detached: true, stdio: 'ignore' })
+      child.unref()
+      // Fallback-Dialog falls kein GUI-Installer vorhanden
+      child.on('error', () => {
+        const { dialog } = require('electron')
+        dialog.showMessageBox(mainWindow!, {
+          type: 'info',
+          title: 'Update heruntergeladen',
+          message: 'Update bereit zur Installation',
+          detail: `Führe folgenden Befehl im Terminal aus:\n\nsudo dpkg -i "${destPath}"`,
+          buttons: ['OK'],
+        })
+      })
+      setTimeout(() => app.quit(), 4000)
+    } else {
+      shell.openPath(destPath)
+      setTimeout(() => app.quit(), 1500)
+    }
     return { success: true }
   } catch (e: any) {
     if (existsSync(destPath)) unlinkSync(destPath)
