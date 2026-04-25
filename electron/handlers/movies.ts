@@ -18,20 +18,22 @@ export function registerMovieHandlers(): void {
       const like = `%${q}%`
       const rows = db().prepare(`
         SELECT * FROM movies
-        WHERE is_deleted = 0 AND in_collection = 1 AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)
+        WHERE is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL
+          AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)
         ORDER BY title ASC LIMIT ? OFFSET ?
       `).all(like, like, like, perPage, offset)
 
       const total = (db().prepare(`
         SELECT COUNT(*) as count FROM movies
-        WHERE is_deleted = 0 AND in_collection = 1 AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)
+        WHERE is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL
+          AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)
       `).get(like, like, like) as { count: number }).count
 
       return { data: rows, total, page, perPage }
     }
 
-    const rows = db().prepare('SELECT * FROM movies WHERE is_deleted = 0 AND in_collection = 1 ORDER BY title ASC LIMIT ? OFFSET ?').all(perPage, offset)
-    const total = (db().prepare('SELECT COUNT(*) as count FROM movies WHERE is_deleted = 0 AND in_collection = 1').get() as { count: number }).count
+    const rows = db().prepare('SELECT * FROM movies WHERE is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL ORDER BY title ASC LIMIT ? OFFSET ?').all(perPage, offset)
+    const total = (db().prepare('SELECT COUNT(*) as count FROM movies WHERE is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL').get() as { count: number }).count
 
     return { data: rows, total, page, perPage }
   })
@@ -40,6 +42,16 @@ export function registerMovieHandlers(): void {
     return db().prepare(
       "SELECT * FROM movies WHERE is_deleted = 0 AND is_boxset = 0 AND in_collection = 1 ORDER BY created_at DESC LIMIT ?"
     ).all(limit)
+  })
+
+  ipcMain.handle('db:movies:children', (_event, movieId: number) => {
+    const movie = db().prepare('SELECT remote_id FROM movies WHERE id = ?').get(movieId) as { remote_id: number | null } | undefined
+    const candidates: number[] = [movieId]
+    if (movie?.remote_id != null) candidates.push(movie.remote_id)
+    const placeholders = candidates.map(() => '?').join(', ')
+    return db().prepare(
+      `SELECT * FROM movies WHERE boxset_parent_id IN (${placeholders}) AND is_deleted = 0 AND in_collection = 1 ORDER BY title ASC`
+    ).all(...candidates)
   })
 
   ipcMain.handle('db:movies:get', (_event, id: number) => {

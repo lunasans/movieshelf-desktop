@@ -31,9 +31,12 @@
           </div>
         </div>
 
-        <!-- Collection Type Badge (bottom left) -->
-        <div v-if="movie.collection_type" class="absolute bottom-3 left-3 z-20">
-          <span class="text-[9px] font-black text-white/90 uppercase tracking-widest bg-white/10 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 shadow-lg">
+        <!-- Collection Type / Boxset Badge (bottom left) -->
+        <div class="absolute bottom-3 left-3 z-20 flex flex-col items-start gap-1">
+          <span v-if="movie.is_boxset" class="text-[9px] font-black text-white/90 uppercase tracking-widest bg-red-700/80 backdrop-blur-md px-2 py-1 rounded-lg border border-red-500/30 shadow-lg flex items-center gap-1">
+            <i class="bi bi-collection-fill"></i> Box-Set
+          </span>
+          <span v-if="movie.collection_type" class="text-[9px] font-black text-white/90 uppercase tracking-widest bg-white/10 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 shadow-lg">
             {{ movie.collection_type }}
           </span>
         </div>

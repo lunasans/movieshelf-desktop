@@ -18,12 +18,11 @@ npm install --prefer-offline
 npx @electron/rebuild -f -w better-sqlite3
 
 echo "→ Linux-Build starten..."
-npm run electron:build
+npx electron-builder --linux deb
 
-echo "→ AppImage zurückkopieren..."
+echo "→ Paket zurückkopieren..."
 mkdir -p "$SRC/release"
-cp "$BUILD_DIR"/release/*.AppImage "$SRC/release/" 2>/dev/null || true
-cp "$BUILD_DIR"/release/*.deb      "$SRC/release/" 2>/dev/null || true
+cp "$BUILD_DIR"/release/*.deb "$SRC/release/" 2>/dev/null || true
 
 echo "✓ Fertig! Release: $SRC/release/"
 ls "$SRC/release/"

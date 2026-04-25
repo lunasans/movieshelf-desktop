@@ -18,12 +18,15 @@ export function registerOAuthHandlers() {
       height: 700,
       title: 'MovieShelf Login',
       autoHideMenuBar: true,
+      show: false,
+      backgroundColor: '#ffffff',
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
       },
     })
 
+    oauthWindow.once('ready-to-show', () => oauthWindow?.show())
     oauthWindow.loadURL(url)
 
     // HTTP-302-Redirect vom Server auf movieshelf:// abfangen

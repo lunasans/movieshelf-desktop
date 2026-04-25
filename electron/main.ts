@@ -53,7 +53,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 600,
     frame: false,
-    titleBarStyle: 'hidden',
+    show: false,
     backgroundColor: '#0a0a0f',
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
@@ -63,6 +63,8 @@ function createWindow() {
     },
     icon: join(__dirname, '../public/icon.png'),
   })
+
+  mainWindow.once('ready-to-show', () => mainWindow?.show())
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')

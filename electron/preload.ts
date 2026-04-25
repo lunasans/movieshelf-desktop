@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('electron', {
         markSynced: (p: any) => ipcRenderer.invoke('db:sync:mark-synced', p),
         hardDelete: (id: number) => ipcRenderer.invoke('db:sync:hard-delete', id),
       },
+      children:     (id: number)        => ipcRenderer.invoke('db:movies:children', id),
       checkTmdbIds: (ids: number[]) => ipcRenderer.invoke('db:movies:check-tmdb-ids', ids),
       deleteByRemoteId: (remoteId: number) => ipcRenderer.invoke('db:movies:delete-by-remote-id', remoteId),
       clear: () => ipcRenderer.invoke('db:movies:clear', true),

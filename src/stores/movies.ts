@@ -21,6 +21,8 @@ export interface Movie {
   tag: string | null
   tmdb_id: number | null
   remote_id: number | null
+  is_boxset: number | null
+  boxset_parent_id: number | null
   created_at: string
   updated_at: string
 }
@@ -32,6 +34,7 @@ export const useMovieStore = defineStore('movies', () => {
   const loadingMore = ref(false)
   const page    = ref(1)
   const perPage = ref(30)
+  const savedScrollTop = ref(0)
 
   async function fetchMovies(params: { q?: string; page?: number } = {}, append = false) {
     if (!append) {
@@ -66,5 +69,5 @@ export const useMovieStore = defineStore('movies', () => {
     total.value--
   }
 
-  return { movies, total, loading, loadingMore, page, perPage, fetchMovies, deleteMovie }
+  return { movies, total, loading, loadingMore, page, perPage, fetchMovies, deleteMovie, savedScrollTop }
 })

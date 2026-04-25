@@ -146,6 +146,34 @@
             </div>
           </div>
 
+          <!-- Boxset Children -->
+          <div v-if="boxsetChildren.length > 0">
+            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">Enthaltene Filme</h3>
+            <div class="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-4">
+              <router-link
+                v-for="child in boxsetChildren"
+                :key="child.id"
+                :to="`/movies/${child.id}`"
+                class="group cursor-pointer"
+              >
+                <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] group-hover:border-red-500/50 group-hover:scale-105 transition-all duration-300 shadow-[var(--shadow-main)]">
+                  <img
+                    v-if="resolveMediaUrl(child.cover_url || child.cover_path, child.remote_id)"
+                    :src="resolveMediaUrl(child.cover_url || child.cover_path, child.remote_id)!"
+                    :alt="child.title"
+                    class="w-full h-full object-cover"
+                  />
+                  <div v-else class="w-full h-full flex items-center justify-center">
+                    <i class="bi bi-film text-[var(--text-muted)] opacity-20 text-2xl"></i>
+                  </div>
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                </div>
+                <p class="mt-1.5 text-[11px] font-black text-[var(--text-main)] truncate uppercase tracking-tight opacity-90">{{ child.title }}</p>
+                <p class="text-[10px] text-[var(--text-muted)] font-bold">{{ child.year }}</p>
+              </router-link>
+            </div>
+          </div>
+
           <div v-if="movie.director">
             <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-4">Regie</h3>
             <p class="text-[var(--text-main)] text-xl font-bold">{{ movie.director }}</p>
@@ -214,6 +242,7 @@ const movie = ref<any>(null)
 const localMovieId = ref<number | null>(null)
 const movieListIds = ref<Set<number>>(new Set())
 const linkedActors = ref<any[]>([])
+const boxsetChildren = ref<any[]>([])
 const isSticky = ref(false)
 
 const titleRef = ref<HTMLElement | null>(null)
@@ -361,6 +390,10 @@ onMounted(async () => {
   movie.value = await window.electron.db.movies.get(id)
   linkedActors.value = await window.electron.db.movies.actors.getForMovie(id)
   localMovieId.value = id
+
+  if (movie.value?.is_boxset) {
+    boxsetChildren.value = await window.electron.db.movies.children(id)
+  }
 
   await listStore.fetchLists()
   if (localMovieId.value !== null) {

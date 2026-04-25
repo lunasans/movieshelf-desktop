@@ -19,7 +19,7 @@
     </div>
 
     <!-- Center Section: Dynamic Title/Status -->
-    <div class="flex-1 flex items-center justify-center min-w-0 px-8">
+    <div class="flex-1 flex items-center justify-center min-w-0 px-8" style="-webkit-app-region: drag">
       <Transition name="header-fade" mode="out-in">
         <!-- Case 1: Active Movie Title -->
         <span 

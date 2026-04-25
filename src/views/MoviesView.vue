@@ -63,8 +63,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRoute, onBeforeRouteLeave } from 'vue-router'
 import { useMovieStore } from '@/stores/movies'
 import { useSettingsStore } from '@/stores/settings'
 import MovieCard from '@/components/movies/MovieCard.vue'
@@ -113,15 +113,30 @@ function handleQueryChange() {
   }
 }
 
-onMounted(() => {
-  handleQueryChange()
+onMounted(async () => {
   const main = document.querySelector('main')
   if (main) main.addEventListener('scroll', handleScroll)
+
+  if (store.savedScrollTop > 0 && store.movies.length > 0 && !route.query.q) {
+    const scrollTop = store.savedScrollTop
+    store.savedScrollTop = 0
+    await nextTick()
+    if (main) main.scrollTop = scrollTop
+  } else {
+    handleQueryChange()
+  }
 })
 
 onUnmounted(() => {
   const main = document.querySelector('main')
   if (main) main.removeEventListener('scroll', handleScroll)
+})
+
+onBeforeRouteLeave((to) => {
+  if (to.name === 'movies.edit' || to.name === 'movies.show') {
+    const main = document.querySelector('main')
+    if (main) store.savedScrollTop = main.scrollTop
+  }
 })
 
 // Watch for query changes (e.g. searching for a different actor while already on the movies view)
