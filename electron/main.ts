@@ -264,11 +264,9 @@ ipcMain.handle('update:install', async (_event, url: string, sha256?: string) =>
 
     if (process.platform === 'linux') {
       const { spawn } = require('child_process')
-      const child = spawn('xdg-open', [destPath], { detached: true, stdio: 'ignore' })
-      child.unref()
-      // Fallback-Dialog falls kein GUI-Installer vorhanden
-      child.on('error', () => {
-        const { dialog } = require('electron')
+      const { dialog } = require('electron')
+
+      const showFallbackDialog = () => {
         dialog.showMessageBox(mainWindow!, {
           type: 'info',
           title: 'Update heruntergeladen',
@@ -276,7 +274,18 @@ ipcMain.handle('update:install', async (_event, url: string, sha256?: string) =>
           detail: `Führe folgenden Befehl im Terminal aus:\n\nsudo dpkg -i "${destPath}"`,
           buttons: ['OK'],
         })
+      }
+
+      // 1. Versuch: pkexec dpkg -i → nativer GUI-Passwort-Dialog
+      const pkexec = spawn('pkexec', ['dpkg', '-i', destPath], { detached: true, stdio: 'ignore' })
+      pkexec.unref()
+      pkexec.on('error', () => {
+        // 2. Versuch: xdg-open → öffnet GDebi / GNOME Software falls installiert
+        const xdg = spawn('xdg-open', [destPath], { detached: true, stdio: 'ignore' })
+        xdg.unref()
+        xdg.on('error', showFallbackDialog)
       })
+
       setTimeout(() => app.quit(), 4000)
     } else {
       shell.openPath(destPath)
