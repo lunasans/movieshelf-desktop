@@ -28,9 +28,7 @@ jobs:
         run: npx vite build
 
       - name: Linux .deb bauen
-        run: npx electron-builder --linux deb
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --linux deb --publish never
 
       - name: Artefakt hochladen
         uses: actions/upload-artifact@v4
@@ -60,9 +58,7 @@ jobs:
         run: npx vite build
 
       - name: Windows Installer bauen
-        run: npx electron-builder --win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish never
 
       - name: Artefakt hochladen
         uses: actions/upload-artifact@v4
