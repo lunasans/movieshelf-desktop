@@ -38,6 +38,12 @@ export function registerMovieHandlers(): void {
     return { data: rows, total, page, perPage }
   })
 
+  ipcMain.handle('db:movies:count', () => {
+    return (db().prepare(
+      'SELECT COUNT(*) as count FROM movies WHERE is_deleted = 0 AND is_boxset = 0 AND in_collection = 1'
+    ).get() as { count: number }).count
+  })
+
   ipcMain.handle('db:movies:recent', (_event, limit = 10) => {
     return db().prepare(
       "SELECT * FROM movies WHERE is_deleted = 0 AND is_boxset = 0 AND in_collection = 1 ORDER BY created_at DESC LIMIT ?"

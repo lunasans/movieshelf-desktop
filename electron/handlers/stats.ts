@@ -45,7 +45,7 @@ export function registerStatsHandlers(): void {
   })
 
   ipcMain.handle('db:stats:get', () => {
-    const BASE = "is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL"
+    const BASE = "is_deleted = 0 AND is_boxset = 0 AND in_collection = 1"
 
     const totalMovies = (db().prepare(
       `SELECT COUNT(*) as count FROM movies WHERE ${BASE}`

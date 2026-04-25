@@ -20,6 +20,7 @@ interface Window {
         delete:       (id: number) => Promise<{ success: boolean }>
         download:     (url: string, id: number, type: 'cover' | 'backdrop' | 'actor') => Promise<{ success: boolean; path?: string; error?: string }>
         exists:       (id: number, type: 'cover' | 'backdrop' | 'actor') => Promise<boolean>
+        count:             () => Promise<number>
         children:          (id: number) => Promise<unknown[]>
         checkTmdbIds:      (ids: number[]) => Promise<number[]>
         deleteByRemoteId:  (remoteId: number) => Promise<{ success: boolean; localId?: number }>

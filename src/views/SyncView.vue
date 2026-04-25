@@ -257,8 +257,7 @@ const FIELD_LABELS: Record<string, string> = {
 onMounted(loadStats)
 
 async function loadStats() {
-  const all = await window.electron.db.movies.list({ page: 1, perPage: 1 }) as any
-  localCount.value = all.total
+  localCount.value = await window.electron.db.movies.count()
 
   const dirty = await window.electron.db.movies.sync.dirty() as any[]
   dirtyCount.value = dirty.length

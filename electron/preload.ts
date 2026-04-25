@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('electron', {
   db: {
     movies: {
       list:    (params?: object)       => ipcRenderer.invoke('db:movies:list', params),
+      count:   ()                        => ipcRenderer.invoke('db:movies:count'),
       recent:  (limit?: number)        => ipcRenderer.invoke('db:movies:recent', limit),
       get:          (id: number)       => ipcRenderer.invoke('db:movies:get', id),
       getByRemoteId:(id: number)       => ipcRenderer.invoke('db:movies:get-by-remote-id', id),
