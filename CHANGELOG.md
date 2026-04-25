@@ -1,5 +1,14 @@
 # Changelog – MovieShelf Desktop
 
+## [0.3.5] – 2026-04-25
+
+### Behoben
+- **Windows: Update-Installation**: Installer wird jetzt per `spawn` gestartet statt `shell.openPath` – der NSIS-Setup-Dialog erscheint zuverlässig
+- **Update-URL leer**: Fehlermeldung statt lautlosem Abbruch wenn keine Download-URL verfügbar
+- **Release-Pipeline**: SHA256-Hashes werden berechnet und mit dem Webhook übertragen; nur noch NSIS-Installer (kein Portable) wird gebaut und verlinkt
+
+---
+
 ## [0.3.4] – 2026-04-25
 
 ### Behoben

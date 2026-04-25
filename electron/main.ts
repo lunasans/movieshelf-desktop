@@ -287,9 +287,17 @@ ipcMain.handle('update:install', async (_event, url: string, sha256?: string) =>
       })
 
       setTimeout(() => app.quit(), 4000)
+    } else if (process.platform === 'win32') {
+      const { spawn } = require('child_process')
+      const installer = spawn(destPath, [], { detached: true, stdio: 'ignore' })
+      installer.unref()
+      installer.on('error', (err: Error) => {
+        return { success: false, error: `Installer konnte nicht gestartet werden: ${err.message}` }
+      })
+      setTimeout(() => app.quit(), 2000)
     } else {
       shell.openPath(destPath)
-      setTimeout(() => app.quit(), 1500)
+      setTimeout(() => app.quit(), 2000)
     }
     return { success: true }
   } catch (e: any) {
