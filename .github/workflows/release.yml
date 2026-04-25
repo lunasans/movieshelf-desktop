@@ -24,6 +24,9 @@ jobs:
       - name: Native Module neu bauen
         run: npx @electron/rebuild -f -w better-sqlite3
 
+      - name: App bauen
+        run: npx vite build
+
       - name: Linux .deb bauen
         run: npx electron-builder --linux deb
         env:
@@ -52,6 +55,9 @@ jobs:
 
       - name: Native Module neu bauen
         run: npx @electron/rebuild -f -w better-sqlite3
+
+      - name: App bauen
+        run: npx vite build
 
       - name: Windows Installer bauen
         run: npx electron-builder --win
