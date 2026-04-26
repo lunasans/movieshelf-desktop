@@ -285,6 +285,21 @@ async function loadPreview() {
     const items: PreviewItem[] = []
     let newCount = 0, updatedCount = 0, deletedCount = 0
 
+    // Full-Sync: lokale Waisen ermitteln (auf SaaS nicht mehr vorhanden)
+    if (!since) {
+      const exportedIds = new Set(movies.map((m: any) => m.id))
+      const localMapped = await window.electron.db.movies.allRemoteIds()
+      for (const row of localMapped) {
+        if (!exportedIds.has(row.remote_id)) {
+          deletedCount++
+          const local = await window.electron.db.movies.getByRemoteId(row.remote_id) as any
+          if (items.length < PREVIEW_LIMIT) {
+            items.push({ remoteId: row.remote_id, title: local?.title ?? `ID ${row.remote_id}`, year: local?.year ?? null, action: 'deleted', changes: [] })
+          }
+        }
+      }
+    }
+
     for (const movie of movies) {
       if (movie.is_deleted) {
         deletedCount++
@@ -361,6 +376,8 @@ async function pull(full = false): Promise<{ pulled: number; deleted: number; me
 
   // Metadata
   setPhase('metadata', data.is_delta ? 'Delta laden' : 'Metadaten laden', '', 0)
+  // Beim Full-Sync: SaaS-IDs merken, um Waisen danach zu bereinigen
+  const exportedRemoteIds = full ? new Set(movies.map((m: any) => m.id)) : null
   for (let i = 0; i < movies.length; i++) {
     const movie = movies[i]
     phaseDetail.value = movie.title
@@ -369,7 +386,10 @@ async function pull(full = false): Promise<{ pulled: number; deleted: number; me
     try {
       if (movie.is_deleted) {
         const r = await window.electron.db.movies.deleteByRemoteId(movie.id)
-        if (r.success) deleted++
+        if (r.success && r.localId != null) {
+          await window.electron.db.movies.sync.hardDelete(r.localId)
+          deleted++
+        }
         continue
       }
 
@@ -414,12 +434,44 @@ async function pull(full = false): Promise<{ pulled: number; deleted: number; me
             })
           }
         }
+        if (movie.collection_type === 'Serie' && Array.isArray(movie.seasons)) {
+          for (const season of movie.seasons) {
+            const localSeasonId = await window.electron.db.seasons.upsert({
+              remote_id: season.id, movie_id: local.id,
+              season_number: season.season_number, title: season.title, overview: season.overview,
+            })
+            if (localSeasonId && Array.isArray(season.episodes)) {
+              for (const ep of season.episodes) {
+                await window.electron.db.episodes.upsert({
+                  remote_id: ep.id, season_id: localSeasonId,
+                  episode_number: ep.episode_number, title: ep.title, overview: ep.overview,
+                })
+              }
+            }
+          }
+        }
         pulled++
       }
     } catch (e: any) {
       errors.value.push(`Pull ${movie.title}: ${e.message}`)
       pullErrors++
     }
+  }
+
+  // Full-Sync: lokale Filme löschen, die auf dem Shelf nicht mehr existieren
+  if (exportedRemoteIds) {
+    try {
+      const localMapped = await window.electron.db.movies.allRemoteIds()
+      for (const row of localMapped) {
+        if (!exportedRemoteIds.has(row.remote_id)) {
+          const r = await window.electron.db.movies.deleteByRemoteId(row.remote_id)
+          if (r.success && r.localId != null) {
+            await window.electron.db.movies.sync.hardDelete(r.localId)
+            deleted++
+          }
+        }
+      }
+    } catch { /* ignorieren */ }
   }
 
   // Media
@@ -484,7 +536,11 @@ async function push(): Promise<{ pushed: number; pushErrors: number }> {
 
     try {
       if (movie.is_deleted) {
-        if (movie.remote_id) await apiDelete(`/admin/movies/${movie.remote_id}`)
+        if (movie.remote_id) {
+          try { await apiDelete(`/admin/movies/${movie.remote_id}`) } catch (e: any) {
+            if (!e?.response || e.response.status !== 404) throw e
+          }
+        }
         await window.electron.db.movies.sync.hardDelete(movie.id)
       } else if (!movie.remote_id) {
         let res

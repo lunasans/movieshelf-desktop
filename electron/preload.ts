@@ -39,6 +39,14 @@ contextBridge.exposeInMainWorld('electron', {
       checkTmdbIds: (ids: number[]) => ipcRenderer.invoke('db:movies:check-tmdb-ids', ids),
       deleteByRemoteId: (remoteId: number) => ipcRenderer.invoke('db:movies:delete-by-remote-id', remoteId),
       clear: () => ipcRenderer.invoke('db:movies:clear', true),
+      allRemoteIds: () => ipcRenderer.invoke('db:movies:all-remote-ids'),
+    },
+    seasons: {
+      forMovie: (movieId: number) => ipcRenderer.invoke('db:seasons:forMovie', movieId),
+      upsert:   (data: any) => ipcRenderer.invoke('db:seasons:upsert', data),
+    },
+    episodes: {
+      upsert: (data: any) => ipcRenderer.invoke('db:episodes:upsert', data),
     },
     lists: {
       list:              ()                                 => ipcRenderer.invoke('db:lists:list'),

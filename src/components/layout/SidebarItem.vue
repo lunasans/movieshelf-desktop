@@ -26,11 +26,11 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUiStore } from '@/stores/ui'
 
-const props = defineProps<{ to: string; icon: string; label: string; badge?: boolean }>()
+const props = defineProps<{ to: string; icon: string; label: string; badge?: boolean; exact?: boolean }>()
 const route = useRoute()
 const ui = useUiStore()
 
 const isActive = computed(() =>
-  props.to === '/' ? route.path === '/' : route.path.startsWith(props.to)
+  props.to === '/' || props.exact ? route.path === props.to : route.path.startsWith(props.to)
 )
 </script>

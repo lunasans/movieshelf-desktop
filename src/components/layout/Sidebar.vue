@@ -5,7 +5,8 @@
   >
     <nav class="flex-1 px-3 space-y-1">
       <SidebarItem to="/" icon="speedometer2" label="Dashboard" />
-      <SidebarItem to="/movies" icon="film" label="Filme" />
+      <SidebarItem to="/movies" icon="film" label="Filme" :exact="true" />
+      <SidebarItem to="/series" icon="tv" label="Serien" />
       <SidebarItem to="/lists" icon="collection-fill" label="Listen" />
       <SidebarItem to="/tmdb" icon="search" label="TMDb Suche" />
     </nav>

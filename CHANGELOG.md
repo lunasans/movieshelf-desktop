@@ -1,5 +1,26 @@
 # Changelog – MovieShelf Desktop
 
+## [0.4.0] – 2026-04-26
+
+### Hinzugefügt
+- **Serien-Tab**: Eigener Reiter „Serien" in der Sidebar filtert nach `collection_type = Serie`; Wechsel zwischen Filme und Serien stellt Scroll-Position und geladene Seiten wieder her
+- **Staffeln & Folgen**: Serien-Detailansicht zeigt Staffeln als ausklappbare Akkordeons mit Folgenliste (Nummer, Titel, Beschreibung); erste Staffel ist standardmäßig geöffnet
+- **Backup-Funktion**: Lokale Sammlung als `.ms`-Datei exportieren und wiederherstellen (Einstellungen → Backup); Format ist kompatibel mit dem SaaS-Backup
+
+### Behoben
+- **Filmanzahl falsch**: Boxset-Parents werden aus Liste und Zähler ausgeschlossen; Boxset-Children werden korrekt gezählt
+- **Nur 30 Filme nach Tab-Wechsel**: Beim Wechsel zwischen Filme/Serien werden alle zuvor geladenen Seiten wiederhergestellt statt neu von Seite 1 zu laden
+- **Gelöschte Einträge im Sync**: Beim vollständigen Sync werden Filme, die auf dem Shelf gelöscht wurden, jetzt lokal entfernt und korrekt im Ergebnis gezählt
+- **Push 404 nach Löschung**: Wenn der Shelf einen Film als gelöscht meldet, wird er lokal sofort hard-deleted und erscheint nicht mehr im Push-Queue; 404-Antworten beim Push von Löschungen werden als Erfolg gewertet
+- **Staffeln nicht angezeigt**: API-Response-Parsing korrigiert (`data`-Wrapper); Online-Fallback lädt Staffeln direkt von der API wenn lokal keine vorhanden sind und speichert sie für Offline-Nutzung
+
+### Sync-Verbesserungen
+- Delta-Sync zeigt gelöschte Einträge korrekt in der Vorschau an
+- Full-Sync erkennt lokale Filme ohne SaaS-Gegenstück und entfernt sie
+- Staffeln und Folgen werden beim Sync für Serien automatisch mitgeladen
+
+---
+
 ## [0.3.5] – 2026-04-25
 
 ### Behoben

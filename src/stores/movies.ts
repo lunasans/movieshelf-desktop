@@ -27,16 +27,41 @@ export interface Movie {
   updated_at: string
 }
 
-export const useMovieStore = defineStore('movies', () => {
-  const movies  = ref<Movie[]>([])
-  const total   = ref(0)
-  const loading = ref(false)
-  const loadingMore = ref(false)
-  const page    = ref(1)
-  const perPage = ref(30)
-  const savedScrollTop = ref(0)
+interface ListState {
+  movies: Movie[]
+  total: number
+  page: number
+  scrollTop: number
+}
 
-  async function fetchMovies(params: { q?: string; page?: number } = {}, append = false) {
+export const useMovieStore = defineStore('movies', () => {
+  const movies      = ref<Movie[]>([])
+  const total       = ref(0)
+  const loading     = ref(false)
+  const loadingMore = ref(false)
+  const page        = ref(1)
+  const perPage     = ref(30)
+
+  // Per-list cache so switching between Filme / Serien restores full state
+  const cache = new Map<string, ListState>()
+
+  function saveToCache(key: string, scrollTop: number) {
+    cache.set(key, { movies: [...movies.value], total: total.value, page: page.value, scrollTop })
+  }
+
+  function restoreFromCache(key: string): number | null {
+    const s = cache.get(key)
+    if (!s || !s.movies.length) return null
+    movies.value = s.movies
+    total.value  = s.total
+    page.value   = s.page
+    return s.scrollTop
+  }
+
+  async function fetchMovies(
+    params: { q?: string; page?: number; collectionType?: string; excludeType?: string } = {},
+    append = false
+  ) {
     if (!append) {
       loading.value = true
       page.value = 1
@@ -45,20 +70,16 @@ export const useMovieStore = defineStore('movies', () => {
     }
 
     try {
-      const currentPage = params.page ?? page.value
+      const currentPage    = params.page ?? page.value
       const currentPerPage = perPage.value
 
-      const result = await window.electron.db.movies.list({
-        ...params,
-        page: currentPage,
-        perPage: currentPerPage
-      })
+      const result    = await window.electron.db.movies.list({ ...params, page: currentPage, perPage: currentPerPage })
       const newMovies = result.data as Movie[]
       movies.value = append ? [...movies.value, ...newMovies] : newMovies
       total.value  = result.total
       page.value   = result.page
     } finally {
-      loading.value = false
+      loading.value     = false
       loadingMore.value = false
     }
   }
@@ -69,5 +90,5 @@ export const useMovieStore = defineStore('movies', () => {
     total.value--
   }
 
-  return { movies, total, loading, loadingMore, page, perPage, fetchMovies, deleteMovie, savedScrollTop }
+  return { movies, total, loading, loadingMore, page, perPage, fetchMovies, deleteMovie, saveToCache, restoreFromCache }
 })

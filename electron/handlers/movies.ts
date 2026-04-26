@@ -10,30 +10,51 @@ const ALLOWED_MOVIE_COLUMNS = new Set([
 export function registerMovieHandlers(): void {
   const db = () => getDb()
 
-  ipcMain.handle('db:movies:list', (_event, params: { page?: number; perPage?: number; q?: string } = {}) => {
-    const { page = 1, perPage = 30, q } = params
+  ipcMain.handle('db:movies:list', (_event, params: { page?: number; perPage?: number; q?: string; collectionType?: string; excludeType?: string } = {}) => {
+    const { page = 1, perPage = 30, q, collectionType, excludeType } = params
     const offset = (page - 1) * perPage
 
-    if (q) {
-      const like = `%${q}%`
-      const rows = db().prepare(`
-        SELECT * FROM movies
-        WHERE is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL
-          AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)
-        ORDER BY title ASC LIMIT ? OFFSET ?
-      `).all(like, like, like, perPage, offset)
+    // List query: top-level items only, no boxset parents or children
+    let listWhere  = 'is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL AND (is_boxset IS NULL OR is_boxset = 0)'
+    // Count query: all real films incl. boxset children, but not the parent containers
+    let countWhere = 'is_deleted = 0 AND in_collection = 1 AND (is_boxset IS NULL OR is_boxset = 0)'
+    const typeArgs: unknown[] = []
 
-      const total = (db().prepare(`
-        SELECT COUNT(*) as count FROM movies
-        WHERE is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL
-          AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)
-      `).get(like, like, like) as { count: number }).count
+    if (collectionType) {
+      const filter = ' AND collection_type = ?'
+      listWhere  += filter
+      countWhere += filter
+      typeArgs.push(collectionType)
+    } else if (excludeType) {
+      const filter = ' AND (collection_type IS NULL OR collection_type != ?)'
+      listWhere  += filter
+      countWhere += filter
+      typeArgs.push(excludeType)
+    }
+
+    if (q) {
+      const like    = `%${q}%`
+      const searchFilter = ' AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)'
+      const searchArgs   = [like, like, like]
+
+      const rows = db().prepare(
+        `SELECT * FROM movies WHERE ${listWhere}${searchFilter} ORDER BY title ASC LIMIT ? OFFSET ?`
+      ).all(...typeArgs, ...searchArgs, perPage, offset)
+
+      const total = (db().prepare(
+        `SELECT COUNT(*) as count FROM movies WHERE ${countWhere}${searchFilter}`
+      ).get(...typeArgs, ...searchArgs) as { count: number }).count
 
       return { data: rows, total, page, perPage }
     }
 
-    const rows = db().prepare('SELECT * FROM movies WHERE is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL ORDER BY title ASC LIMIT ? OFFSET ?').all(perPage, offset)
-    const total = (db().prepare('SELECT COUNT(*) as count FROM movies WHERE is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL').get() as { count: number }).count
+    const rows = db().prepare(
+      `SELECT * FROM movies WHERE ${listWhere} ORDER BY title ASC LIMIT ? OFFSET ?`
+    ).all(...typeArgs, perPage, offset)
+
+    const total = (db().prepare(
+      `SELECT COUNT(*) as count FROM movies WHERE ${countWhere}`
+    ).get(...typeArgs) as { count: number }).count
 
     return { data: rows, total, page, perPage }
   })
@@ -265,6 +286,12 @@ export function registerMovieHandlers(): void {
     if (!row) return { success: false }
     db().prepare('UPDATE movies SET is_deleted = 1, updated_at = ? WHERE id = ?').run(now, row.id)
     return { success: true, localId: row.id }
+  })
+
+  ipcMain.handle('db:movies:all-remote-ids', () => {
+    return db().prepare(
+      'SELECT id, remote_id FROM movies WHERE is_deleted = 0 AND remote_id IS NOT NULL AND in_collection = 1'
+    ).all() as { id: number; remote_id: number }[]
   })
 
   ipcMain.handle('db:movies:clear', (_event, confirmed?: boolean) => {

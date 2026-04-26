@@ -144,4 +144,31 @@ function runMigrations(): void {
 
   try { db.exec('ALTER TABLE lists ADD COLUMN remote_id INTEGER') } catch (e) {}
   try { db.exec('ALTER TABLE lists ADD COLUMN synced_at TEXT') } catch (e) {}
+
+  // Seasons & Episodes for series
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS seasons (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      remote_id       INTEGER UNIQUE,
+      movie_id        INTEGER NOT NULL,
+      season_number   INTEGER NOT NULL,
+      title           TEXT,
+      overview        TEXT,
+      created_at      TEXT DEFAULT (datetime('now')),
+      updated_at      TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS episodes (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      remote_id       INTEGER UNIQUE,
+      season_id       INTEGER NOT NULL,
+      episode_number  INTEGER NOT NULL,
+      title           TEXT,
+      overview        TEXT,
+      created_at      TEXT DEFAULT (datetime('now')),
+      updated_at      TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE CASCADE
+    );
+  `)
 }

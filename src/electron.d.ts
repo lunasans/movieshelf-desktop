@@ -25,6 +25,7 @@ interface Window {
         checkTmdbIds:      (ids: number[]) => Promise<number[]>
         deleteByRemoteId:  (remoteId: number) => Promise<{ success: boolean; localId?: number }>
         clear:             () => Promise<{ success: boolean }>
+        allRemoteIds:      () => Promise<{ id: number; remote_id: number }[]>
         actors: {
           getForMovie: (movieId: number) => Promise<unknown[]>
           upsert:      (data: Record<string, unknown>) => Promise<number>
@@ -37,6 +38,28 @@ interface Window {
           markSynced: (p: { id: number; remote_id: number; synced_at: string }) => Promise<unknown>
           hardDelete: (id: number) => Promise<unknown>
         }
+      }
+      seasons: {
+        forMovie: (movieId: number) => Promise<Array<{
+          id: number
+          remote_id: number | null
+          movie_id: number
+          season_number: number
+          title: string | null
+          overview: string | null
+          episodes: Array<{
+            id: number
+            remote_id: number | null
+            season_id: number
+            episode_number: number
+            title: string | null
+            overview: string | null
+          }>
+        }>>
+        upsert: (data: Record<string, unknown>) => Promise<number | undefined>
+      }
+      episodes: {
+        upsert: (data: Record<string, unknown>) => Promise<void>
       }
       lists: {
         list:             ()                                 => Promise<unknown[]>

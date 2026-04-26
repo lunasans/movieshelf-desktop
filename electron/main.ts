@@ -1,4 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell, protocol, net } from 'electron'
+import { globalAgent } from 'https'
+globalAgent.setMaxListeners(30)
 import { join, sep, extname } from 'path'
 import { createWriteStream, existsSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
@@ -13,6 +15,7 @@ import { registerListHandlers } from './handlers/lists'
 import { registerStatsHandlers } from './handlers/stats'
 import { registerOAuthHandlers } from './handlers/oauth'
 import { registerBackupHandlers } from './handlers/backup'
+import { registerSeasonHandlers } from './handlers/seasons'
 
 const isDev = !app.isPackaged || process.env.NODE_ENV === 'development'
 
@@ -137,6 +140,7 @@ app.whenReady().then(() => {
   registerStatsHandlers()
   registerOAuthHandlers()
   registerBackupHandlers()
+  registerSeasonHandlers()
 
   // Register local resource protocol
   protocol.handle('movie-resource', (request) => {

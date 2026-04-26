@@ -174,6 +174,41 @@
             </div>
           </div>
 
+          <!-- Seasons (Series) -->
+          <div v-if="movie.collection_type === 'Serie' && seasons.length > 0">
+            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">Staffeln</h3>
+            <div class="space-y-3">
+              <div v-for="season in seasons" :key="season.id" class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl overflow-hidden">
+                <button
+                  @click="toggleSeason(season.id)"
+                  class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[var(--bg-elevated)] transition-colors"
+                >
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-black text-[var(--text-main)] uppercase tracking-tight">
+                      Staffel {{ season.season_number }}
+                      <span v-if="season.title" class="font-normal normal-case tracking-normal text-[var(--text-muted)] opacity-60"> – {{ season.title }}</span>
+                    </p>
+                    <p v-if="season.overview" class="text-xs text-[var(--text-muted)] opacity-50 mt-0.5 truncate">{{ season.overview }}</p>
+                  </div>
+                  <div class="flex items-center gap-3 flex-shrink-0 ml-4">
+                    <span class="text-xs text-[var(--text-muted)] opacity-40">{{ season.episodes.length }} Folgen</span>
+                    <i class="bi text-[var(--text-muted)] opacity-40 transition-transform" :class="openSeasons.has(season.id) ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                  </div>
+                </button>
+                <div v-if="openSeasons.has(season.id)" class="border-t border-[var(--border-ui)]">
+                  <div v-for="ep in season.episodes" :key="ep.id" class="px-5 py-3 border-b border-[var(--border-ui)] last:border-0">
+                    <p class="text-sm font-bold text-[var(--text-main)]">
+                      <span class="text-[var(--text-muted)] opacity-40 text-xs mr-2 font-mono">E{{ ep.episode_number }}</span>
+                      {{ ep.title ?? `Folge ${ep.episode_number}` }}
+                    </p>
+                    <p v-if="ep.overview" class="text-xs text-[var(--text-muted)] opacity-60 mt-1 leading-relaxed">{{ ep.overview }}</p>
+                  </div>
+                  <p v-if="season.episodes.length === 0" class="px-5 py-3 text-xs text-[var(--text-muted)] opacity-40 italic">Keine Folgen vorhanden.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div v-if="movie.director">
             <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-4">Regie</h3>
             <p class="text-[var(--text-main)] text-xl font-bold">{{ movie.director }}</p>
@@ -234,8 +269,10 @@ import { useRoute } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { useUiStore } from '@/stores/ui'
 import { useListStore } from '@/stores/lists'
+import { useSettingsStore } from '@/stores/settings'
 const route = useRoute()
-const { resolveMediaUrl } = useApi()
+const { resolveMediaUrl, apiGet } = useApi()
+const settings = useSettingsStore()
 const ui = useUiStore()
 const listStore = useListStore()
 const movie = ref<any>(null)
@@ -243,7 +280,18 @@ const localMovieId = ref<number | null>(null)
 const movieListIds = ref<Set<number>>(new Set())
 const linkedActors = ref<any[]>([])
 const boxsetChildren = ref<any[]>([])
+const seasons = ref<any[]>([])
+const openSeasons = ref(new Set<number>())
 const isSticky = ref(false)
+
+function toggleSeason(seasonId: number) {
+  if (openSeasons.value.has(seasonId)) {
+    openSeasons.value.delete(seasonId)
+  } else {
+    openSeasons.value.add(seasonId)
+  }
+  openSeasons.value = new Set(openSeasons.value)
+}
 
 const titleRef = ref<HTMLElement | null>(null)
 
@@ -393,6 +441,37 @@ onMounted(async () => {
 
   if (movie.value?.is_boxset) {
     boxsetChildren.value = await window.electron.db.movies.children(id)
+  }
+
+  if (movie.value?.collection_type === 'Serie') {
+    seasons.value = await window.electron.db.seasons.forMovie(id)
+
+    // Online-Fallback: Staffeln direkt von der API laden und lokal speichern
+    if (seasons.value.length === 0 && settings.isOnline && movie.value.remote_id) {
+      try {
+        const remote = await apiGet(`/movies/${movie.value.remote_id}`) as any
+        const remoteSeasonsData = remote?.data ?? remote
+        if (remoteSeasonsData?.seasons && Array.isArray(remoteSeasonsData.seasons)) {
+          for (const season of remoteSeasonsData.seasons) {
+            const localSeasonId = await window.electron.db.seasons.upsert({
+              remote_id: season.id, movie_id: id,
+              season_number: season.season_number, title: season.title, overview: season.overview,
+            })
+            if (localSeasonId && Array.isArray(season.episodes)) {
+              for (const ep of season.episodes) {
+                await window.electron.db.episodes.upsert({
+                  remote_id: ep.id, season_id: localSeasonId,
+                  episode_number: ep.episode_number, title: ep.title, overview: ep.overview,
+                })
+              }
+            }
+          }
+          seasons.value = await window.electron.db.seasons.forMovie(id)
+        }
+      } catch { /* offline oder kein Zugriff – ignorieren */ }
+    }
+
+    if (seasons.value.length > 0) openSeasons.value = new Set([seasons.value[0].id])
   }
 
   await listStore.fetchLists()

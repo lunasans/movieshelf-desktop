@@ -3,8 +3,8 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight">Filme</h1>
-        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ store.total }} Filme in der Sammlung</p>
+        <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight">{{ isSeries ? 'Serien' : 'Filme' }}</h1>
+        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ store.total }} {{ isSeries ? 'Serien' : 'Filme' }} in der Sammlung</p>
       </div>
       <router-link
         to="/movies/new"
@@ -63,84 +63,98 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, onBeforeRouteLeave } from 'vue-router'
 import { useMovieStore } from '@/stores/movies'
 import { useSettingsStore } from '@/stores/settings'
 import MovieCard from '@/components/movies/MovieCard.vue'
 
-const route = useRoute()
-const store = useMovieStore()
+const route    = useRoute()
+const store    = useMovieStore()
 const settings = useSettingsStore()
-const query = ref('')
+const query    = ref('')
+
+const isSeries = computed(() => route.path === '/series')
+const listKey  = computed(() => isSeries.value ? 'Serie' : '!Serie')
 
 let searchTimeout: ReturnType<typeof setTimeout>
+
+function listParams(extra: Record<string, unknown> = {}) {
+  return isSeries.value
+    ? { collectionType: 'Serie', ...extra }
+    : { excludeType: 'Serie', ...extra }
+}
+
+function getMain() { return document.querySelector('main') }
 
 function onSearch() {
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
-    store.fetchMovies({ q: query.value || undefined })
+    store.fetchMovies(listParams({ q: query.value || undefined }))
   }, 300)
 }
 
 function handleScroll(e: Event) {
-  // Prevent double fetching or fetching when all movies are loaded
-  if (store.loading || store.loadingMore || store.movies.length === 0 || store.movies.length >= store.total) {
-    return
-  }
-
+  if (store.loading || store.loadingMore || store.movies.length === 0 || store.movies.length >= store.total) return
   const target = e.target as HTMLElement
-  const scrollBottom = target.scrollTop + target.clientHeight
-  // Trigger earlier (500px from bottom) for smoother experience
-  const threshold = target.scrollHeight - 500
-
-  if (scrollBottom > threshold) {
-    store.fetchMovies({ 
-      q: query.value || undefined, 
-      page: store.page + 1 
-    }, true)
+  if (target.scrollTop + target.clientHeight > target.scrollHeight - 500) {
+    store.fetchMovies(listParams({ q: query.value || undefined, page: store.page + 1 }), true)
   }
 }
 
-function handleQueryChange() {
-  const q = route.query.q as string
-  if (q) {
-    query.value = q
-    store.fetchMovies({ q })
-  } else {
-    query.value = ''
-    store.fetchMovies()
-  }
+async function loadList() {
+  const q = route.query.q as string | undefined
+  query.value = q ?? ''
+  await store.fetchMovies(listParams(q ? { q } : {}))
 }
+
+// ── Lifecycle ────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
-  const main = document.querySelector('main')
+  const main = getMain()
   if (main) main.addEventListener('scroll', handleScroll)
 
-  if (store.savedScrollTop > 0 && store.movies.length > 0 && !route.query.q) {
-    const scrollTop = store.savedScrollTop
-    store.savedScrollTop = 0
+  // Try to restore cached state (e.g. returning from movie detail)
+  const scrollTop = store.restoreFromCache(listKey.value)
+  if (scrollTop !== null && !route.query.q) {
     await nextTick()
     if (main) main.scrollTop = scrollTop
   } else {
-    handleQueryChange()
+    await loadList()
   }
 })
 
 onUnmounted(() => {
-  const main = document.querySelector('main')
-  if (main) main.removeEventListener('scroll', handleScroll)
+  getMain()?.removeEventListener('scroll', handleScroll)
 })
 
-onBeforeRouteLeave((to) => {
-  if (to.name === 'movies.edit' || to.name === 'movies.show') {
-    const main = document.querySelector('main')
-    if (main) store.savedScrollTop = main.scrollTop
+// Save to cache before leaving (movie detail, settings, etc.)
+onBeforeRouteLeave(() => {
+  store.saveToCache(listKey.value, getMain()?.scrollTop ?? 0)
+})
+
+// ── Watchers ─────────────────────────────────────────────────────────────────
+
+watch(() => route.query.q, () => { loadList() })
+
+// Switching between /movies and /series — save old list, restore or fetch new
+watch(() => route.path, async (newPath, oldPath) => {
+  const listPaths = ['/movies', '/series']
+  if (!listPaths.includes(newPath) || !listPaths.includes(oldPath)) return
+
+  const oldKey = oldPath === '/series' ? 'Serie' : '!Serie'
+  query.value = ''
+
+  // Save current state under the old key
+  store.saveToCache(oldKey, getMain()?.scrollTop ?? 0)
+
+  // Restore or fetch for the new key
+  const scrollTop = store.restoreFromCache(listKey.value)
+  if (scrollTop !== null) {
+    await nextTick()
+    getMain()!.scrollTop = scrollTop
+  } else {
+    await loadList()
   }
-})
-
-// Watch for query changes (e.g. searching for a different actor while already on the movies view)
-watch(() => route.query.q, () => {
-  handleQueryChange()
 })
 </script>
