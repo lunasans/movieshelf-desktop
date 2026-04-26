@@ -90,5 +90,10 @@ interface Window {
       set:    (key: string, value: unknown) => Promise<boolean>
       getAll: () => Promise<Record<string, string>>
     }
+
+    backup: {
+      create:  () => Promise<{ success: boolean; canceled?: boolean; path?: string; movies?: number; error?: string }>
+      restore: () => Promise<{ success: boolean; canceled?: boolean; movies?: number; actors?: number; error?: string }>
+    }
   }
 }

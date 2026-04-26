@@ -96,4 +96,10 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.on('oauth:callback', (_event, payload) => cb(payload))
     },
   },
+
+  // Backup
+  backup: {
+    create:  () => ipcRenderer.invoke('backup:create'),
+    restore: () => ipcRenderer.invoke('backup:restore'),
+  },
 })

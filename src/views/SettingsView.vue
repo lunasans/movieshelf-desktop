@@ -168,6 +168,56 @@
         </div>
       </template>
 
+      <!-- ── Backup ── -->
+      <template v-if="active === 'backup'">
+        <SectionHeader icon="archive" title="Backup" />
+
+        <!-- Backup erstellen -->
+        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+          <p class="text-sm font-bold text-[var(--text-main)] mb-1">Backup erstellen</p>
+          <p class="text-xs text-[var(--text-muted)] opacity-60 mb-4">
+            Exportiert alle Filme, Schauspieler, Listen und Medien als <span class="font-mono">.ms</span>-Datei.
+          </p>
+          <div v-if="backupResult" class="mb-3 text-xs font-bold"
+            :class="backupResult.success ? 'text-[var(--status-green)]' : 'text-[var(--status-red)]'">
+            {{ backupResult.success
+              ? `✓ Backup erstellt — ${backupResult.movies} Filme gesichert`
+              : `✗ ${backupResult.error}` }}
+          </div>
+          <button
+            @click="createBackup"
+            :disabled="backupLoading"
+            class="w-full bg-[var(--bg-elevated)] hover:bg-[var(--border-ui)] border border-[var(--border-ui)] text-[var(--text-main)] font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <i class="bi bi-cloud-download" :class="{ 'animate-pulse': backupLoading }"></i>
+            {{ backupLoading ? 'Wird erstellt...' : 'Backup speichern...' }}
+          </button>
+        </div>
+
+        <!-- Backup wiederherstellen -->
+        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5">
+          <p class="text-sm font-bold text-[var(--text-main)] mb-1">Backup wiederherstellen</p>
+          <p class="text-xs text-[var(--text-muted)] opacity-60 mb-4">
+            Stellt eine gespeicherte <span class="font-mono">.ms</span>-Datei wieder her.
+            Die aktuelle Sammlung wird dabei überschrieben.
+          </p>
+          <div v-if="restoreResult" class="mb-3 text-xs font-bold"
+            :class="restoreResult.success ? 'text-[var(--status-green)]' : 'text-[var(--status-red)]'">
+            {{ restoreResult.success
+              ? `✓ Wiederhergestellt — ${restoreResult.movies} Filme, ${restoreResult.actors} Schauspieler`
+              : `✗ ${restoreResult.error}` }}
+          </div>
+          <button
+            @click="restoreBackup"
+            :disabled="restoreLoading"
+            class="w-full bg-transparent hover:bg-[var(--status-red)]/5 border border-[var(--status-red)]/30 text-[var(--status-red)] font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <i class="bi bi-arrow-counterclockwise" :class="{ 'animate-spin': restoreLoading }"></i>
+            {{ restoreLoading ? 'Wird wiederhergestellt...' : 'Backup wiederherstellen...' }}
+          </button>
+        </div>
+      </template>
+
       <!-- ── Entwickler ── -->
       <template v-if="active === 'dev'">
         <SectionHeader icon="bug" title="Entwickler-Werkzeuge" />
@@ -296,11 +346,17 @@ const downloading      = ref(false)
 const downloadProgress = ref(0)
 const updateError      = ref('')
 
+const backupLoading    = ref(false)
+const backupResult     = ref<{ success: boolean; movies?: number; error?: string } | null>(null)
+const restoreLoading   = ref(false)
+const restoreResult    = ref<{ success: boolean; movies?: number; actors?: number; error?: string } | null>(null)
+
 const sections = [
   { id: 'appearance', icon: 'palette',      label: 'Erscheinungsbild' },
   { id: 'connection', icon: 'cloud',         label: 'Verbindung'       },
   { id: 'tmdb',       icon: 'film',          label: 'TMDb'             },
   { id: 'updates',    icon: 'arrow-repeat',  label: 'Updates'          },
+  { id: 'backup',     icon: 'archive',       label: 'Backup'           },
   { id: 'dev',        icon: 'bug',           label: 'Entwickler',  dev: true },
 ]
 
@@ -431,6 +487,33 @@ async function clearDatabase() {
     await window.electron.db.movies.clear()
     alert('Datenbank wurde geleert.')
     window.location.reload()
+  }
+}
+
+async function createBackup() {
+  backupLoading.value = true
+  backupResult.value  = null
+  try {
+    const result = await window.electron.backup.create()
+    if (!result.canceled) backupResult.value = result
+  } finally {
+    backupLoading.value = false
+  }
+}
+
+async function restoreBackup() {
+  restoreLoading.value = true
+  restoreResult.value  = null
+  try {
+    const result = await window.electron.backup.restore()
+    if (!result.canceled) {
+      restoreResult.value = result
+      if (result.success) {
+        setTimeout(() => window.location.reload(), 1500)
+      }
+    }
+  } finally {
+    restoreLoading.value = false
   }
 }
 </script>

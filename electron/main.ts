@@ -12,6 +12,7 @@ import { registerMediaHandlers } from './handlers/media'
 import { registerListHandlers } from './handlers/lists'
 import { registerStatsHandlers } from './handlers/stats'
 import { registerOAuthHandlers } from './handlers/oauth'
+import { registerBackupHandlers } from './handlers/backup'
 
 const isDev = !app.isPackaged || process.env.NODE_ENV === 'development'
 
@@ -135,6 +136,7 @@ app.whenReady().then(() => {
   registerListHandlers()
   registerStatsHandlers()
   registerOAuthHandlers()
+  registerBackupHandlers()
 
   // Register local resource protocol
   protocol.handle('movie-resource', (request) => {

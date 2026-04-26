@@ -1,6 +1,6 @@
 {
   "name": "movieshelf-desktop",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "MovieShelf Desktop – Filmsammlung lokal verwalten & mit deiner Shelf synchronisieren",
   "main": "dist-electron/main.js",
   "author": {
@@ -17,6 +17,7 @@
     "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
+    "adm-zip": "^0.5.17",
     "axios": "^1.7.2",
     "better-sqlite3": "^12.9.0",
     "bootstrap-icons": "^1.13.1",
@@ -25,6 +26,7 @@
     "vue-router": "^4.3.3"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@types/better-sqlite3": "^7.6.13",
     "@vitejs/plugin-vue": "^5.0.5",
     "autoprefixer": "^10.4.19",
@@ -57,7 +59,9 @@
       "icon": "public/icon.png"
     },
     "linux": {
-      "target": ["deb"],
+      "target": [
+        "deb"
+      ],
       "icon": "public/icon.png",
       "category": "AudioVideo"
     }
