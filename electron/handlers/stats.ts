@@ -94,13 +94,31 @@ export function registerStatsHandlers(): void {
     `).all() as { name: string; remote_id: number | null; image_path: string | null; movie_count: number }[]
 
     // Films per collection type (BoxSet included here intentionally for overview)
-    const byType = db().prepare(`
+    const byTypeRaw = db().prepare(`
       SELECT collection_type, COUNT(*) as count
       FROM movies
       WHERE is_deleted = 0 AND in_collection = 1
       GROUP BY collection_type
       ORDER BY count DESC
     `).all() as { collection_type: string; count: number }[]
+
+    const filmsByType = db().prepare(`
+      SELECT id, title, year, collection_type
+      FROM movies
+      WHERE is_deleted = 0 AND in_collection = 1 AND collection_type IS NOT NULL
+      ORDER BY title ASC
+    `).all() as { id: number; title: string; year: number | null; collection_type: string }[]
+
+    const filmsByTypeMap: Record<string, { id: number; title: string; year: number | null }[]> = {}
+    for (const film of filmsByType) {
+      if (!filmsByTypeMap[film.collection_type]) filmsByTypeMap[film.collection_type] = []
+      filmsByTypeMap[film.collection_type].push({ id: film.id, title: film.title, year: film.year })
+    }
+
+    const byType = byTypeRaw.map(t => ({
+      ...t,
+      films: filmsByTypeMap[t.collection_type] ?? [],
+    }))
 
     // Runtime distribution in buckets
     const runtimeBuckets = [

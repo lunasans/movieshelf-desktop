@@ -91,7 +91,7 @@ interface Window {
         genres:    { name: string; count: number }[]
         byYear:    { year: number; count: number }[]
         topActors: { name: string; remote_id: number | null; image_path: string | null; movie_count: number }[]
-        byType:    { collection_type: string; count: number }[]
+        byType:    { collection_type: string; count: number; films: { id: number; title: string; year: number | null }[] }[]
         byRuntime: { label: string; count: number }[]
       }>
     }

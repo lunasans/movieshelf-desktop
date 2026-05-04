@@ -90,13 +90,34 @@
         <!-- Sammlungstypen -->
         <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6">
           <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-50 mb-5">Sammlungstypen</h2>
-          <div class="space-y-3">
-            <div v-for="t in stats.byType" :key="t.collection_type" class="flex items-center gap-3">
-              <div class="w-32 text-[11px] text-[var(--text-muted)] font-bold truncate flex-shrink-0">{{ t.collection_type }}</div>
-              <div class="flex-1 h-2 bg-[var(--bg-app)] rounded-full overflow-hidden">
-                <div class="h-full bg-red-600/60 rounded-full" :style="{ width: `${(t.count / stats.totalMovies) * 100}%` }"></div>
+          <div class="space-y-2">
+            <div v-for="t in stats.byType" :key="t.collection_type" class="rounded-xl border border-[var(--border-ui)] overflow-hidden">
+              <!-- Row -->
+              <button
+                class="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--bg-elevated)] transition-colors text-left"
+                @click="openType = openType === t.collection_type ? null : t.collection_type"
+              >
+                <div class="w-28 text-[11px] text-[var(--text-muted)] font-bold truncate flex-shrink-0">{{ t.collection_type }}</div>
+                <div class="flex-1 h-2 bg-[var(--bg-app)] rounded-full overflow-hidden">
+                  <div class="h-full bg-red-600/60 rounded-full" :style="{ width: `${(t.count / stats.totalMovies) * 100}%` }"></div>
+                </div>
+                <div class="w-8 text-right text-[11px] font-black text-[var(--text-main)] flex-shrink-0">{{ t.count }}</div>
+                <i
+                  class="bi text-[10px] text-[var(--text-muted)] opacity-40 flex-shrink-0 transition-transform duration-200"
+                  :class="openType === t.collection_type ? 'bi-chevron-up' : 'bi-chevron-down'"
+                ></i>
+              </button>
+              <!-- Film list -->
+              <div v-if="openType === t.collection_type" class="border-t border-[var(--border-ui)] max-h-56 overflow-y-auto">
+                <div
+                  v-for="film in t.films"
+                  :key="film.id"
+                  class="flex items-center justify-between px-4 py-1.5 hover:bg-[var(--bg-elevated)] transition-colors"
+                >
+                  <span class="text-[11px] text-[var(--text-muted)] truncate">{{ film.title }}</span>
+                  <span v-if="film.year" class="text-[10px] font-black text-[var(--text-muted)] opacity-40 ml-3 flex-shrink-0">{{ film.year }}</span>
+                </div>
               </div>
-              <div class="w-8 text-right text-[11px] font-black text-[var(--text-main)] flex-shrink-0">{{ t.count }}</div>
             </div>
           </div>
         </div>
@@ -237,6 +258,7 @@ const stats     = ref<Stats | null>(null)
 const loading   = ref(true)
 const loadError = ref('')
 const activeTab = ref('overview')
+const openType  = ref<string | null>(null)
 
 const tabs = [
   { id: 'overview', label: 'Übersicht',    icon: 'speedometer2' },
