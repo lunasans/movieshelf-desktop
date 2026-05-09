@@ -98,13 +98,13 @@
 
             <!-- Hover overlay -->
             <div v-else class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-stretch justify-end p-2 gap-1.5">
-              <span v-if="importing === result.id" class="text-[10px] font-black text-white uppercase tracking-widest flex items-center justify-center gap-1 py-1">
+              <span v-if="importing === result.id || (previewLoading && previewSource?.id === result.id)" class="text-[10px] font-black text-white uppercase tracking-widest flex items-center justify-center gap-1 py-1">
                 <span class="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></span>
                 Lädt...
               </span>
               <template v-else>
                 <button
-                  @click.stop="importMovie(result)"
+                  @click.stop="openPreview(result)"
                   class="w-full bg-red-600 hover:bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-1.5 rounded-lg transition-colors"
                 >
                   <i class="bi bi-plus-lg mr-1"></i>Sammlung
@@ -144,6 +144,112 @@
       </div>
     </template>
   </div>
+
+  <!-- Edit-before-import Modal -->
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="previewForm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="previewForm = null; previewSource = null" />
+        <div class="relative bg-[var(--bg-app)] w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-[var(--border-ui)] shadow-2xl flex flex-col">
+          <!-- Header -->
+          <div class="flex gap-5 p-6 border-b border-[var(--border-ui)] flex-shrink-0">
+            <img v-if="previewForm.cover_path" :src="previewForm.cover_path" class="w-14 aspect-[2/3] rounded-xl object-cover flex-shrink-0" />
+            <div>
+              <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-1">Vor dem Import bearbeiten</h2>
+              <p class="text-xs text-[var(--text-muted)] opacity-60">Daten prüfen und anpassen – dann importieren.</p>
+            </div>
+          </div>
+          <!-- Form -->
+          <div class="p-6 space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Titel *</label>
+                <input v-model="previewForm.title" type="text" class="modal-input" />
+              </div>
+              <div>
+                <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Jahr</label>
+                <input v-model.number="previewForm.year" type="number" min="1900" max="2099" class="modal-input" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Typ</label>
+                <select v-model="previewForm.collection_type" class="modal-input">
+                  <option>Film</option>
+                  <option>Serie</option>
+                  <option>Dokumentation</option>
+                  <option>Kurzfilm</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Format-Tag</label>
+                <select v-model="previewForm.tag" class="modal-input">
+                  <option value="">—</option>
+                  <option>DVD</option>
+                  <option>BluRay</option>
+                  <option>4K</option>
+                  <option>Streaming</option>
+                  <option>Digital</option>
+                  <option>VHS</option>
+                  <option>Leihe</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Genre</label>
+                <input v-model="previewForm.genre" type="text" class="modal-input" />
+              </div>
+              <div>
+                <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Regisseur</label>
+                <input v-model="previewForm.director" type="text" class="modal-input" />
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Laufzeit (min)</label>
+                <input v-model.number="previewForm.runtime" type="number" class="modal-input" />
+              </div>
+              <div>
+                <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Bewertung (0–10)</label>
+                <input v-model.number="previewForm.rating" type="number" min="0" max="10" step="0.1" class="modal-input" />
+              </div>
+              <div>
+                <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">FSK</label>
+                <input v-model.number="previewForm.rating_age" type="number" class="modal-input" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Beschreibung</label>
+              <textarea v-model="previewForm.overview" rows="4" class="modal-input resize-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Trailer URL</label>
+              <input v-model="previewForm.trailer_url" type="url" class="modal-input" placeholder="https://www.youtube.com/watch?v=..." />
+            </div>
+          </div>
+          <!-- Footer -->
+          <div class="flex gap-3 p-6 border-t border-[var(--border-ui)] flex-shrink-0">
+            <button
+              @click="confirmImport"
+              :disabled="importing === previewSource?.id || !previewForm.title"
+              class="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-black py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-sm active:scale-95"
+            >
+              <span v-if="importing === previewSource?.id" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <i v-else class="bi bi-plus-lg"></i>
+              {{ importing === previewSource?.id ? 'Wird importiert...' : 'Importieren' }}
+            </button>
+            <button
+              @click="previewForm = null; previewSource = null"
+              class="px-6 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
+            >
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -152,6 +258,7 @@ import axios from 'axios'
 import { useApi } from '@/composables/useApi'
 import { useSettingsStore } from '@/stores/settings'
 import { useListStore } from '@/stores/lists'
+import { useMovieStore } from '@/stores/movies'
 
 const TMDB_BASE = 'https://api.themoviedb.org/3'
 
@@ -164,6 +271,7 @@ interface TmdbResult {
 
 const settings   = useSettingsStore()
 const listStore  = useListStore()
+const movieStore = useMovieStore()
 const { apiGet, apiPost, isOnline } = useApi()
 
 const query       = ref('')
@@ -174,7 +282,10 @@ const importedIds = ref(new Set<number>())
 const error       = ref('')
 const toast       = ref('')
 const importToCollection = ref(true)
-const listPickerFor = ref<number | null>(null)
+const listPickerFor  = ref<number | null>(null)
+const previewForm    = ref<Record<string, any> | null>(null)
+const previewSource  = ref<TmdbResult | null>(null)
+const previewLoading = ref(false)
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 
 onMounted(() => listStore.fetchLists())
@@ -216,18 +327,83 @@ async function search() {
   }
 }
 
-async function importMovie(result: TmdbResult) {
-  if (importing.value || importedIds.value.has(result.id)) return
+async function openPreview(result: TmdbResult) {
+  if (previewLoading.value || importedIds.value.has(result.id)) return
+  previewSource.value = result
+  error.value = ''
+
+  if (isOnline.value || !settings.tmdbApiKey) {
+    previewForm.value = {
+      title: result.title,
+      year: result.release_date ? parseInt(result.release_date.slice(0, 4)) : null,
+      genre: '', director: '', runtime: null, rating: null, rating_age: null,
+      overview: '', collection_type: 'Film', tag: '', trailer_url: '',
+      tmdb_id: result.id,
+      cover_path: result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null,
+      backdrop_path: null, actors_names: '',
+    }
+    return
+  }
+
+  previewLoading.value = true
+  try {
+    const [detailRes, videoRes] = await Promise.all([
+      axios.get(`${TMDB_BASE}/movie/${result.id}`, {
+        params: { api_key: settings.tmdbApiKey, language: 'de-DE', append_to_response: 'credits' }
+      }),
+      axios.get(`${TMDB_BASE}/movie/${result.id}/videos`, {
+        params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
+      }).catch(() => ({ data: { results: [] } }))
+    ])
+    const m = detailRes.data
+    const director = (m.credits?.crew ?? []).find((c: any) => c.job === 'Director')?.name ?? ''
+    const actorsNames = (m.credits?.cast ?? []).slice(0, 10).map((c: any) => c.name).join(', ')
+    const trailer = (videoRes.data.results ?? []).find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
+    previewForm.value = {
+      title:           m.title,
+      year:            m.release_date ? parseInt(m.release_date.slice(0, 4)) : null,
+      genre:           (m.genres ?? []).map((g: any) => g.name).join(', '),
+      director,
+      runtime:         m.runtime ?? null,
+      rating:          m.vote_average != null ? Math.round(m.vote_average * 10) / 10 : null,
+      rating_age:      null,
+      overview:        m.overview ?? '',
+      collection_type: 'Film',
+      tag:             '',
+      trailer_url:     trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : '',
+      tmdb_id:         m.id,
+      cover_path:      m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
+      backdrop_path:   m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
+      actors_names:    actorsNames,
+    }
+  } catch (e: any) {
+    error.value = `Fehler beim Laden: ${e?.response?.data?.status_message ?? e.message}`
+    previewSource.value = null
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+async function confirmImport() {
+  if (!previewForm.value || !previewSource.value) return
+  const result = previewSource.value
   importing.value = result.id
   error.value = ''
   try {
     if (isOnline.value) {
       await apiPost('/tmdb/import', { tmdb_id: result.id, type: 'movie', in_collection: importToCollection.value })
     } else {
-      await importLocally(result.id, importToCollection.value ? 1 : 0)
+      await window.electron.db.movies.create({
+        ...previewForm.value,
+        in_collection: importToCollection.value ? 1 : 0,
+        remote_id: null,
+      })
     }
     importedIds.value = new Set(importedIds.value).add(result.id)
-    showToast(`„${result.title}" wurde zur Sammlung hinzugefügt.`)
+    movieStore.clearCache()
+    showToast(`„${previewForm.value.title}" wurde zur Sammlung hinzugefügt.`)
+    previewForm.value = null
+    previewSource.value = null
   } catch (e: any) {
     error.value = `Import fehlgeschlagen: ${e?.response?.data?.status_message ?? e.message}`
   } finally {
@@ -304,4 +480,9 @@ async function addToList(result: TmdbResult, listId: number) {
 <style scoped>
 .toast-enter-active, .toast-leave-active { transition: all 0.25s ease; }
 .toast-enter-from, .toast-leave-to       { opacity: 0; transform: translateY(12px); }
+.modal-enter-active, .modal-leave-active { transition: all 0.2s ease; }
+.modal-enter-from, .modal-leave-to       { opacity: 0; transform: scale(0.97); }
+.modal-input {
+  @apply w-full bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors;
+}
 </style>

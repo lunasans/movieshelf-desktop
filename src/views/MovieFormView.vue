@@ -93,9 +93,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import FormRow from '@/components/ui/FormRow.vue'
+import { useMovieStore } from '@/stores/movies'
 
-const route  = useRoute()
-const router = useRouter()
+const route       = useRoute()
+const router      = useRouter()
+const movieStore  = useMovieStore()
 
 const isEdit = computed(() => !!route.params.id)
 const saving = ref(false)
@@ -118,6 +120,7 @@ onMounted(async () => {
     const id = Number(route.params.id)
     const data = await window.electron.db.movies.get(id)
     Object.assign(form.value, data)
+    if (form.value.rating != null) form.value.rating = Math.round((form.value.rating as number) * 10) / 10
   }
 })
 
@@ -128,6 +131,7 @@ async function save() {
       await window.electron.db.movies.update(Number(route.params.id), { ...form.value })
     } else {
       await window.electron.db.movies.create({ ...form.value })
+      movieStore.clearCache()
     }
     router.push('/movies')
   } finally {

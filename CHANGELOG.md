@@ -1,5 +1,16 @@
 # Changelog – MovieShelf Desktop
 
+## [0.6.0] – 2026-05-09
+
+### Hinzugefügt
+- **Bearbeiten vor Import**: Beim Hinzufügen eines Films über die TMDb-Suche öffnet sich jetzt ein Modal mit allen vorausgefüllten Daten (Titel, Jahr, Typ, Genre, Regisseur, Laufzeit, Bewertung, FSK, Beschreibung, Trailer-URL, Format-Tag) – Änderungen können vor dem Speichern vorgenommen werden
+
+### Behoben
+- **Film erscheint nicht in Sammlung**: Nach dem Hinzufügen eines Films (manuell oder via TMDb) wurde der gespeicherte Listen-Cache nicht geleert – der neue Film war erst nach einem Neustart der App sichtbar
+- **Bewertung mit drei Dezimalstellen**: TMDb-Bewertungen (z. B. `7.456`) werden jetzt auf eine Stelle gerundet angezeigt, sowohl in der Detailansicht als auch im Bearbeitungsformular
+
+---
+
 ## [0.4.0] – 2026-04-26
 
 ### Hinzugefügt

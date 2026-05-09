@@ -93,7 +93,7 @@
               <span class="text-[var(--text-main)] opacity-70">{{ movie.runtime }} min</span>
             </div>
             <div v-if="movie.rating" class="flex items-center gap-2 bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">
-              <span class="text-yellow-600">★ {{ movie.rating }}</span>
+              <span class="text-yellow-600">★ {{ Number(movie.rating).toFixed(1) }}</span>
             </div>
           </div>
         </div>

@@ -90,5 +90,10 @@ export const useMovieStore = defineStore('movies', () => {
     total.value--
   }
 
-  return { movies, total, loading, loadingMore, page, perPage, fetchMovies, deleteMovie, saveToCache, restoreFromCache }
+  function clearCache(key?: string) {
+    if (key) cache.delete(key)
+    else cache.clear()
+  }
+
+  return { movies, total, loading, loadingMore, page, perPage, fetchMovies, deleteMovie, saveToCache, restoreFromCache, clearCache }
 })
