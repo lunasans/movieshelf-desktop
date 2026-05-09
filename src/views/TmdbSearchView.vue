@@ -332,7 +332,7 @@ async function openPreview(result: TmdbResult) {
   previewSource.value = result
   error.value = ''
 
-  if (isOnline.value || !settings.tmdbApiKey) {
+  if (!settings.tmdbApiKey) {
     previewForm.value = {
       title: result.title,
       year: result.release_date ? parseInt(result.release_date.slice(0, 4)) : null,
