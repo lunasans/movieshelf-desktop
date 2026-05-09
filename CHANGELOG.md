@@ -1,5 +1,13 @@
 # Changelog – MovieShelf Desktop
 
+## [0.6.3] – 2026-05-09
+
+### Behoben
+- **Filme nach Vollsync doppelt/dreifach**: Wenn ein Film vor dem Sync mehrfach lokal angelegt wurde (z. B. weil er in der Sammlung nicht sichtbar war), wurden beim Sync nur zwei der Duplikate zusammengeführt – die übrigen blieben erhalten. Jetzt werden beim Merge alle Duplikate mit gleicher TMDb-ID hart gelöscht
+- **Cover nach Vollsync nicht sichtbar**: `movie-resource://`-Pfade wurden in Schritt 1 von `resolveMediaUrl` fälschlicherweise mit der Shelf-URL zusammengesetzt – lokale Bilder wurden nie geladen
+
+---
+
 ## [0.6.2] – 2026-05-09
 
 ### Behoben

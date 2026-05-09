@@ -50,7 +50,7 @@ export function useApi() {
 
     // 1. Prioritize online shelf URL if we are online and have a path
     // This ensures covers are visible immediately after connecting, even before sync.
-    if (settings.shelfUrl && settings.isOnline && path && !path.startsWith('http')) {
+    if (settings.shelfUrl && settings.isOnline && path && !path.startsWith('http') && !path.startsWith('movie-resource://')) {
       return settings.shelfUrl.replace(/\/$/, '') + '/' + path.replace(/^\//, '')
     }
 

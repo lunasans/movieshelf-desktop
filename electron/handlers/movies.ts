@@ -97,11 +97,13 @@ export function registerMovieHandlers(): void {
     // film with the same tmdb_id exists (remote_id IS NULL). If so, merge into it instead
     // of inserting a duplicate.
     if (data.remote_id != null && data.tmdb_id != null) {
-      const orphan = db().prepare(
-        'SELECT id FROM movies WHERE tmdb_id = ? AND remote_id IS NULL AND is_deleted = 0'
-      ).get(data.tmdb_id) as { id: number } | undefined
+      const orphans = db().prepare(
+        'SELECT id FROM movies WHERE tmdb_id = ? AND remote_id IS NULL AND is_deleted = 0 ORDER BY id ASC'
+      ).all(data.tmdb_id) as { id: number }[]
 
-      if (orphan) {
+      if (orphans.length > 0) {
+        const orphan = orphans[0]
+        // Merge server data into the first local entry
         db().prepare(`
           UPDATE movies SET
             remote_id = @remote_id, title = @title, year = @year, genre = @genre,
@@ -112,6 +114,11 @@ export function registerMovieHandlers(): void {
             is_boxset = @is_boxset, boxset_parent_id = @boxset_parent_id, updated_at = @updated_at
           WHERE id = @id
         `).run({ ...data, updated_at: data.updated_at || now, id: orphan.id })
+        // Hard-delete any additional duplicates
+        for (let i = 1; i < orphans.length; i++) {
+          db().prepare('DELETE FROM film_actor WHERE film_id = ?').run(orphans[i].id)
+          db().prepare('DELETE FROM movies WHERE id = ?').run(orphans[i].id)
+        }
         return db().prepare('SELECT * FROM movies WHERE id = ?').get(orphan.id)
       }
     }
