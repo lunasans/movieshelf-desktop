@@ -373,6 +373,7 @@ async function pull(full = false): Promise<{ pulled: number; deleted: number; me
   const data = await apiGet('/admin/export', since ? { since } : {})
   const movies = data.movies as any[]
   let pulled = 0, deleted = 0, pullErrors = 0
+  const remoteToLocalId = new Map<number, number>()
 
   // Metadata
   setPhase('metadata', data.is_delta ? 'Delta laden' : 'Metadaten laden', '', 0)
@@ -420,6 +421,7 @@ async function pull(full = false): Promise<{ pulled: number; deleted: number; me
       }) as { id: number } | null
 
       if (local) {
+        remoteToLocalId.set(movie.id, local.id)
         await window.electron.db.movies.sync.markSynced({
           id: local.id, remote_id: movie.id, synced_at: new Date().toISOString()
         })
@@ -489,17 +491,31 @@ async function pull(full = false): Promise<{ pulled: number; deleted: number; me
   let mediaDone = 0
   for (const movie of movies) {
     phaseDetail.value = movie.title
+    const localId = remoteToLocalId.get(movie.id)
+
     const coverUrl = resolveMediaUrl(movie.cover_url)
-    if (coverUrl && !await window.electron.db.movies.exists(movie.id, 'cover')) {
-      const r = await window.electron.db.movies.download(coverUrl, movie.id, 'cover')
-      if (r.success) media++
+    if (coverUrl) {
+      let available = await window.electron.db.movies.exists(movie.id, 'cover')
+      if (!available) {
+        const r = await window.electron.db.movies.download(coverUrl, movie.id, 'cover')
+        if (r.success) { media++; available = true }
+      }
+      if (available && localId) {
+        await window.electron.db.movies.update(localId, { cover_path: `movie-resource://${movie.id}.jpg` })
+      }
     }
     mediaDone++; progressPct.value = 50 + Math.round((mediaDone / Math.max(mediaTotal, 1)) * 50)
 
     const backdropUrl = resolveMediaUrl(movie.backdrop_url)
-    if (backdropUrl && !await window.electron.db.movies.exists(movie.id, 'backdrop')) {
-      const r = await window.electron.db.movies.download(backdropUrl, movie.id, 'backdrop')
-      if (r.success) media++
+    if (backdropUrl) {
+      let available = await window.electron.db.movies.exists(movie.id, 'backdrop')
+      if (!available) {
+        const r = await window.electron.db.movies.download(backdropUrl, movie.id, 'backdrop')
+        if (r.success) { media++; available = true }
+      }
+      if (available && localId) {
+        await window.electron.db.movies.update(localId, { backdrop_path: `movie-resource://${movie.id}_backdrop.jpg` })
+      }
     }
     mediaDone++; progressPct.value = 50 + Math.round((mediaDone / Math.max(mediaTotal, 1)) * 50)
 

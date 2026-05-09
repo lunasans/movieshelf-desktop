@@ -1,5 +1,20 @@
 # Changelog – MovieShelf Desktop
 
+## [0.6.2] – 2026-05-09
+
+### Behoben
+- **Bilder werden lokal gespeichert**: Cover und Backdrop werden beim TMDb-Import einmalig heruntergeladen und lokal abgelegt (`movie-resource://`) – kein TMDb-Traffic mehr beim Öffnen der App
+- **Sync speichert Bilder lokal**: Beim Shelf-Sync werden Cover und Backdrop von der Shelf heruntergeladen; `cover_path` / `backdrop_path` werden anschließend auf den lokalen Pfad umgeschrieben – die App lädt Bilder danach nicht mehr vom Server
+
+### Hinzugefügt
+- **Hinzufügedatum im Import-Modal**: Das Datum kann vor dem Import angepasst werden (Standard: heute)
+
+### Behoben
+- **Import-Modal leer bei Online-Modus**: TMDb-Details (Genre, Regisseur, Laufzeit etc.) wurden im Online-Modus nicht geladen – der Detail-Fetch ist jetzt immer aktiv wenn ein TMDb-Key vorhanden ist
+- **Nicht alle Filme im Vollbild sichtbar**: Im Vollbild wurden zu viele Spalten angezeigt, sodass 30 Filme den Viewport füllten ohne Scroll auszulösen – Infinite Scroll lädt jetzt automatisch nach bis der Viewport gefüllt ist
+
+---
+
 ## [0.6.0] – 2026-05-09
 
 ### Hinzugefügt

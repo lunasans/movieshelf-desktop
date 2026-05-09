@@ -227,6 +227,10 @@
               <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Trailer URL</label>
               <input v-model="previewForm.trailer_url" type="url" class="modal-input" placeholder="https://www.youtube.com/watch?v=..." />
             </div>
+            <div>
+              <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60">Hinzugefügt am</label>
+              <input v-model="previewForm.created_at" type="date" class="modal-input" />
+            </div>
           </div>
           <!-- Footer -->
           <div class="flex gap-3 p-6 border-t border-[var(--border-ui)] flex-shrink-0">
@@ -341,6 +345,7 @@ async function openPreview(result: TmdbResult) {
       tmdb_id: result.id,
       cover_path: result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null,
       backdrop_path: null, actors_names: '',
+      created_at: new Date().toISOString().slice(0, 10),
     }
     return
   }
@@ -375,12 +380,29 @@ async function openPreview(result: TmdbResult) {
       cover_path:      m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : null,
       backdrop_path:   m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
       actors_names:    actorsNames,
+      created_at:      new Date().toISOString().slice(0, 10),
     }
   } catch (e: any) {
     error.value = `Fehler beim Laden: ${e?.response?.data?.status_message ?? e.message}`
     previewSource.value = null
   } finally {
     previewLoading.value = false
+  }
+}
+
+async function downloadImages(movie: any, coverUrl: string | null, backdropUrl: string | null) {
+  if (!movie?.id) return
+  const updates: Record<string, string> = {}
+  if (coverUrl) {
+    const res = await window.electron.media.download(coverUrl, movie.id, 'cover')
+    if (res?.success) updates.cover_path = `movie-resource://${movie.id}.jpg`
+  }
+  if (backdropUrl) {
+    const res = await window.electron.media.download(backdropUrl, movie.id, 'backdrop')
+    if (res?.success) updates.backdrop_path = `movie-resource://${movie.id}_backdrop.jpg`
+  }
+  if (Object.keys(updates).length) {
+    await window.electron.db.movies.update(movie.id, updates)
   }
 }
 
@@ -393,11 +415,14 @@ async function confirmImport() {
     if (isOnline.value) {
       await apiPost('/tmdb/import', { tmdb_id: result.id, type: 'movie', in_collection: importToCollection.value })
     } else {
-      await window.electron.db.movies.create({
+      const coverUrl    = previewForm.value.cover_path
+      const backdropUrl = previewForm.value.backdrop_path
+      const movie = await window.electron.db.movies.create({
         ...previewForm.value,
         in_collection: importToCollection.value ? 1 : 0,
         remote_id: null,
       })
+      await downloadImages(movie, coverUrl, backdropUrl)
     }
     importedIds.value = new Set(importedIds.value).add(result.id)
     movieStore.clearCache()
@@ -449,7 +474,13 @@ async function importLocally(tmdbId: number, inCollection = 1) {
     in_collection:   inCollection,
   }
 
-  return await window.electron.db.movies.create(movieData)
+  const movie = await window.electron.db.movies.create(movieData)
+  await downloadImages(
+    movie,
+    m.poster_path   ? `https://image.tmdb.org/t/p/w500${m.poster_path}`    : null,
+    m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
+  )
+  return movie
 }
 
 async function addToList(result: TmdbResult, listId: number) {

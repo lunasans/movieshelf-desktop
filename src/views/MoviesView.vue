@@ -99,6 +99,16 @@ function handleScroll(e: Event) {
   const target = e.target as HTMLElement
   if (target.scrollTop + target.clientHeight > target.scrollHeight - 500) {
     store.fetchMovies(listParams({ q: query.value || undefined, page: store.page + 1 }), true)
+      .then(() => fillViewport())
+  }
+}
+
+function fillViewport() {
+  const main = getMain()
+  if (!main || store.loadingMore || store.movies.length >= store.total) return
+  if (main.scrollHeight <= main.clientHeight + 100) {
+    store.fetchMovies(listParams({ q: query.value || undefined, page: store.page + 1 }), true)
+      .then(() => fillViewport())
   }
 }
 
@@ -106,6 +116,8 @@ async function loadList() {
   const q = route.query.q as string | undefined
   query.value = q ?? ''
   await store.fetchMovies(listParams(q ? { q } : {}))
+  await nextTick()
+  fillViewport()
 }
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────

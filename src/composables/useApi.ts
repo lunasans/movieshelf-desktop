@@ -54,8 +54,8 @@ export function useApi() {
       return settings.shelfUrl.replace(/\/$/, '') + '/' + path.replace(/^\//, '')
     }
 
-    // 2. If path is already a full URL, use it
-    if (path && path.startsWith('http')) return path
+    // 2. If path is already a full URL or local resource, use it
+    if (path && (path.startsWith('http') || path.startsWith('movie-resource://'))) return path
 
     // 3. Fallback to local resources (synced files) if we have a remote ID
     if (remoteId) {
