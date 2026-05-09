@@ -52,9 +52,7 @@
       "target": [
         "nsis"
       ],
-      "icon": "public/icon.png",
-      "certificateFile": "movieshelf-cert.pfx",
-      "certificatePassword": "${env.CSC_KEY_PASSWORD}"
+      "icon": "public/icon.png"
     },
     "mac": {
       "target": "dmg",
