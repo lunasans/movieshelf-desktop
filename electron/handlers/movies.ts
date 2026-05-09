@@ -5,6 +5,7 @@ const ALLOWED_MOVIE_COLUMNS = new Set([
   'title', 'year', 'genre', 'director', 'runtime', 'rating', 'rating_age',
   'overview', 'cover_path', 'backdrop_path', 'actors_names', 'trailer_url',
   'collection_type', 'tag', 'tmdb_id', 'remote_id', 'synced_at', 'is_deleted',
+  'created_at',
 ])
 
 export function registerMovieHandlers(): void {

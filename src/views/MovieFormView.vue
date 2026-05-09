@@ -72,6 +72,9 @@
       <FormRow label="TMDb ID">
         <input v-model.number="form.tmdb_id" type="number" class="input" />
       </FormRow>
+      <FormRow label="Hinzugefügt am">
+        <input v-model="form.created_at" type="date" class="input" />
+      </FormRow>
 
       <div class="flex gap-3 pt-2">
         <button type="submit" :disabled="saving"
@@ -107,6 +110,7 @@ const form = ref({
   runtime: null as number | null, rating: null as number | null,
   rating_age: null as number | null, overview: '', trailer_url: '',
   collection_type: 'Film', tag: '', tmdb_id: null as number | null,
+  created_at: new Date().toISOString().slice(0, 10),
 })
 
 function searchYouTube() {
@@ -121,6 +125,7 @@ onMounted(async () => {
     const data = await window.electron.db.movies.get(id)
     Object.assign(form.value, data)
     if (form.value.rating != null) form.value.rating = Math.round((form.value.rating as number) * 10) / 10
+    if (form.value.created_at) form.value.created_at = (form.value.created_at as string).slice(0, 10)
   }
 })
 

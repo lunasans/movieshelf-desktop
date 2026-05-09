@@ -1,5 +1,12 @@
 # Changelog – MovieShelf Desktop
 
+## [0.6.4] – 2026-05-09
+
+### Hinzugefügt
+- **„Hinzugefügt am" im Bearbeitungsformular**: Das Hinzufügedatum kann jetzt direkt im Film-Formular eingesehen und geändert werden (beim Bearbeiten vorbelegt, beim Neuanlegen mit dem heutigen Datum)
+
+---
+
 ## [0.6.3] – 2026-05-09
 
 ### Behoben
