@@ -19,7 +19,7 @@ jobs:
           cache: npm
 
       - name: Abhängigkeiten installieren
-        run: npm ci --ignore-scripts --omit=optional
+        run: npm install --ignore-scripts
 
       - name: Native Module bauen (für Node.js)
         run: npm rebuild better-sqlite3
