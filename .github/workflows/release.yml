@@ -19,7 +19,7 @@ jobs:
           cache: npm
 
       - name: Abhängigkeiten installieren
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --omit=optional
 
       - name: Native Module bauen (für Node.js)
         run: npm rebuild better-sqlite3
@@ -42,7 +42,7 @@ jobs:
           cache: npm
 
       - name: Abhängigkeiten installieren
-        run: npm ci
+        run: npm ci --omit=optional
 
       - name: Native Module neu bauen
         run: npx @electron/rebuild -f -w better-sqlite3
@@ -74,7 +74,7 @@ jobs:
           cache: npm
 
       - name: Abhängigkeiten installieren
-        run: npm ci
+        run: npm ci --omit=optional
 
       - name: Native Module neu bauen
         run: npx @electron/rebuild -f -w better-sqlite3
