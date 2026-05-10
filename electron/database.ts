@@ -20,8 +20,12 @@ export function setupDatabase(): void {
   runMigrations()
 }
 
-function runMigrations(): void {
-  db.exec(`
+export function applyMigrations(target: Database.Database): void {
+  runMigrations(target)
+}
+
+function runMigrations(instance: Database.Database = db): void {
+  instance.exec(`
     CREATE TABLE IF NOT EXISTS movies (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       title       TEXT    NOT NULL,
@@ -82,47 +86,46 @@ function runMigrations(): void {
   `)
 
   // Migrations for existing tables
-  try { db.exec('ALTER TABLE movies ADD COLUMN actors_names TEXT') } catch (e) {}
-  try { db.exec('ALTER TABLE movies ADD COLUMN backdrop_path TEXT') } catch (e) {}
-  try { db.exec('ALTER TABLE movies ADD COLUMN trailer_url TEXT') } catch (e) {}
-  try { db.exec('ALTER TABLE movies ADD COLUMN is_deleted INTEGER DEFAULT 0') } catch (e) {}
-  try { db.exec('ALTER TABLE movies ADD COLUMN tag TEXT') } catch (e) {}
-  try { db.exec('ALTER TABLE movies ADD COLUMN is_boxset INTEGER DEFAULT 0') } catch (e) {}
-  try { db.exec('ALTER TABLE movies ADD COLUMN boxset_parent_id INTEGER') } catch (e) {}
-  try { db.exec('ALTER TABLE movies ADD COLUMN view_count INTEGER DEFAULT 0') } catch (e) {}
-  try { db.exec('ALTER TABLE movies ADD COLUMN is_watched INTEGER DEFAULT 0') } catch (e) {}
-  try { db.exec('ALTER TABLE movies ADD COLUMN in_collection INTEGER DEFAULT 1') } catch (e) {}
-  
+  try { instance.exec('ALTER TABLE movies ADD COLUMN actors_names TEXT') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN backdrop_path TEXT') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN trailer_url TEXT') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN is_deleted INTEGER DEFAULT 0') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN tag TEXT') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN is_boxset INTEGER DEFAULT 0') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN boxset_parent_id INTEGER') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN view_count INTEGER DEFAULT 0') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN is_watched INTEGER DEFAULT 0') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN in_collection INTEGER DEFAULT 1') } catch (e) {}
+
   // Cleanup duplicates before creating unique index
   try {
-    db.exec(`
-      DELETE FROM movies 
+    instance.exec(`
+      DELETE FROM movies
       WHERE id NOT IN (
-        SELECT MAX(id) 
-        FROM movies 
-        WHERE remote_id IS NOT NULL 
+        SELECT MAX(id)
+        FROM movies
+        WHERE remote_id IS NOT NULL
         GROUP BY remote_id
       ) AND remote_id IS NOT NULL
     `)
-    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_movies_remote_id ON movies(remote_id)')
+    instance.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_movies_remote_id ON movies(remote_id)')
   } catch (e) {
     console.error('Migration failed:', e)
   }
 
   // Final Cleanup: Hide movies that are only on lists but marked as "in collection"
-  // (Fix for unintended migration defaults)
   try {
-    db.exec(`
-      UPDATE movies 
-      SET in_collection = 0 
-      WHERE in_collection = 1 
+    instance.exec(`
+      UPDATE movies
+      SET in_collection = 0
+      WHERE in_collection = 1
       AND id IN (SELECT movie_id FROM list_movies)
       AND remote_id IS NULL
     `)
   } catch (e) {}
 
   // Custom lists
-  db.exec(`
+  instance.exec(`
     CREATE TABLE IF NOT EXISTS lists (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       name       TEXT    NOT NULL,
@@ -142,11 +145,11 @@ function runMigrations(): void {
     );
   `)
 
-  try { db.exec('ALTER TABLE lists ADD COLUMN remote_id INTEGER') } catch (e) {}
-  try { db.exec('ALTER TABLE lists ADD COLUMN synced_at TEXT') } catch (e) {}
+  try { instance.exec('ALTER TABLE lists ADD COLUMN remote_id INTEGER') } catch (e) {}
+  try { instance.exec('ALTER TABLE lists ADD COLUMN synced_at TEXT') } catch (e) {}
 
   // Seasons & Episodes for series
-  db.exec(`
+  instance.exec(`
     CREATE TABLE IF NOT EXISTS seasons (
       id              INTEGER PRIMARY KEY AUTOINCREMENT,
       remote_id       INTEGER UNIQUE,
