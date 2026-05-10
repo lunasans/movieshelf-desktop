@@ -5,7 +5,7 @@ import { getDb } from '../database'
 const ALLOWED_MOVIE_COLUMNS = new Set([
   'title', 'year', 'genre', 'director', 'runtime', 'rating', 'rating_age',
   'overview', 'cover_path', 'backdrop_path', 'actors_names', 'trailer_url',
-  'collection_type', 'tag', 'tmdb_id', 'remote_id', 'synced_at', 'is_deleted',
+  'collection_type', 'tag', 'tmdb_id', 'remote_id', 'synced_at',
   'created_at',
 ])
 
@@ -138,6 +138,7 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
       in_collection = EXCLUDED.in_collection, updated_at = EXCLUDED.updated_at
     WHERE EXCLUDED.updated_at >= movies.updated_at
   `).run({
+    title: null, year: null,
     genre: null, director: null, runtime: null, rating: null, rating_age: null,
     overview: null, cover_path: null, backdrop_path: null, actors_names: null,
     trailer_url: null, collection_type: 'Film', tag: null, tmdb_id: null, remote_id: null,
