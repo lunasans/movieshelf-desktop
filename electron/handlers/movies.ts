@@ -110,7 +110,13 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
           collection_type = @collection_type, tag = @tag,
           is_boxset = @is_boxset, boxset_parent_id = @boxset_parent_id, updated_at = @updated_at
         WHERE id = @id
-      `).run({ ...data, updated_at: data.updated_at || now, id: orphan.id })
+      `).run({
+        title: null, year: null, genre: null, director: null, runtime: null,
+        rating: null, rating_age: null, overview: null, cover_path: null, backdrop_path: null,
+        actors_names: null, trailer_url: null, collection_type: 'Film', tag: null,
+        is_boxset: 0, boxset_parent_id: null,
+        ...data, updated_at: data.updated_at || now, id: orphan.id,
+      })
       for (let i = 1; i < orphans.length; i++) {
         db.prepare('DELETE FROM film_actor WHERE film_id = ?').run(orphans[i].id)
         db.prepare('DELETE FROM movies WHERE id = ?').run(orphans[i].id)
