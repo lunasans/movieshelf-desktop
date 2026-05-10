@@ -146,6 +146,7 @@ async function save() {
 </script>
 
 <style scoped>
+@reference "tailwindcss";
 .input {
   @apply w-full bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors;
 }

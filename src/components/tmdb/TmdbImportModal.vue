@@ -126,6 +126,7 @@ const emit = defineEmits<{ confirm: []; cancel: [] }>()
 </script>
 
 <style scoped>
+@reference "tailwindcss";
 .modal-enter-active, .modal-leave-active { transition: all 0.2s ease; }
 .modal-enter-from, .modal-leave-to       { opacity: 0; transform: scale(0.97); }
 .field-label {

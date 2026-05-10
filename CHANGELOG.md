@@ -1,5 +1,34 @@
 # Changelog – MovieShelf Desktop
 
+## [0.7.0] – 2026-05-10
+
+### Geändert
+- **Major-Dependency-Upgrade**: Komplettes Toolchain-Update auf aktuelle Major-Versionen
+  - Tailwind CSS 3 → 4 (neue CSS-Import-Syntax, `@theme`-Block, `@reference` in Scoped-Styles)
+  - Vite 5 → 7 (Vite 8 noch inkompatibel mit `vite-plugin-electron`)
+  - TypeScript 5 → 6 (`baseUrl` entfernt, `paths` mit relativen Pfaden)
+  - Vue Router 4 → 5
+  - Pinia 2 → 3
+  - Electron 41 → 42
+  - `@electron/rebuild` 3 → 4
+  - `vitest` 2 → 4, `vue-tsc` 2 → 3, `@vitejs/plugin-vue` 5 → 6
+
+---
+
+## [0.6.6] – 2026-05-10
+
+### Hinzugefügt
+- **Handler Unit Tests**: Vitest-Testsuite für alle IPC-Handler-Pure-Functions (32 Tests)
+  - `electron/handlers/movies.ts`, `actors.ts`, `sync.ts` als testbare Pure Functions extrahiert
+  - GitHub Actions: Test-Job läuft vor den Build-Jobs
+- **Codebase-Refactoring**: SyncView und TmdbSearchView in Sub-Komponenten und Composables aufgeteilt
+
+### Behoben
+- Fehlende Default-Werte für Named Parameters in `createMovie` (RangeError bei optionalen Feldern)
+- `is_deleted` aus `ALLOWED_MOVIE_COLUMNS` entfernt (kein Soft-Delete über `updateMovie` möglich)
+
+---
+
 ## [0.6.5] – 2026-05-09
 
 ### Geändert

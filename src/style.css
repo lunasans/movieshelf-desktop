@@ -1,7 +1,14 @@
 @import "bootstrap-icons/font/bootstrap-icons.css";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --font-family-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-family-display: Outfit, ui-sans-serif, system-ui, sans-serif;
+  --color-shelf-bg: #0a0a0f;
+  --color-shelf-card: #12121a;
+  --color-shelf-border: #1e1e2e;
+  --color-shelf-accent: #667eea;
+}
 
 * {
   -webkit-app-region: no-drag;
