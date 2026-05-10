@@ -1,3 +1,49 @@
+// ── Shared types ─────────────────────────────────────────────────────────────
+
+type MediaType = 'cover' | 'backdrop' | 'actor'
+
+type MovieListResult = { data: unknown[]; total: number; page: number; perPage: number }
+
+type SyncState = Array<{
+  id: number
+  name: string
+  remote_id: number | null
+  synced_at: string | null
+  updated_at: string
+  movie_remote_ids: number[]
+}>
+
+type SeasonWithEpisodes = {
+  id: number
+  remote_id: number | null
+  movie_id: number
+  season_number: number
+  title: string | null
+  overview: string | null
+  episodes: Array<{
+    id: number
+    remote_id: number | null
+    season_id: number
+    episode_number: number
+    title: string | null
+    overview: string | null
+  }>
+}
+
+type StatsResult = {
+  totalMovies:   number
+  totalRuntime:  number
+  watchedMovies: number
+  avgRating:     number
+  genres:    { name: string; count: number }[]
+  byYear:    { year: number; count: number }[]
+  topActors: { name: string; remote_id: number | null; image_path: string | null; movie_count: number }[]
+  byType:    { collection_type: string; count: number; films: { id: number; title: string; year: number | null }[] }[]
+  byRuntime: { label: string; count: number }[]
+}
+
+// ── Window interface ──────────────────────────────────────────────────────────
+
 interface Window {
   electron: {
     getIsDev:   () => Promise<boolean>
@@ -11,21 +57,21 @@ interface Window {
 
     db: {
       movies: {
-        list:         (params?: { page?: number; perPage?: number; q?: string }) => Promise<{ data: unknown[]; total: number; page: number; perPage: number }>
-        recent:       (limit?: number) => Promise<unknown[]>
-        get:          (id: number) => Promise<unknown>
-        getByRemoteId:(id: number) => Promise<Record<string, unknown> | null>
-        create:       (data: Record<string, unknown>) => Promise<unknown>
-        update:       (id: number, data: Record<string, unknown>) => Promise<unknown>
-        delete:       (id: number) => Promise<{ success: boolean }>
-        download:     (url: string, id: number, type: 'cover' | 'backdrop' | 'actor') => Promise<{ success: boolean; path?: string; error?: string }>
-        exists:       (id: number, type: 'cover' | 'backdrop' | 'actor') => Promise<boolean>
-        count:             () => Promise<number>
-        children:          (id: number) => Promise<unknown[]>
-        checkTmdbIds:      (ids: number[]) => Promise<number[]>
-        deleteByRemoteId:  (remoteId: number) => Promise<{ success: boolean; localId?: number }>
-        clear:             () => Promise<{ success: boolean }>
-        allRemoteIds:      () => Promise<{ id: number; remote_id: number }[]>
+        list:            (params?: { page?: number; perPage?: number; q?: string }) => Promise<MovieListResult>
+        recent:          (limit?: number) => Promise<unknown[]>
+        get:             (id: number) => Promise<unknown>
+        getByRemoteId:   (id: number) => Promise<Record<string, unknown> | null>
+        create:          (data: Record<string, unknown>) => Promise<unknown>
+        update:          (id: number, data: Record<string, unknown>) => Promise<unknown>
+        delete:          (id: number) => Promise<{ success: boolean }>
+        download:        (url: string, id: number, type: MediaType) => Promise<{ success: boolean; path?: string; error?: string }>
+        exists:          (id: number, type: MediaType) => Promise<boolean>
+        count:           () => Promise<number>
+        children:        (id: number) => Promise<unknown[]>
+        checkTmdbIds:    (ids: number[]) => Promise<number[]>
+        deleteByRemoteId:(remoteId: number) => Promise<{ success: boolean; localId?: number }>
+        clear:           () => Promise<{ success: boolean }>
+        allRemoteIds:    () => Promise<{ id: number; remote_id: number }[]>
         actors: {
           getForMovie: (movieId: number) => Promise<unknown[]>
           upsert:      (data: Record<string, unknown>) => Promise<number>
@@ -40,40 +86,25 @@ interface Window {
         }
       }
       seasons: {
-        forMovie: (movieId: number) => Promise<Array<{
-          id: number
-          remote_id: number | null
-          movie_id: number
-          season_number: number
-          title: string | null
-          overview: string | null
-          episodes: Array<{
-            id: number
-            remote_id: number | null
-            season_id: number
-            episode_number: number
-            title: string | null
-            overview: string | null
-          }>
-        }>>
-        upsert: (data: Record<string, unknown>) => Promise<number | undefined>
+        forMovie: (movieId: number) => Promise<SeasonWithEpisodes[]>
+        upsert:   (data: Record<string, unknown>) => Promise<number | undefined>
       }
       episodes: {
         upsert: (data: Record<string, unknown>) => Promise<void>
       }
       lists: {
-        list:             ()                                 => Promise<unknown[]>
-        get:              (id: number)                      => Promise<unknown>
-        create:           (name: string)                    => Promise<{ id: number; name: string; remote_id: number | null }>
-        update:           (id: number, name: string)        => Promise<unknown>
-        delete:           (id: number)                      => Promise<{ success: boolean }>
-        addMovie:         (listId: number, movieId: number) => Promise<{ success: boolean }>
-        removeMovie:      (listId: number, movieId: number) => Promise<{ success: boolean }>
-        forMovie:         (movieId: number)                 => Promise<number[]>
-        syncState:        ()                                => Promise<Array<{ id: number; name: string; remote_id: number | null; synced_at: string | null; updated_at: string; movie_remote_ids: number[] }>>
-        setRemoteId:      (id: number, remoteId: number)   => Promise<{ success: boolean }>
-        markSynced:       (id: number)                      => Promise<{ success: boolean }>
-        deleteByRemoteId: (remoteId: number)                => Promise<{ success: boolean }>
+        list:            () => Promise<unknown[]>
+        get:             (id: number) => Promise<unknown>
+        create:          (name: string) => Promise<{ id: number; name: string; remote_id: number | null }>
+        update:          (id: number, name: string) => Promise<unknown>
+        delete:          (id: number) => Promise<{ success: boolean }>
+        addMovie:        (listId: number, movieId: number) => Promise<{ success: boolean }>
+        removeMovie:     (listId: number, movieId: number) => Promise<{ success: boolean }>
+        forMovie:        (movieId: number) => Promise<number[]>
+        syncState:       () => Promise<SyncState>
+        setRemoteId:     (id: number, remoteId: number) => Promise<{ success: boolean }>
+        markSynced:      (id: number) => Promise<{ success: boolean }>
+        deleteByRemoteId:(remoteId: number) => Promise<{ success: boolean }>
       }
     }
 
@@ -83,17 +114,7 @@ interface Window {
 
     stats: {
       openWindow: () => Promise<void>
-      get: () => Promise<{
-        totalMovies:   number
-        totalRuntime:  number
-        watchedMovies: number
-        avgRating:     number
-        genres:    { name: string; count: number }[]
-        byYear:    { year: number; count: number }[]
-        topActors: { name: string; remote_id: number | null; image_path: string | null; movie_count: number }[]
-        byType:    { collection_type: string; count: number; films: { id: number; title: string; year: number | null }[] }[]
-        byRuntime: { label: string; count: number }[]
-      }>
+      get:        () => Promise<StatsResult>
     }
 
     oauth: {

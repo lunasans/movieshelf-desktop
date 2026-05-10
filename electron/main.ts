@@ -9,6 +9,8 @@ import { get as httpsGet } from 'https'
 import { IncomingMessage } from 'http'
 import { setupDatabase, getDb } from './database'
 import { registerMovieHandlers } from './handlers/movies'
+import { registerActorHandlers } from './handlers/actors'
+import { registerSyncHandlers } from './handlers/sync'
 import { registerSettingsHandlers } from './handlers/settings'
 import { registerMediaHandlers } from './handlers/media'
 import { registerListHandlers } from './handlers/lists'
@@ -134,6 +136,8 @@ app.whenReady().then(() => {
 
   setupDatabase()
   registerMovieHandlers()
+  registerActorHandlers()
+  registerSyncHandlers()
   registerSettingsHandlers()
   registerMediaHandlers()
   registerListHandlers()
