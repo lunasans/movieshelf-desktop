@@ -1,5 +1,12 @@
 # Changelog – MovieShelf Desktop
 
+## [0.7.1] – 2026-05-10
+
+### Behoben
+- **Icons nicht sichtbar**: Bootstrap Icons wurden durch Tailwind 4's PostCSS-Pipeline falsch verarbeitet (Font-Pfade nicht aufgelöst). Import wurde nach `main.ts` verschoben, wo Vite die Assets korrekt verarbeitet
+
+---
+
 ## [0.7.0] – 2026-05-10
 
 ### Geändert
