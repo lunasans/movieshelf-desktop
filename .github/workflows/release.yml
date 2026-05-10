@@ -21,6 +21,9 @@ jobs:
       - name: Abhängigkeiten installieren
         run: npm ci --ignore-scripts
 
+      - name: Native Module bauen (für Node.js)
+        run: npm rebuild better-sqlite3
+
       - name: Tests ausführen
         run: npm test
 
