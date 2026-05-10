@@ -32,6 +32,14 @@ Die Allowlist schützt gegen unbeabsichtigte/böswillige Feldänderungen.
 - `bg-[var(--css-var)]` arbitrary-value Klassen funktionieren unverändert
 - Bestehende `.theme-dark`/`.theme-light` CSS-Variablen-Architektur bleibt erhalten
 
+## npm ci schlägt bei Linux-spezifischen Optional-Deps fehl (Cross-Platform Lock File)
+`npm ci` prüft die Lock-Datei IMMER vollständig — auch `--omit=optional` hilft nicht,
+weil die Sync-Validierung vor dem Install-Schritt läuft. Pakete wie `@emnapi/core`
+und `@emnapi/runtime` sind Linux-spezifische optionale Deps die auf Windows nie in
+die Lock-Datei geschrieben werden.
+**Fix**: Im Test-Job `npm install --ignore-scripts` statt `npm ci` nutzen.
+Für Build-Jobs (native Linux/Windows Runner) bleibt `npm ci --omit=optional`.
+
 ## Vite-Plugin-Electron Kompatibilität
 `vite-plugin-electron` hinkt beim Vite-Versionssupport oft hinterher.
 Beim Upgrade immer zuerst Vite 6 testen (nicht direkt auf 8 springen).
