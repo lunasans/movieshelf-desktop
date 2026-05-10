@@ -412,18 +412,14 @@ async function confirmImport() {
   importing.value = result.id
   error.value = ''
   try {
-    if (isOnline.value) {
-      await apiPost('/tmdb/import', { tmdb_id: result.id, type: 'movie', in_collection: importToCollection.value })
-    } else {
-      const coverUrl    = previewForm.value.cover_path
-      const backdropUrl = previewForm.value.backdrop_path
-      const movie = await window.electron.db.movies.create({
-        ...previewForm.value,
-        in_collection: importToCollection.value ? 1 : 0,
-        remote_id: null,
-      })
-      await downloadImages(movie, coverUrl, backdropUrl)
-    }
+    const coverUrl    = previewForm.value.cover_path
+    const backdropUrl = previewForm.value.backdrop_path
+    const movie = await window.electron.db.movies.create({
+      ...previewForm.value,
+      in_collection: importToCollection.value ? 1 : 0,
+      remote_id: null,
+    })
+    await downloadImages(movie, coverUrl, backdropUrl)
     importedIds.value = new Set(importedIds.value).add(result.id)
     movieStore.clearCache()
     showToast(`„${previewForm.value.title}" wurde zur Sammlung hinzugefügt.`)

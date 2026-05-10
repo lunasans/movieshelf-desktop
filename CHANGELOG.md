@@ -1,5 +1,12 @@
 # Changelog – MovieShelf Desktop
 
+## [0.6.5] – 2026-05-09
+
+### Geändert
+- **TMDb-Import immer lokal**: Filme werden beim Import über TMDb immer zuerst lokal in der Datenbank angelegt – auch im Online-Modus. Auf die Shelf gelangen sie erst beim nächsten Sync
+
+---
+
 ## [0.6.4] – 2026-05-09
 
 ### Hinzugefügt
