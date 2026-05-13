@@ -40,6 +40,11 @@ contextBridge.exposeInMainWorld('electron', {
       deleteByRemoteId: (remoteId: number) => ipcRenderer.invoke('db:movies:delete-by-remote-id', remoteId),
       clear: () => ipcRenderer.invoke('db:movies:clear', true),
       allRemoteIds: () => ipcRenderer.invoke('db:movies:all-remote-ids'),
+      random:        (filters?: object)            => ipcRenderer.invoke('db:movies:random', filters),
+      toggleWatched: (id: number)                  => ipcRenderer.invoke('db:movies:toggle-watched', id),
+      bulkDelete:    (ids: number[])               => ipcRenderer.invoke('db:movies:bulk-delete', ids),
+      bulkTag:       (ids: number[], tag: string)  => ipcRenderer.invoke('db:movies:bulk-tag', ids, tag),
+      import:        (rows: object[])              => ipcRenderer.invoke('db:movies:import', rows),
     },
     seasons: {
       forMovie: (movieId: number) => ipcRenderer.invoke('db:seasons:forMovie', movieId),
@@ -72,9 +77,13 @@ contextBridge.exposeInMainWorld('electron', {
 
   // Updater
   update: {
-    install:    (url: string, sha256?: string) => ipcRenderer.invoke('update:install', url, sha256),
+    check:      () => ipcRenderer.invoke('update:check'),
+    install:    () => ipcRenderer.invoke('update:install'),
     onProgress: (callback: (percent: number) => void) => {
       ipcRenderer.on('update:progress', (_event, percent) => callback(percent))
+    },
+    onReady: (callback: () => void) => {
+      ipcRenderer.on('update:ready', () => callback())
     },
   },
 

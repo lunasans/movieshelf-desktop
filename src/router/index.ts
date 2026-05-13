@@ -1,8 +1,15 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useSettingsStore } from '@/stores/settings'
+import { useMovieStore } from '@/stores/movies'
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
+    {
+      path: '/onboarding',
+      name: 'onboarding',
+      component: () => import('@/views/OnboardingView.vue'),
+    },
     {
       path: '/',
       name: 'dashboard',
@@ -69,6 +76,26 @@ const router = createRouter({
       component: () => import('@/views/StatsView.vue'),
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  if (to.path === '/onboarding') return true
+
+  const done = localStorage.getItem('onboarding_done')
+  if (done) return true
+
+  const settings = useSettingsStore()
+  if (!settings.mode) return true  // store not yet loaded
+
+  const isStandalone = settings.mode === 'standalone'
+  const hasTmdb      = !!settings.tmdbApiKey
+  const movies       = useMovieStore()
+  const isEmpty      = movies.total === 0 && movies.movies.length === 0
+
+  if (isStandalone && !hasTmdb && isEmpty) {
+    return '/onboarding'
+  }
+  return true
 })
 
 export default router

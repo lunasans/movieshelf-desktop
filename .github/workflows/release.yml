@@ -51,7 +51,7 @@ jobs:
         run: npx vite build
 
       - name: Linux .deb bauen
-        run: npx electron-builder --linux deb --publish never
+        run: npx electron-builder --linux deb --publish always
 
       - name: Artefakt hochladen
         uses: actions/upload-artifact@v4
@@ -93,7 +93,7 @@ jobs:
         env:
           CSC_LINK: movieshelf-cert.pfx
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-        run: npx electron-builder --win --publish never
+        run: npx electron-builder --win --publish always
 
       - name: Artefakt hochladen
         uses: actions/upload-artifact@v4

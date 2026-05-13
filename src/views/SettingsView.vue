@@ -195,7 +195,7 @@
         </div>
 
         <!-- Backup wiederherstellen -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5">
+        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
           <p class="text-sm font-bold text-[var(--text-main)] mb-1">Backup wiederherstellen</p>
           <p class="text-xs text-[var(--text-muted)] opacity-60 mb-4">
             Stellt eine gespeicherte <span class="font-mono">.ms</span>-Datei wieder her.
@@ -214,6 +214,28 @@
           >
             <i class="bi bi-arrow-counterclockwise" :class="{ 'animate-spin': restoreLoading }"></i>
             {{ restoreLoading ? 'Wird wiederhergestellt...' : 'Backup wiederherstellen...' }}
+          </button>
+        </div>
+
+        <!-- CSV / Letterboxd Import -->
+        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5">
+          <p class="text-sm font-bold text-[var(--text-main)] mb-1">CSV / Letterboxd-Import</p>
+          <p class="text-xs text-[var(--text-muted)] opacity-60 mb-4">
+            Importiert eine Letterboxd-CSV-Datei (Spalten: <span class="font-mono">Name, Year, Rating, Tags, Watched Date</span>).
+          </p>
+          <div v-if="importResult" class="mb-3 text-xs font-bold"
+            :class="importResult.error ? 'text-[var(--status-red)]' : 'text-[var(--status-green)]'">
+            {{ importResult.error
+              ? `✗ ${importResult.error}`
+              : `✓ ${importResult.imported} importiert, ${importResult.skipped} übersprungen` }}
+          </div>
+          <button
+            @click="importCsv"
+            :disabled="importLoading"
+            class="w-full bg-[var(--bg-elevated)] hover:bg-[var(--border-ui)] border border-[var(--border-ui)] text-[var(--text-main)] font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <i class="bi bi-file-earmark-spreadsheet" :class="{ 'animate-pulse': importLoading }"></i>
+            {{ importLoading ? 'Wird importiert...' : 'CSV-Datei auswählen...' }}
           </button>
         </div>
       </template>
@@ -350,6 +372,8 @@ const backupLoading    = ref(false)
 const backupResult     = ref<{ success: boolean; movies?: number; error?: string } | null>(null)
 const restoreLoading   = ref(false)
 const restoreResult    = ref<{ success: boolean; movies?: number; actors?: number; error?: string } | null>(null)
+const importLoading    = ref(false)
+const importResult     = ref<{ imported: number; skipped: number; error?: string } | null>(null)
 
 const sections = [
   { id: 'appearance', icon: 'palette',      label: 'Erscheinungsbild' },
@@ -464,16 +488,13 @@ async function doLogin() {
 }
 
 async function installUpdate() {
-  if (!settings.updateUrl) {
-    updateError.value = 'Keine Download-URL verfügbar – bitte wende dich an den Support.'
-    return
-  }
   downloading.value      = true
   downloadProgress.value = 0
   updateError.value      = ''
-  const result = await window.electron.update.install(settings.updateUrl, settings.updateSha256 || undefined)
-  if (!result.success) {
-    updateError.value = result.error ?? 'Installation fehlgeschlagen.'
+  try {
+    await window.electron.update.install()
+  } catch (e: unknown) {
+    updateError.value = String(e)
     downloading.value = false
   }
 }
@@ -515,5 +536,68 @@ async function restoreBackup() {
   } finally {
     restoreLoading.value = false
   }
+}
+
+async function importCsv() {
+  importResult.value  = null
+  importLoading.value = true
+  try {
+    const text = await pickCsvFile()
+    if (!text) return
+
+    const rows = parseCsv(text)
+    importResult.value = await window.electron.db.movies.import(rows)
+  } catch (e: unknown) {
+    importResult.value = { imported: 0, skipped: 0, error: String(e) }
+  } finally {
+    importLoading.value = false
+  }
+}
+
+function pickCsvFile(): Promise<string | null> {
+  return new Promise(resolve => {
+    const input = document.createElement('input')
+    input.type   = 'file'
+    input.accept = '.csv,text/csv'
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (!file) { resolve(null); return }
+      const reader = new FileReader()
+      reader.onload  = () => resolve(reader.result as string)
+      reader.onerror = () => resolve(null)
+      reader.readAsText(file, 'utf-8')
+    }
+    input.click()
+  })
+}
+
+function parseCsv(text: string) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim())
+  if (!lines.length) return []
+
+  const header = lines[0].split(',').map(h => h.trim().toLowerCase())
+  const idx = (name: string) => header.indexOf(name)
+
+  const nameIdx    = idx('name')    !== -1 ? idx('name')    : idx('title')
+  const yearIdx    = idx('year')
+  const ratingIdx  = idx('rating')
+  const tagsIdx    = idx('tags')
+  const watchedIdx = idx('watched date')
+
+  return lines.slice(1).flatMap(line => {
+    // simple CSV split (no quoted-comma support — good enough for Letterboxd)
+    const cols = line.split(',')
+    const title = cols[nameIdx]?.trim()
+    if (!title) return []
+
+    const year       = parseInt(cols[yearIdx]?.trim() ?? '') || undefined
+    const rawRating  = parseFloat(cols[ratingIdx]?.trim() ?? '')
+    // Letterboxd: 0.5–5.0 scale → multiply × 2 for 1–10
+    const rating     = isNaN(rawRating) ? undefined : Math.round(rawRating * 2 * 10) / 10
+    const tag        = cols[tagsIdx]?.trim() || undefined
+    const is_watched = !!(cols[watchedIdx]?.trim())
+
+    return [{ title, year, rating, tag, is_watched }]
+  })
 }
 </script>

@@ -1,12 +1,8 @@
 import { app, BrowserWindow, ipcMain, shell, protocol, net } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import { globalAgent } from 'https'
 globalAgent.setMaxListeners(30)
-import { join, sep, extname } from 'path'
-import { createWriteStream, existsSync, unlinkSync } from 'fs'
-import { tmpdir } from 'os'
-import { createHash } from 'crypto'
-import { get as httpsGet } from 'https'
-import { IncomingMessage } from 'http'
+import { join, sep } from 'path'
 import { setupDatabase, getDb } from './database'
 import { registerMovieHandlers } from './handlers/movies'
 import { registerActorHandlers } from './handlers/actors'
@@ -218,115 +214,17 @@ ipcMain.handle('trailer:open', (_event, url: string) => {
 ipcMain.handle('get-is-dev', () => isDev)
 ipcMain.handle('app:get-version', () => app.getVersion())
 
-const ALLOWED_UPDATE_EXTENSIONS = new Set(['.exe', '.dmg', '.appimage', '.deb', '.rpm', '.zip'])
+// ── Auto-Updater (electron-updater) ──────────────────────────────────────────
 
-ipcMain.handle('update:install', async (_event, url: string, sha256?: string) => {
-  // Validate URL: must be HTTPS with an allowed installer extension
-  let parsedUrl: URL
-  try { parsedUrl = new URL(url) } catch {
-    return { success: false, error: 'Ungültige URL.' }
-  }
-  if (parsedUrl.protocol !== 'https:') {
-    return { success: false, error: 'Nur HTTPS-URLs erlaubt.' }
-  }
-  if (!ALLOWED_UPDATE_EXTENSIONS.has(extname(parsedUrl.pathname).toLowerCase())) {
-    return { success: false, error: 'Ungültiges Dateiformat.' }
-  }
+autoUpdater.autoDownload = false
 
-  const fileName = parsedUrl.pathname.split('/').pop() || 'update.exe'
-  const destPath = join(tmpdir(), fileName)
-
-  // Remove stale file if present
-  if (existsSync(destPath)) unlinkSync(destPath)
-
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const download = (downloadUrl: string, redirects = 0) => {
-        if (redirects > 5) { reject(new Error('Zu viele Redirects')); return }
-        httpsGet(downloadUrl, (res: IncomingMessage) => {
-          if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-            res.resume()
-            download(res.headers.location, redirects + 1)
-            return
-          }
-          if (res.statusCode !== 200) {
-            reject(new Error(`HTTP-Fehler: ${res.statusCode}`))
-            return
-          }
-          const total = parseInt(res.headers['content-length'] ?? '0', 10)
-          let received = 0
-          const writer = createWriteStream(destPath)
-          res.on('data', (chunk: Buffer) => {
-            received += chunk.length
-            if (total > 0 && mainWindow) {
-              mainWindow.webContents.send('update:progress', Math.round((received / total) * 100))
-            }
-          })
-          res.pipe(writer)
-          writer.on('finish', resolve)
-          writer.on('error', reject)
-          res.on('error', reject)
-        }).on('error', reject)
-      }
-      download(url)
-    })
-
-    // SHA256 verification
-    if (sha256) {
-      const fileHash = await new Promise<string>((resolve, reject) => {
-        const hash = createHash('sha256')
-        const { createReadStream } = require('fs')
-        const stream = createReadStream(destPath)
-        stream.on('data', (d: Buffer) => hash.update(d))
-        stream.on('end', () => resolve(hash.digest('hex')))
-        stream.on('error', reject)
-      })
-      if (fileHash.toLowerCase() !== sha256.toLowerCase()) {
-        unlinkSync(destPath)
-        return { success: false, error: 'SHA256-Prüfung fehlgeschlagen — Datei wurde gelöscht.' }
-      }
-    }
-
-    if (process.platform === 'linux') {
-      const { spawn } = require('child_process')
-      const { dialog } = require('electron')
-
-      const showFallbackDialog = () => {
-        dialog.showMessageBox(mainWindow!, {
-          type: 'info',
-          title: 'Update heruntergeladen',
-          message: 'Update bereit zur Installation',
-          detail: `Führe folgenden Befehl im Terminal aus:\n\nsudo dpkg -i "${destPath}"`,
-          buttons: ['OK'],
-        })
-      }
-
-      // 1. Versuch: pkexec dpkg -i → nativer GUI-Passwort-Dialog
-      const pkexec = spawn('pkexec', ['dpkg', '-i', destPath], { detached: true, stdio: 'ignore' })
-      pkexec.unref()
-      pkexec.on('error', () => {
-        // 2. Versuch: xdg-open → öffnet GDebi / GNOME Software falls installiert
-        const xdg = spawn('xdg-open', [destPath], { detached: true, stdio: 'ignore' })
-        xdg.unref()
-        xdg.on('error', showFallbackDialog)
-      })
-
-      setTimeout(() => app.quit(), 4000)
-    } else if (process.platform === 'win32') {
-      const { spawn } = require('child_process')
-      const installer = spawn(destPath, [], { detached: true, stdio: 'ignore' })
-      installer.unref()
-      installer.on('error', (err: Error) => {
-        return { success: false, error: `Installer konnte nicht gestartet werden: ${err.message}` }
-      })
-      setTimeout(() => app.quit(), 2000)
-    } else {
-      shell.openPath(destPath)
-      setTimeout(() => app.quit(), 2000)
-    }
-    return { success: true }
-  } catch (e: any) {
-    if (existsSync(destPath)) unlinkSync(destPath)
-    return { success: false, error: e.message }
-  }
+autoUpdater.on('download-progress', p => {
+  mainWindow?.webContents.send('update:progress', Math.round(p.percent))
 })
+
+autoUpdater.on('update-downloaded', () => {
+  mainWindow?.webContents.send('update:ready')
+})
+
+ipcMain.handle('update:check',   () => autoUpdater.checkForUpdates())
+ipcMain.handle('update:install', () => autoUpdater.quitAndInstall())

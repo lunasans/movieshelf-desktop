@@ -1,5 +1,45 @@
 # Changelog – MovieShelf Desktop
 
+## [0.8.0] – 2026-05-13
+
+### Hinzugefügt
+
+- **Sortierung & erweiterte Filter**: Filmübersicht sortierbar nach Titel, Jahr, Bewertung, Laufzeit oder Hinzufügedatum (auf- und absteigend). Genre-Chips filtern die Liste per AND-Verknüpfung
+- **Virtuelles Scrolling**: Filmgitter rendert nur sichtbare Zeilen via `@tanstack/vue-virtual` – performant auch bei 500+ Filmen im Speicher
+- **Zufälliger Film (Random Picker)**: Würfel-Button öffnet Modal mit zufälligem Film aus der aktuellen Sammlung inkl. „Neu würfeln" und Direktlink zum Detail
+- **Watchlist-Toggle**: Auge-Icon auf jeder Filmkarte setzt `is_watched` um. Gesehene Filme erhalten ein grünes Badge
+- **Bulk-Aktionen**: Mehrfachauswahl-Modus mit Checkbox pro Karte. Floating `BulkActionBar` ermöglicht Sammel-Löschen und Tag-Vergabe für alle markierten Filme
+- **Onboarding-Wizard**: Dreistufiger Einrichtungsassistent (`/onboarding`) beim ersten Start ohne TMDb-Key und leerer Sammlung. Kann übersprungen werden und erscheint nicht erneut
+- **Keyboard-Navigation**: Globale Shortcuts – `/` fokussiert die Suche, `Escape` hebt den Fokus auf, `r` navigiert zur Filmübersicht. Automatisch deaktiviert wenn ein Eingabefeld fokussiert ist
+- **CSV / Letterboxd-Import**: Dateiauswahl in Einstellungen → Backup. Parst Letterboxd-CSV (`Name, Year, Rating, Tags, Watched Date`), konvertiert die 0.5–5-Sterne-Skala auf 1–10, überspringt Duplikate per Titel + Jahr
+- **Auto-Updater**: `electron-updater` ersetzt den bisherigen manuellen Download-Mechanismus. `autoUpdater.checkForUpdates()` / `quitAndInstall()` – CI publiziert mit `--publish always`
+- **E2E-Tests (Playwright)**: `playwright.config.ts` + Shared App-Fixture + 4 Spec-Dateien (`smoke`, `movies`, `random-picker`, `import`)
+
+### Geändert
+
+- `listMovies()` akzeptiert nun `sortBy`, `sortDir` und `genres[]` als Parameter; SQL-Injection-Schutz via Allowlist
+- `MovieCard.vue` unterstützt `bulkMode`- und `selected`-Props; Hover-Overlay zeigt zusätzlichen Watched-Toggle-Button
+- `movies`-Store erweitert um `sortBy`, `sortDir`, `selectedGenres`, `bulkMode`, `selectedIds` sowie die Actions `toggleMovieWatched`, `bulkDeleteSelected`, `bulkTagSelected`, `toggleSelect`
+- `electron/main.ts`: Alter manueller Update-Download (~110 Zeilen) durch 10 Zeilen `electron-updater`-Wiring ersetzt
+- `release.yml`: Build-Jobs verwenden `--publish always` damit `latest.yml` in den GitHub-Release kommt
+- `package.json`: `publish`-Konfiguration für GitHub-Releases ergänzt, Version auf `0.8.0` gesetzt
+
+### Neu: Backend-Funktionen (`electron/handlers/movies.ts`)
+
+| Funktion | IPC-Kanal |
+|---|---|
+| `randomMovie(db, filters?)` | `db:movies:random` |
+| `toggleWatched(db, id)` | `db:movies:toggle-watched` |
+| `bulkDelete(db, ids[])` | `db:movies:bulk-delete` |
+| `bulkUpdateTag(db, ids[], tag)` | `db:movies:bulk-tag` |
+| `importMovies(db, rows[])` | `db:movies:import` |
+
+### Tests
+
+92 → **111 Unit Tests** (+19). Abdeckung der neuen Backend-Funktionen: Sortierung, Genres-Filter, Random Picker, Toggle Watched, Bulk Delete/Tag, Import inkl. Duplikat- und Leer-Titel-Behandlung.
+
+---
+
 ## [0.7.1] – 2026-05-10
 
 ### Behoben

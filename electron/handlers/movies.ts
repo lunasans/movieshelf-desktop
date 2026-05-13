@@ -11,49 +11,66 @@ const ALLOWED_MOVIE_COLUMNS = new Set([
 
 // ── Pure functions ────────────────────────────────────────────────────────────
 
+const ALLOWED_SORT = new Set(['title', 'year', 'runtime', 'rating', 'created_at'])
+
 export function listMovies(db: Database.Database, params: {
   page?: number; perPage?: number; q?: string; collectionType?: string; excludeType?: string
+  sortBy?: 'title' | 'year' | 'runtime' | 'rating' | 'created_at'
+  sortDir?: 'ASC' | 'DESC'
+  genres?: string[]
 } = {}) {
-  const { page = 1, perPage = 30, q, collectionType, excludeType } = params
+  const { page = 1, perPage = 30, q, collectionType, excludeType, sortBy, sortDir, genres } = params
   const offset = (page - 1) * perPage
+
+  const col = ALLOWED_SORT.has(sortBy as string) ? sortBy : 'title'
+  const dir = sortDir === 'DESC' ? 'DESC' : 'ASC'
 
   // List query: top-level items only, no boxset parents or children
   let listWhere  = 'is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL AND (is_boxset IS NULL OR is_boxset = 0)'
   // Count query: all real films incl. boxset children, but not the parent containers
   let countWhere = 'is_deleted = 0 AND in_collection = 1 AND (is_boxset IS NULL OR is_boxset = 0)'
-  const typeArgs: unknown[] = []
+  const listArgs: unknown[] = []
+  const countArgs: unknown[] = []
 
   if (collectionType) {
     const filter = ' AND collection_type = ?'
     listWhere  += filter
     countWhere += filter
-    typeArgs.push(collectionType)
+    listArgs.push(collectionType)
+    countArgs.push(collectionType)
   } else if (excludeType) {
     const filter = ' AND (collection_type IS NULL OR collection_type != ?)'
     listWhere  += filter
     countWhere += filter
-    typeArgs.push(excludeType)
+    listArgs.push(excludeType)
+    countArgs.push(excludeType)
+  }
+
+  if (genres && genres.length > 0) {
+    for (const g of genres) {
+      const filter = ' AND genre LIKE ?'
+      listWhere  += filter
+      countWhere += filter
+      listArgs.push(`%${g}%`)
+      countArgs.push(`%${g}%`)
+    }
   }
 
   if (q) {
     const like         = `%${q}%`
     const searchFilter = ' AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)'
-    const searchArgs   = [like, like, like]
-    const rows = db.prepare(
-      `SELECT * FROM movies WHERE ${listWhere}${searchFilter} ORDER BY title ASC LIMIT ? OFFSET ?`
-    ).all(...typeArgs, ...searchArgs, perPage, offset)
-    const total = (db.prepare(
-      `SELECT COUNT(*) as count FROM movies WHERE ${countWhere}${searchFilter}`
-    ).get(...typeArgs, ...searchArgs) as { count: number }).count
-    return { data: rows, total, page, perPage }
+    listWhere  += searchFilter
+    countWhere += searchFilter
+    listArgs.push(like, like, like)
+    countArgs.push(like, like, like)
   }
 
   const rows = db.prepare(
-    `SELECT * FROM movies WHERE ${listWhere} ORDER BY title ASC LIMIT ? OFFSET ?`
-  ).all(...typeArgs, perPage, offset)
+    `SELECT * FROM movies WHERE ${listWhere} ORDER BY ${col} ${dir} LIMIT ? OFFSET ?`
+  ).all(...listArgs, perPage, offset)
   const total = (db.prepare(
     `SELECT COUNT(*) as count FROM movies WHERE ${countWhere}`
-  ).get(...typeArgs) as { count: number }).count
+  ).get(...countArgs) as { count: number }).count
   return { data: rows, total, page, perPage }
 }
 
@@ -217,6 +234,84 @@ export function clearMovies(db: Database.Database, confirmed?: boolean): { succe
   return { success: true }
 }
 
+export function randomMovie(db: Database.Database, filters?: { collectionType?: string; genre?: string }): unknown {
+  let where = 'is_deleted = 0 AND in_collection = 1 AND (is_boxset IS NULL OR is_boxset = 0)'
+  const args: unknown[] = []
+  if (filters?.collectionType) {
+    where += ' AND collection_type = ?'
+    args.push(filters.collectionType)
+  }
+  if (filters?.genre) {
+    where += ' AND genre LIKE ?'
+    args.push(`%${filters.genre}%`)
+  }
+  return db.prepare(`SELECT * FROM movies WHERE ${where} ORDER BY RANDOM() LIMIT 1`).get(...args) ?? null
+}
+
+export function toggleWatched(db: Database.Database, id: number): { is_watched: boolean } {
+  db.prepare('UPDATE movies SET is_watched = 1 - is_watched, updated_at = ? WHERE id = ?')
+    .run(new Date().toISOString(), id)
+  const row = db.prepare('SELECT is_watched FROM movies WHERE id = ?').get(id) as { is_watched: number }
+  return { is_watched: row.is_watched === 1 }
+}
+
+export function bulkDelete(db: Database.Database, ids: number[]): { deleted: number } {
+  if (!Array.isArray(ids) || ids.length === 0) return { deleted: 0 }
+  const placeholders = ids.map(() => '?').join(', ')
+  const result = db.prepare(
+    `UPDATE movies SET is_deleted = 1, updated_at = ? WHERE id IN (${placeholders})`
+  ).run(new Date().toISOString(), ...ids)
+  return { deleted: result.changes }
+}
+
+export function bulkUpdateTag(db: Database.Database, ids: number[], tag: string): { updated: number } {
+  if (!Array.isArray(ids) || ids.length === 0) return { updated: 0 }
+  const placeholders = ids.map(() => '?').join(', ')
+  const result = db.prepare(
+    `UPDATE movies SET tag = ?, updated_at = ? WHERE id IN (${placeholders})`
+  ).run(tag, new Date().toISOString(), ...ids)
+  return { updated: result.changes }
+}
+
+export interface ImportRow {
+  title: string
+  year?: number
+  rating?: number
+  tag?: string
+  is_watched?: boolean
+}
+
+export function importMovies(db: Database.Database, rows: ImportRow[]): { imported: number; skipped: number } {
+  let imported = 0, skipped = 0
+  const now = new Date().toISOString()
+
+  for (const row of rows) {
+    if (!row.title) { skipped++; continue }
+
+    const existing = db.prepare(
+      'SELECT id FROM movies WHERE title = ? AND year IS ? AND is_deleted = 0'
+    ).get(row.title, row.year ?? null) as { id: number } | undefined
+
+    if (existing) { skipped++; continue }
+
+    db.prepare(`
+      INSERT INTO movies (title, year, rating, tag, is_watched, in_collection, is_deleted, is_boxset, created_at, updated_at)
+      VALUES (@title, @year, @rating, @tag, @is_watched, 1, 0, 0, @created_at, @updated_at)
+    `).run({
+      title: row.title,
+      year: row.year ?? null,
+      rating: row.rating ?? null,
+      tag: row.tag ?? null,
+      is_watched: row.is_watched ? 1 : 0,
+      created_at: now,
+      updated_at: now,
+    })
+    imported++
+  }
+
+  return { imported, skipped }
+}
+
 // ── IPC registration ──────────────────────────────────────────────────────────
 
 export function registerMovieHandlers(): void {
@@ -234,5 +329,10 @@ export function registerMovieHandlers(): void {
   ipcMain.handle('db:movies:check-tmdb-ids',   (_e, ids)  => checkTmdbIds(db(), ids))
   ipcMain.handle('db:movies:delete-by-remote-id', (_e, id) => deleteMovieByRemoteId(db(), id))
   ipcMain.handle('db:movies:all-remote-ids',   ()         => allRemoteIds(db()))
-  ipcMain.handle('db:movies:clear',            (_e, c)    => clearMovies(db(), c))
+  ipcMain.handle('db:movies:clear',            (_e, c)        => clearMovies(db(), c))
+  ipcMain.handle('db:movies:random',           (_e, f)        => randomMovie(db(), f))
+  ipcMain.handle('db:movies:toggle-watched',   (_e, id)       => toggleWatched(db(), id))
+  ipcMain.handle('db:movies:bulk-delete',      (_e, ids)      => bulkDelete(db(), ids))
+  ipcMain.handle('db:movies:bulk-tag',         (_e, ids, tag) => bulkUpdateTag(db(), ids, tag))
+  ipcMain.handle('db:movies:import',           (_e, rows)     => importMovies(db(), rows))
 }

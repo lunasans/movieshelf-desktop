@@ -1,8 +1,106 @@
 import { ipcMain, BrowserWindow, app } from 'electron'
 import { join } from 'path'
 import { getDb } from '../database'
+import type Database from 'better-sqlite3'
 
 let statsWindow: BrowserWindow | null = null
+
+export function getStats(db: Database.Database) {
+  const BASE = "is_deleted = 0 AND is_boxset = 0 AND in_collection = 1"
+
+  const totalMovies = (db.prepare(
+    `SELECT COUNT(*) as count FROM movies WHERE ${BASE}`
+  ).get() as { count: number }).count
+
+  const totalRuntime = (db.prepare(
+    `SELECT COALESCE(SUM(runtime), 0) as total FROM movies WHERE ${BASE} AND runtime IS NOT NULL`
+  ).get() as { total: number }).total
+
+  const movieGenres = db.prepare(
+    `SELECT genre FROM movies WHERE ${BASE} AND genre IS NOT NULL AND genre != ''`
+  ).all() as { genre: string }[]
+
+  const genreMap: Record<string, number> = {}
+  for (const row of movieGenres) {
+    for (const g of row.genre.split(',')) {
+      const key = g.trim()
+      if (key) genreMap[key] = (genreMap[key] ?? 0) + 1
+    }
+  }
+  const genres = Object.entries(genreMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([name, count]) => ({ name, count }))
+
+  const byYear = db.prepare(`
+    SELECT year, COUNT(*) as count
+    FROM movies
+    WHERE ${BASE} AND year IS NOT NULL
+    GROUP BY year
+    ORDER BY year ASC
+  `).all() as { year: number; count: number }[]
+
+  const topActors = db.prepare(`
+    SELECT a.name, a.remote_id, a.image_path, COUNT(fa.film_id) as movie_count
+    FROM actors a
+    JOIN film_actor fa ON a.id = fa.actor_id
+    JOIN movies m ON fa.film_id = m.id
+    WHERE m.${BASE}
+    GROUP BY a.id
+    ORDER BY movie_count DESC
+    LIMIT 10
+  `).all() as { name: string; remote_id: number | null; image_path: string | null; movie_count: number }[]
+
+  const byTypeRaw = db.prepare(`
+    SELECT collection_type, COUNT(*) as count
+    FROM movies
+    WHERE is_deleted = 0 AND in_collection = 1
+    GROUP BY collection_type
+    ORDER BY count DESC
+  `).all() as { collection_type: string; count: number }[]
+
+  const filmsByType = db.prepare(`
+    SELECT id, title, year, collection_type
+    FROM movies
+    WHERE is_deleted = 0 AND in_collection = 1 AND collection_type IS NOT NULL
+    ORDER BY title ASC
+  `).all() as { id: number; title: string; year: number | null; collection_type: string }[]
+
+  const filmsByTypeMap: Record<string, { id: number; title: string; year: number | null }[]> = {}
+  for (const film of filmsByType) {
+    if (!filmsByTypeMap[film.collection_type]) filmsByTypeMap[film.collection_type] = []
+    filmsByTypeMap[film.collection_type].push({ id: film.id, title: film.title, year: film.year })
+  }
+
+  const byType = byTypeRaw.map(t => ({
+    ...t,
+    films: filmsByTypeMap[t.collection_type] ?? [],
+  }))
+
+  const runtimeBuckets = [
+    { label: '< 60 min',    min: 0,   max: 59    },
+    { label: '60–90 min',   min: 60,  max: 90    },
+    { label: '90–120 min',  min: 91,  max: 120   },
+    { label: '120–150 min', min: 121, max: 150   },
+    { label: '> 150 min',   min: 151, max: 99999 },
+  ]
+  const byRuntime = runtimeBuckets.map(b => ({
+    label: b.label,
+    count: (db.prepare(
+      `SELECT COUNT(*) as count FROM movies WHERE ${BASE} AND runtime >= ? AND runtime <= ?`
+    ).get(b.min, b.max) as { count: number }).count,
+  }))
+
+  const watchedMovies = (db.prepare(
+    `SELECT COUNT(*) as count FROM movies WHERE ${BASE} AND is_watched = 1`
+  ).get() as { count: number }).count
+
+  const avgRating = (db.prepare(
+    `SELECT ROUND(AVG(rating), 1) as avg FROM movies WHERE ${BASE} AND rating > 0`
+  ).get() as { avg: number | null }).avg ?? 0
+
+  return { totalMovies, totalRuntime, genres, byYear, topActors, byType, byRuntime, watchedMovies, avgRating }
+}
 
 export function registerStatsHandlers(): void {
   const db = () => getDb()
@@ -44,105 +142,5 @@ export function registerStatsHandlers(): void {
     })
   })
 
-  ipcMain.handle('db:stats:get', () => {
-    const BASE = "is_deleted = 0 AND is_boxset = 0 AND in_collection = 1"
-
-    const totalMovies = (db().prepare(
-      `SELECT COUNT(*) as count FROM movies WHERE ${BASE}`
-    ).get() as { count: number }).count
-
-    const totalRuntime = (db().prepare(
-      `SELECT COALESCE(SUM(runtime), 0) as total FROM movies WHERE ${BASE} AND runtime IS NOT NULL`
-    ).get() as { total: number }).total
-
-    // Genre counts — split comma-separated values
-    const movieGenres = db().prepare(
-      `SELECT genre FROM movies WHERE ${BASE} AND genre IS NOT NULL AND genre != ''`
-    ).all() as { genre: string }[]
-
-    const genreMap: Record<string, number> = {}
-    for (const row of movieGenres) {
-      for (const g of row.genre.split(',')) {
-        const key = g.trim()
-        if (key) genreMap[key] = (genreMap[key] ?? 0) + 1
-      }
-    }
-    const genres = Object.entries(genreMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 12)
-      .map(([name, count]) => ({ name, count }))
-
-    // Films per year
-    const byYear = db().prepare(`
-      SELECT year, COUNT(*) as count
-      FROM movies
-      WHERE ${BASE} AND year IS NOT NULL
-      GROUP BY year
-      ORDER BY year ASC
-    `).all() as { year: number; count: number }[]
-
-    // Top actors from actors table
-    const topActors = db().prepare(`
-      SELECT a.name, a.remote_id, a.image_path, COUNT(fa.film_id) as movie_count
-      FROM actors a
-      JOIN film_actor fa ON a.id = fa.actor_id
-      JOIN movies m ON fa.film_id = m.id
-      WHERE m.${BASE}
-      GROUP BY a.id
-      ORDER BY movie_count DESC
-      LIMIT 10
-    `).all() as { name: string; remote_id: number | null; image_path: string | null; movie_count: number }[]
-
-    // Films per collection type (BoxSet included here intentionally for overview)
-    const byTypeRaw = db().prepare(`
-      SELECT collection_type, COUNT(*) as count
-      FROM movies
-      WHERE is_deleted = 0 AND in_collection = 1
-      GROUP BY collection_type
-      ORDER BY count DESC
-    `).all() as { collection_type: string; count: number }[]
-
-    const filmsByType = db().prepare(`
-      SELECT id, title, year, collection_type
-      FROM movies
-      WHERE is_deleted = 0 AND in_collection = 1 AND collection_type IS NOT NULL
-      ORDER BY title ASC
-    `).all() as { id: number; title: string; year: number | null; collection_type: string }[]
-
-    const filmsByTypeMap: Record<string, { id: number; title: string; year: number | null }[]> = {}
-    for (const film of filmsByType) {
-      if (!filmsByTypeMap[film.collection_type]) filmsByTypeMap[film.collection_type] = []
-      filmsByTypeMap[film.collection_type].push({ id: film.id, title: film.title, year: film.year })
-    }
-
-    const byType = byTypeRaw.map(t => ({
-      ...t,
-      films: filmsByTypeMap[t.collection_type] ?? [],
-    }))
-
-    // Runtime distribution in buckets
-    const runtimeBuckets = [
-      { label: '< 60 min',    min: 0,   max: 59  },
-      { label: '60–90 min',   min: 60,  max: 90  },
-      { label: '90–120 min',  min: 91,  max: 120 },
-      { label: '120–150 min', min: 121, max: 150 },
-      { label: '> 150 min',   min: 151, max: 99999 },
-    ]
-    const byRuntime = runtimeBuckets.map(b => ({
-      label: b.label,
-      count: (db().prepare(
-        `SELECT COUNT(*) as count FROM movies WHERE ${BASE} AND runtime >= ? AND runtime <= ?`
-      ).get(b.min, b.max) as { count: number }).count,
-    }))
-
-    const watchedMovies = (db().prepare(
-      `SELECT COUNT(*) as count FROM movies WHERE ${BASE} AND is_watched = 1`
-    ).get() as { count: number }).count
-
-    const avgRating = (db().prepare(
-      `SELECT ROUND(AVG(rating), 1) as avg FROM movies WHERE ${BASE} AND rating > 0`
-    ).get() as { avg: number | null }).avg ?? 0
-
-    return { totalMovies, totalRuntime, genres, byYear, topActors, byType, byRuntime, watchedMovies, avgRating }
-  })
+  ipcMain.handle('db:stats:get', () => getStats(db()))
 }

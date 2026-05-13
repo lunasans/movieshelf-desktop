@@ -57,7 +57,12 @@ interface Window {
 
     db: {
       movies: {
-        list:            (params?: { page?: number; perPage?: number; q?: string }) => Promise<MovieListResult>
+        list:            (params?: {
+          page?: number; perPage?: number; q?: string; collectionType?: string; excludeType?: string
+          sortBy?: 'title' | 'year' | 'runtime' | 'rating' | 'created_at'
+          sortDir?: 'ASC' | 'DESC'
+          genres?: string[]
+        }) => Promise<MovieListResult>
         recent:          (limit?: number) => Promise<unknown[]>
         get:             (id: number) => Promise<unknown>
         getByRemoteId:   (id: number) => Promise<Record<string, unknown> | null>
@@ -72,6 +77,11 @@ interface Window {
         deleteByRemoteId:(remoteId: number) => Promise<{ success: boolean; localId?: number }>
         clear:           () => Promise<{ success: boolean }>
         allRemoteIds:    () => Promise<{ id: number; remote_id: number }[]>
+        random:          (filters?: { collectionType?: string; genre?: string }) => Promise<unknown>
+        toggleWatched:   (id: number) => Promise<{ is_watched: boolean }>
+        bulkDelete:      (ids: number[]) => Promise<{ deleted: number }>
+        bulkTag:         (ids: number[], tag: string) => Promise<{ updated: number }>
+        import:          (rows: Array<{ title: string; year?: number; rating?: number; tag?: string; is_watched?: boolean }>) => Promise<{ imported: number; skipped: number }>
         actors: {
           getForMovie: (movieId: number) => Promise<unknown[]>
           upsert:      (data: Record<string, unknown>) => Promise<number>
@@ -125,8 +135,10 @@ interface Window {
     onNavigate: (callback: (path: string) => void) => void
 
     update: {
-      install:    (url: string, sha256?: string) => Promise<{ success: boolean; error?: string }>
+      check:      () => Promise<unknown>
+      install:    () => Promise<void>
       onProgress: (callback: (percent: number) => void) => void
+      onReady:    (callback: () => void) => void
     }
 
     settings: {

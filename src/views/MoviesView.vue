@@ -6,18 +6,40 @@
         <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight">{{ isSeries ? 'Serien' : 'Filme' }}</h1>
         <p class="text-sm text-[var(--text-muted)] opacity-60">{{ store.total }} {{ isSeries ? 'Serien' : 'Filme' }} in der Sammlung</p>
       </div>
-      <router-link
-        to="/movies/new"
-        class="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
-      >
-        <i class="bi bi-plus-lg"></i> Film hinzufügen
-      </router-link>
+      <div class="flex items-center gap-2">
+        <button
+          @click="showRandom = true"
+          class="p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-ui)] hover:border-purple-500/50 text-[var(--text-muted)] hover:text-purple-400 transition-colors"
+          title="Zufälligen Film wählen"
+        >
+          <i class="bi bi-dice-6-fill"></i>
+        </button>
+        <button
+          @click="toggleBulkMode"
+          :class="[
+            'p-2 rounded-xl border transition-colors',
+            store.bulkMode
+              ? 'bg-red-600 border-red-500 text-white'
+              : 'bg-[var(--bg-card)] border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/50',
+          ]"
+          title="Mehrfachauswahl"
+        >
+          <i class="bi bi-check2-square"></i>
+        </button>
+        <router-link
+          to="/movies/new"
+          class="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+        >
+          <i class="bi bi-plus-lg"></i> Film hinzufügen
+        </router-link>
+      </div>
     </div>
 
     <!-- Search -->
-    <div class="relative mb-6">
+    <div class="relative mb-4">
       <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] opacity-40"></i>
       <input
+        ref="searchEl"
         v-model="query"
         @input="onSearch"
         type="text"
@@ -26,24 +48,47 @@
       />
     </div>
 
+    <!-- Sort + Genre controls -->
+    <div class="flex flex-wrap items-center gap-2 mb-6">
+      <select
+        v-model="sortKey"
+        @change="onFiltersChange"
+        class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-lg px-3 py-1.5 text-xs font-bold text-[var(--text-main)] focus:outline-none focus:border-red-500/50"
+      >
+        <option value="title">Titel</option>
+        <option value="year">Jahr</option>
+        <option value="rating">Bewertung</option>
+        <option value="runtime">Laufzeit</option>
+        <option value="created_at">Hinzugefügt</option>
+      </select>
+      <button
+        @click="toggleSortDir"
+        class="px-2 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-ui)] text-xs font-black text-[var(--text-muted)] hover:border-red-500/50 transition-colors"
+        :title="sortDirLocal === 'ASC' ? 'Aufsteigend' : 'Absteigend'"
+      >
+        <i :class="sortDirLocal === 'ASC' ? 'bi bi-sort-up' : 'bi bi-sort-down'"></i>
+      </button>
+      <template v-if="availableGenres.length">
+        <button
+          v-for="genre in availableGenres"
+          :key="genre"
+          @click="toggleGenre(genre)"
+          :class="[
+            'px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors',
+            store.selectedGenres.includes(genre)
+              ? 'bg-red-600 border-red-500 text-white'
+              : 'bg-[var(--bg-card)] border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/50',
+          ]"
+        >{{ genre }}</button>
+      </template>
+    </div>
+
+    <!-- Width measurer (invisible sentinel) -->
+    <div ref="measureEl" class="w-full h-0"></div>
+
     <!-- Loading (Initial) -->
     <div v-if="store.loading && !store.loadingMore" class="flex items-center justify-center py-20">
       <div class="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-    </div>
-
-    <!-- Grid -->
-    <div v-else :class="{ 'opacity-50': store.loading && !store.loadingMore }" class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-6">
-      <MovieCard
-        v-for="movie in store.movies"
-        :key="movie.id"
-        :movie="movie"
-        @delete="store.deleteMovie(movie.id)"
-      />
-    </div>
-
-    <!-- Loading More -->
-    <div v-if="store.loadingMore" class="flex items-center justify-center py-10">
-      <div class="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
     <!-- Empty -->
@@ -59,112 +104,278 @@
         <p class="text-[var(--text-muted)] opacity-40 text-sm">Keine Filme gefunden.</p>
       </template>
     </div>
+
+    <!-- Virtual Grid -->
+    <div
+      v-if="!store.loading && store.movies.length > 0"
+      ref="gridEl"
+      :style="{ height: virtualizer.getTotalSize() + 'px', position: 'relative' }"
+    >
+      <div
+        v-for="row in virtualizer.getVirtualItems()"
+        :key="String(row.key)"
+        :style="{
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          right: '0',
+          transform: 'translateY(' + (row.start - scrollMarginV) + 'px)',
+        }"
+      >
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-6 pb-6">
+          <MovieCard
+            v-for="movie in getRowMovies(row.index)"
+            :key="movie.id"
+            :movie="movie"
+            :bulk-mode="store.bulkMode"
+            :selected="store.selectedIds.includes(movie.id)"
+            @delete="store.deleteMovie(movie.id)"
+            @toggle-watched="store.toggleMovieWatched(movie.id)"
+            @toggle-select="store.toggleSelect(movie.id)"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading More -->
+    <div v-if="store.loadingMore" class="flex items-center justify-center py-10">
+      <div class="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <!-- Random Picker -->
+    <RandomPickerModal
+      v-if="showRandom"
+      :collection-type="isSeries ? 'Serie' : undefined"
+      @close="showRandom = false"
+    />
+
+    <!-- Bulk Action Bar -->
+    <BulkActionBar
+      v-if="store.bulkMode && store.selectedIds.length > 0"
+      :count="store.selectedIds.length"
+      @bulk-delete="onBulkDelete"
+      @bulk-tag="onBulkTag"
+      @close="toggleBulkMode"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, onBeforeRouteLeave } from 'vue-router'
+import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useMovieStore } from '@/stores/movies'
 import { useSettingsStore } from '@/stores/settings'
+import type { Movie } from '@/stores/movies'
 import MovieCard from '@/components/movies/MovieCard.vue'
+import RandomPickerModal from '@/components/RandomPickerModal.vue'
+import BulkActionBar from '@/components/BulkActionBar.vue'
 
 const route    = useRoute()
 const store    = useMovieStore()
 const settings = useSettingsStore()
-const query    = ref('')
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+const query        = ref('')
+const sortKey      = ref<'title' | 'year' | 'runtime' | 'rating' | 'created_at'>('title')
+const sortDirLocal = ref<'ASC' | 'DESC'>('ASC')
+const showRandom   = ref(false)
+const availableGenres = ref<string[]>([])
+
+const measureEl = ref<HTMLElement | null>(null)
+const gridEl    = ref<HTMLElement | null>(null)
+const searchEl  = ref<HTMLInputElement | null>(null)
 
 const isSeries = computed(() => route.path === '/series')
 const listKey  = computed(() => isSeries.value ? 'Serie' : '!Serie')
 
-let searchTimeout: ReturnType<typeof setTimeout>
+// ── Virtual scrolling ─────────────────────────────────────────────────────────
 
-function listParams(extra: Record<string, unknown> = {}) {
-  return isSeries.value
-    ? { collectionType: 'Serie', ...extra }
-    : { excludeType: 'Serie', ...extra }
+const ROW_HEIGHT = 290
+const ITEM_MIN   = 160
+const GAP        = 24
+
+const containerWidth = ref(1200)
+const scrollMarginV  = ref(0)
+
+const cols     = computed(() => Math.max(1, Math.floor((containerWidth.value + GAP) / (ITEM_MIN + GAP))))
+const rowCount = computed(() => Math.max(0, Math.ceil(store.movies.length / cols.value)))
+
+const virtualizer = useVirtualizer({
+  get count() { return rowCount.value },
+  getScrollElement: () => document.querySelector('main') as HTMLElement,
+  estimateSize: () => ROW_HEIGHT,
+  overscan: 2,
+  get scrollMargin() { return scrollMarginV.value },
+})
+
+function getRowMovies(rowIdx: number): Movie[] {
+  const start = rowIdx * cols.value
+  return store.movies.slice(start, start + cols.value)
 }
 
-function getMain() { return document.querySelector('main') }
+function updateMeasurements() {
+  if (measureEl.value) containerWidth.value = measureEl.value.offsetWidth
+  const main = document.querySelector('main') as HTMLElement
+  if (main && gridEl.value) {
+    const gr = gridEl.value.getBoundingClientRect()
+    const mr = main.getBoundingClientRect()
+    scrollMarginV.value = Math.max(0, gr.top - mr.top + main.scrollTop)
+  }
+}
+
+let resizeObs: ResizeObserver | null = null
+
+// ── Params ────────────────────────────────────────────────────────────────────
+
+function listParams(extra: Record<string, unknown> = {}) {
+  const base = isSeries.value
+    ? { collectionType: 'Serie' }
+    : { excludeType: 'Serie' }
+  return {
+    ...base,
+    sortBy: sortKey.value,
+    sortDir: sortDirLocal.value,
+    genres: store.selectedGenres.length ? [...store.selectedGenres] : undefined,
+    ...extra,
+  }
+}
+
+// ── Infinite load ─────────────────────────────────────────────────────────────
+
+async function loadMore() {
+  if (store.loading || store.loadingMore || store.movies.length >= store.total) return
+  await store.fetchMovies({ ...listParams(), page: store.page + 1 } as Parameters<typeof store.fetchMovies>[0], true)
+  await nextTick()
+  updateMeasurements()
+}
+
+watch(
+  () => virtualizer.value.range,
+  () => {
+    const range = virtualizer.value.range
+    if (!range) return
+    if (range.endIndex >= rowCount.value - 3) loadMore()
+  },
+)
+
+watch(() => store.movies.length, async () => {
+  await nextTick()
+  updateMeasurements()
+})
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+
+let searchTimeout: ReturnType<typeof setTimeout>
 
 function onSearch() {
   clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    store.fetchMovies(listParams({ q: query.value || undefined }))
-  }, 300)
+  searchTimeout = setTimeout(() => onFiltersChange(), 300)
 }
 
-function handleScroll(e: Event) {
-  if (store.loading || store.loadingMore || store.movies.length === 0 || store.movies.length >= store.total) return
-  const target = e.target as HTMLElement
-  if (target.scrollTop + target.clientHeight > target.scrollHeight - 500) {
-    store.fetchMovies(listParams({ q: query.value || undefined, page: store.page + 1 }), true)
-      .then(() => fillViewport())
-  }
+async function onFiltersChange() {
+  store.sortBy  = sortKey.value
+  store.sortDir = sortDirLocal.value
+  await store.fetchMovies(listParams({ q: query.value || undefined }) as Parameters<typeof store.fetchMovies>[0])
+  await nextTick()
+  updateMeasurements()
 }
 
-function fillViewport() {
-  const main = getMain()
-  if (!main || store.loadingMore || store.movies.length >= store.total) return
-  if (main.scrollHeight <= main.clientHeight + 100) {
-    store.fetchMovies(listParams({ q: query.value || undefined, page: store.page + 1 }), true)
-      .then(() => fillViewport())
-  }
+function toggleSortDir() {
+  sortDirLocal.value = sortDirLocal.value === 'ASC' ? 'DESC' : 'ASC'
+  onFiltersChange()
+}
+
+function toggleGenre(genre: string) {
+  const idx = store.selectedGenres.indexOf(genre)
+  if (idx >= 0) store.selectedGenres.splice(idx, 1)
+  else store.selectedGenres.push(genre)
+  onFiltersChange()
 }
 
 async function loadList() {
   const q = route.query.q as string | undefined
   query.value = q ?? ''
-  await store.fetchMovies(listParams(q ? { q } : {}))
+  await store.fetchMovies(listParams(q ? { q } : {}) as Parameters<typeof store.fetchMovies>[0])
   await nextTick()
-  fillViewport()
+  updateMeasurements()
 }
 
-// ── Lifecycle ────────────────────────────────────────────────────────────────
+// ── Bulk actions ──────────────────────────────────────────────────────────────
+
+function toggleBulkMode() {
+  store.bulkMode = !store.bulkMode
+  if (!store.bulkMode) store.selectedIds.splice(0)
+}
+
+async function onBulkDelete() {
+  await store.bulkDeleteSelected()
+  await nextTick()
+  updateMeasurements()
+}
+
+async function onBulkTag(tag: string) {
+  await store.bulkTagSelected(tag)
+}
+
+// ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
-  const main = getMain()
-  if (main) main.addEventListener('scroll', handleScroll)
+  try {
+    const stats = await window.electron.stats.get()
+    availableGenres.value = stats.genres.slice(0, 12).map(g => g.name)
+  } catch { /* stats optional */ }
 
-  // Try to restore cached state (e.g. returning from movie detail)
   const scrollTop = store.restoreFromCache(listKey.value)
   if (scrollTop !== null && !route.query.q) {
     await nextTick()
+    const main = document.querySelector('main') as HTMLElement
     if (main) main.scrollTop = scrollTop
+    await nextTick()
+    updateMeasurements()
   } else {
     await loadList()
   }
+
+  resizeObs = new ResizeObserver(() => {
+    if (measureEl.value) containerWidth.value = measureEl.value.offsetWidth
+  })
+  if (measureEl.value) resizeObs.observe(measureEl.value)
 })
 
 onUnmounted(() => {
-  getMain()?.removeEventListener('scroll', handleScroll)
+  resizeObs?.disconnect()
 })
 
-// Save to cache before leaving (movie detail, settings, etc.)
 onBeforeRouteLeave(() => {
-  store.saveToCache(listKey.value, getMain()?.scrollTop ?? 0)
+  const main = document.querySelector('main') as HTMLElement
+  store.saveToCache(listKey.value, main?.scrollTop ?? 0)
 })
 
-// ── Watchers ─────────────────────────────────────────────────────────────────
+// ── Watchers ──────────────────────────────────────────────────────────────────
 
-watch(() => route.query.q, () => { loadList() })
+watch(() => route.query.q, () => loadList())
 
-// Switching between /movies and /series — save old list, restore or fetch new
 watch(() => route.path, async (newPath, oldPath) => {
   const listPaths = ['/movies', '/series']
   if (!listPaths.includes(newPath) || !listPaths.includes(oldPath)) return
 
   const oldKey = oldPath === '/series' ? 'Serie' : '!Serie'
   query.value = ''
+  store.selectedGenres.splice(0)
+  store.bulkMode = false
+  store.selectedIds.splice(0)
 
-  // Save current state under the old key
-  store.saveToCache(oldKey, getMain()?.scrollTop ?? 0)
+  const main = document.querySelector('main') as HTMLElement
+  store.saveToCache(oldKey, main?.scrollTop ?? 0)
 
-  // Restore or fetch for the new key
   const scrollTop = store.restoreFromCache(listKey.value)
   if (scrollTop !== null) {
     await nextTick()
-    getMain()!.scrollTop = scrollTop
+    if (main) main.scrollTop = scrollTop
+    await nextTick()
+    updateMeasurements()
   } else {
     await loadList()
   }

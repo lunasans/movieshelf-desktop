@@ -23,6 +23,7 @@ export interface Movie {
   remote_id: number | null
   is_boxset: number | null
   boxset_parent_id: number | null
+  is_watched: number
   created_at: string
   updated_at: string
 }
@@ -35,14 +36,18 @@ interface ListState {
 }
 
 export const useMovieStore = defineStore('movies', () => {
-  const movies      = ref<Movie[]>([])
-  const total       = ref(0)
-  const loading     = ref(false)
-  const loadingMore = ref(false)
-  const page        = ref(1)
-  const perPage     = ref(30)
+  const movies         = ref<Movie[]>([])
+  const total          = ref(0)
+  const loading        = ref(false)
+  const loadingMore    = ref(false)
+  const page           = ref(1)
+  const perPage        = ref(30)
+  const sortBy         = ref<'title' | 'year' | 'runtime' | 'rating' | 'created_at'>('title')
+  const sortDir        = ref<'ASC' | 'DESC'>('ASC')
+  const selectedGenres = ref<string[]>([])
+  const bulkMode       = ref(false)
+  const selectedIds    = ref<number[]>([])
 
-  // Per-list cache so switching between Filme / Serien restores full state
   const cache = new Map<string, ListState>()
 
   function saveToCache(key: string, scrollTop: number) {
@@ -59,7 +64,10 @@ export const useMovieStore = defineStore('movies', () => {
   }
 
   async function fetchMovies(
-    params: { q?: string; page?: number; collectionType?: string; excludeType?: string } = {},
+    params: {
+      q?: string; page?: number; collectionType?: string; excludeType?: string
+      sortBy?: string; sortDir?: string; genres?: string[]
+    } = {},
     append = false
   ) {
     if (!append) {
@@ -72,8 +80,7 @@ export const useMovieStore = defineStore('movies', () => {
     try {
       const currentPage    = params.page ?? page.value
       const currentPerPage = perPage.value
-
-      const result    = await window.electron.db.movies.list({ ...params, page: currentPage, perPage: currentPerPage })
+      const result    = await window.electron.db.movies.list({ ...params, page: currentPage, perPage: currentPerPage } as Parameters<typeof window.electron.db.movies.list>[0])
       const newMovies = result.data as Movie[]
       movies.value = append ? [...movies.value, ...newMovies] : newMovies
       total.value  = result.total
@@ -90,10 +97,50 @@ export const useMovieStore = defineStore('movies', () => {
     total.value--
   }
 
+  async function toggleMovieWatched(id: number) {
+    const result = await window.electron.db.movies.toggleWatched(id)
+    const movie = movies.value.find(m => m.id === id)
+    if (movie) movie.is_watched = result.is_watched ? 1 : 0
+    return result
+  }
+
+  async function bulkDeleteSelected() {
+    const ids = [...selectedIds.value]
+    if (!ids.length) return { deleted: 0 }
+    const result = await window.electron.db.movies.bulkDelete(ids)
+    movies.value = movies.value.filter(m => !selectedIds.value.includes(m.id))
+    total.value -= result.deleted
+    selectedIds.value = []
+    bulkMode.value = false
+    return result
+  }
+
+  async function bulkTagSelected(tag: string) {
+    const ids = [...selectedIds.value]
+    if (!ids.length) return { updated: 0 }
+    const result = await window.electron.db.movies.bulkTag(ids, tag)
+    for (const movie of movies.value) {
+      if (selectedIds.value.includes(movie.id)) movie.tag = tag
+    }
+    selectedIds.value = []
+    return result
+  }
+
+  function toggleSelect(id: number) {
+    const idx = selectedIds.value.indexOf(id)
+    if (idx >= 0) selectedIds.value.splice(idx, 1)
+    else selectedIds.value.push(id)
+  }
+
   function clearCache(key?: string) {
     if (key) cache.delete(key)
     else cache.clear()
   }
 
-  return { movies, total, loading, loadingMore, page, perPage, fetchMovies, deleteMovie, saveToCache, restoreFromCache, clearCache }
+  return {
+    movies, total, loading, loadingMore, page, perPage,
+    sortBy, sortDir, selectedGenres, bulkMode, selectedIds,
+    fetchMovies, deleteMovie, saveToCache, restoreFromCache, clearCache,
+    toggleMovieWatched, bulkDeleteSelected, bulkTagSelected, toggleSelect,
+  }
 })

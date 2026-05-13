@@ -18,15 +18,30 @@
 
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useSettingsStore } from '@/stores/settings'
 import { useUpdateService } from '@/services/updateService'
+import { useKeyboard } from '@/composables/useKeyboard'
 import TitleBar from '@/components/layout/TitleBar.vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 
 const isPopup = new URLSearchParams(window.location.search).get('popup') === '1'
 
+const router   = useRouter()
 const settings = useSettingsStore()
 const { checkForUpdates } = useUpdateService()
+
+useKeyboard({
+  '/': () => {
+    const el = document.querySelector<HTMLInputElement>('input[type=text], input:not([type])')
+    el?.focus()
+  },
+  'Escape': () => {
+    const el = document.activeElement as HTMLElement | null
+    el?.blur()
+  },
+  'r': () => router.push('/movies'),
+})
 
 const applyTheme = (theme: string) => {
   let finalTheme = theme

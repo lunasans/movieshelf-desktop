@@ -4,6 +4,8 @@ import { createTestDb, insertMovie } from './testDb'
 import {
   listMovies, countMovies, recentMovies, createMovie, updateMovie,
   deleteMovie, searchMovies, checkTmdbIds, deleteMovieByRemoteId, allRemoteIds,
+  getMovie, getMovieByRemoteId, getMovieChildren, clearMovies,
+  randomMovie, toggleWatched, bulkDelete, bulkUpdateTag, importMovies,
 } from '../movies'
 
 let db: Database.Database
@@ -179,5 +181,233 @@ describe('allRemoteIds', () => {
     const ids = allRemoteIds(db)
     expect(ids).toHaveLength(1)
     expect(ids[0].remote_id).toBe(5)
+  })
+})
+
+describe('getMovie', () => {
+  it('findet Film nach id', () => {
+    const id = insertMovie(db, { title: 'Fundfilm' })
+    const movie = getMovie(db, id) as any
+    expect(movie.title).toBe('Fundfilm')
+  })
+
+  it('fällt auf remote_id zurück wenn id keinen Treffer liefert', () => {
+    createMovie(db, { title: 'Per Remote', remote_id: 77 })
+    const movie = getMovie(db, 77) as any
+    expect(movie.title).toBe('Per Remote')
+  })
+
+  it('gibt undefined zurück wenn Film gelöscht', () => {
+    const id = insertMovie(db, { is_deleted: 1 })
+    expect(getMovie(db, id)).toBeUndefined()
+  })
+})
+
+describe('getMovieByRemoteId', () => {
+  it('findet Film anhand remote_id', () => {
+    createMovie(db, { title: 'Fernfilm', remote_id: 42 })
+    const movie = getMovieByRemoteId(db, 42) as any
+    expect(movie.title).toBe('Fernfilm')
+  })
+
+  it('gibt null zurück wenn remote_id nicht gefunden', () => {
+    expect(getMovieByRemoteId(db, 9999)).toBeNull()
+  })
+})
+
+describe('getMovieChildren', () => {
+  it('gibt Kinder eines Boxsets zurück', () => {
+    const boxset = insertMovie(db, { title: 'Boxset', is_boxset: 1 })
+    insertMovie(db, { title: 'Kind 1', boxset_parent_id: boxset })
+    insertMovie(db, { title: 'Kind 2', boxset_parent_id: boxset })
+
+    const children = getMovieChildren(db, boxset) as any[]
+    expect(children).toHaveLength(2)
+  })
+
+  it('schließt gelöschte Kinder aus', () => {
+    const boxset = insertMovie(db, { title: 'Boxset', is_boxset: 1 })
+    insertMovie(db, { title: 'Aktiv', boxset_parent_id: boxset })
+    insertMovie(db, { title: 'Gelöscht', boxset_parent_id: boxset, is_deleted: 1 })
+
+    const children = getMovieChildren(db, boxset) as any[]
+    expect(children).toHaveLength(1)
+    expect(children[0].title).toBe('Aktiv')
+  })
+})
+
+describe('clearMovies', () => {
+  it('gibt success: false zurück ohne Bestätigung', () => {
+    insertMovie(db)
+    const result = clearMovies(db)
+    expect(result.success).toBe(false)
+    expect(db.prepare('SELECT COUNT(*) as c FROM movies').get() as any).toMatchObject({ c: 1 })
+  })
+
+  it('löscht alle Filme, Schauspieler und Verknüpfungen mit confirmed=true', () => {
+    insertMovie(db)
+    const result = clearMovies(db, true)
+    expect(result.success).toBe(true)
+    expect((db.prepare('SELECT COUNT(*) as c FROM movies').get() as any).c).toBe(0)
+    expect((db.prepare('SELECT COUNT(*) as c FROM actors').get() as any).c).toBe(0)
+    expect((db.prepare('SELECT COUNT(*) as c FROM film_actor').get() as any).c).toBe(0)
+  })
+})
+
+describe('listMovies — sortBy / sortDir / genres', () => {
+  it('sortiert nach year ASC', () => {
+    insertMovie(db, { title: 'Neu', year: 2022 })
+    insertMovie(db, { title: 'Alt', year: 2010 })
+
+    const { data } = listMovies(db, { sortBy: 'year', sortDir: 'ASC' })
+    expect((data[0] as any).year).toBe(2010)
+    expect((data[1] as any).year).toBe(2022)
+  })
+
+  it('sortiert nach rating DESC', () => {
+    insertMovie(db, { title: 'Hoch', rating: 9.0 })
+    insertMovie(db, { title: 'Niedrig', rating: 5.0 })
+
+    const { data } = listMovies(db, { sortBy: 'rating', sortDir: 'DESC' })
+    expect((data[0] as any).rating).toBe(9.0)
+  })
+
+  it('filtert nach einzelnem Genre (LIKE)', () => {
+    insertMovie(db, { title: 'Actionfilm', genre: 'Action, Thriller' })
+    insertMovie(db, { title: 'Komödie', genre: 'Comedy' })
+
+    const { data } = listMovies(db, { genres: ['Action'] })
+    expect(data).toHaveLength(1)
+    expect((data[0] as any).title).toBe('Actionfilm')
+  })
+
+  it('filtert nach mehreren Genres (Schnittmenge)', () => {
+    insertMovie(db, { title: 'Beide', genre: 'Action, Drama' })
+    insertMovie(db, { title: 'Nur Action', genre: 'Action' })
+
+    const { data } = listMovies(db, { genres: ['Action', 'Drama'] })
+    expect(data).toHaveLength(1)
+    expect((data[0] as any).title).toBe('Beide')
+  })
+
+  it('fällt auf title ASC zurück bei ungültigem sortBy', () => {
+    insertMovie(db, { title: 'Zebra' })
+    insertMovie(db, { title: 'Apfel' })
+
+    const { data } = listMovies(db, { sortBy: 'DROP TABLE' as any })
+    expect((data[0] as any).title).toBe('Apfel')
+  })
+})
+
+describe('randomMovie', () => {
+  it('gibt einen Film zurück wenn DB nicht leer', () => {
+    insertMovie(db, { title: 'Einziger Film' })
+    const movie = randomMovie(db) as any
+    expect(movie).not.toBeNull()
+    expect(movie.title).toBe('Einziger Film')
+  })
+
+  it('gibt null zurück bei leerer DB', () => {
+    expect(randomMovie(db)).toBeNull()
+  })
+
+  it('filtert nach collectionType', () => {
+    insertMovie(db, { title: 'Film', collection_type: 'Film' })
+    insertMovie(db, { title: 'Serie', collection_type: 'Serie' })
+
+    const movie = randomMovie(db, { collectionType: 'Serie' }) as any
+    expect(movie.title).toBe('Serie')
+  })
+
+  it('filtert nach Genre', () => {
+    insertMovie(db, { title: 'Action', genre: 'Action' })
+    insertMovie(db, { title: 'Drama', genre: 'Drama' })
+
+    const movie = randomMovie(db, { genre: 'Drama' }) as any
+    expect(movie.title).toBe('Drama')
+  })
+})
+
+describe('toggleWatched', () => {
+  it('setzt is_watched von 0 auf 1', () => {
+    const id = insertMovie(db, { is_watched: 0 })
+    const result = toggleWatched(db, id)
+    expect(result.is_watched).toBe(true)
+  })
+
+  it('setzt is_watched von 1 auf 0', () => {
+    const id = insertMovie(db, { is_watched: 1 })
+    const result = toggleWatched(db, id)
+    expect(result.is_watched).toBe(false)
+  })
+})
+
+describe('bulkDelete', () => {
+  it('soft-deleted alle übergebenen IDs', () => {
+    const id1 = insertMovie(db, { title: 'A' })
+    const id2 = insertMovie(db, { title: 'B' })
+    insertMovie(db, { title: 'C' })
+
+    const result = bulkDelete(db, [id1, id2])
+    expect(result.deleted).toBe(2)
+
+    const remaining = db.prepare('SELECT COUNT(*) as c FROM movies WHERE is_deleted = 0').get() as any
+    expect(remaining.c).toBe(1)
+  })
+
+  it('gibt deleted: 0 für leere Liste zurück', () => {
+    expect(bulkDelete(db, [])).toEqual({ deleted: 0 })
+  })
+})
+
+describe('bulkUpdateTag', () => {
+  it('setzt tag für alle übergebenen IDs', () => {
+    const id1 = insertMovie(db, { title: 'A' })
+    const id2 = insertMovie(db, { title: 'B' })
+
+    const result = bulkUpdateTag(db, [id1, id2], 'Favorit')
+    expect(result.updated).toBe(2)
+
+    const movies = db.prepare('SELECT tag FROM movies WHERE id IN (?, ?)').all(id1, id2) as any[]
+    expect(movies.every(m => m.tag === 'Favorit')).toBe(true)
+  })
+
+  it('gibt updated: 0 für leere Liste zurück', () => {
+    expect(bulkUpdateTag(db, [], 'x')).toEqual({ updated: 0 })
+  })
+})
+
+describe('importMovies', () => {
+  it('importiert neue Filme', () => {
+    const result = importMovies(db, [
+      { title: 'Erster', year: 2020 },
+      { title: 'Zweiter', year: 2021 },
+      { title: 'Dritter', year: 2022 },
+    ])
+    expect(result.imported).toBe(3)
+    expect(result.skipped).toBe(0)
+  })
+
+  it('überspringt Duplikate (gleicher title + year)', () => {
+    insertMovie(db, { title: 'Bereits vorhanden', year: 2019 })
+
+    const result = importMovies(db, [
+      { title: 'Bereits vorhanden', year: 2019 },
+      { title: 'Neu', year: 2023 },
+    ])
+    expect(result.imported).toBe(1)
+    expect(result.skipped).toBe(1)
+  })
+
+  it('überspringt Zeilen ohne Titel', () => {
+    const result = importMovies(db, [{ title: '' }, { title: 'Gültig' }] as any)
+    expect(result.imported).toBe(1)
+    expect(result.skipped).toBe(1)
+  })
+
+  it('setzt is_watched korrekt', () => {
+    importMovies(db, [{ title: 'Gesehen', year: 2020, is_watched: true }])
+    const movie = db.prepare("SELECT is_watched FROM movies WHERE title = 'Gesehen'").get() as any
+    expect(movie.is_watched).toBe(1)
   })
 })

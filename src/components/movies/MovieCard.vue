@@ -1,8 +1,18 @@
 <template>
-  <div class="group cursor-pointer" @click="router.push(`/movies/${movie.id}`)">
+  <div
+    class="group cursor-pointer"
+    @click="onClick"
+  >
     <!-- Wrapper for card image area -->
     <div class="relative aspect-[2/3]">
-      <div class="absolute inset-0 rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] group-hover:border-blue-500/50 group-hover:scale-105 transition-all duration-300 shadow-[var(--shadow-main)]">
+      <div
+        :class="[
+          'absolute inset-0 rounded-2xl overflow-hidden bg-[var(--bg-card)] border transition-all duration-300 shadow-[var(--shadow-main)]',
+          selected
+            ? 'border-red-500 scale-[0.97]'
+            : 'border-[var(--border-ui)] group-hover:border-blue-500/50 group-hover:scale-105',
+        ]"
+      >
         <img
           v-if="resolveMediaUrl(movie.cover_url || movie.cover_path, movie.remote_id ?? undefined)"
           :src="resolveMediaUrl(movie.cover_url || movie.cover_path, movie.remote_id ?? undefined)!"
@@ -23,8 +33,15 @@
           <span class="text-[8px] font-black text-white uppercase tracking-widest drop-shadow-sm">{{ tagStyle(movie.tag).label }}</span>
         </div>
 
+        <!-- Watched badge -->
+        <div v-if="movie.is_watched" class="absolute top-2.5 left-2.5 z-20">
+          <div class="bg-green-600/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md border border-green-500/30 flex items-center gap-1">
+            <i class="bi bi-eye-fill text-[9px] text-white"></i>
+          </div>
+        </div>
+
         <!-- Rating Badge (top right, visible on hover) -->
-        <div v-if="movie.rating" class="absolute top-3 left-3 z-20 -translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500">
+        <div v-if="movie.rating" class="absolute top-3 right-3 z-20 translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500">
           <div class="bg-blue-600 px-2 py-1 rounded-lg border border-white/20 flex items-center gap-1 shadow-xl">
             <i class="bi bi-star-fill text-[10px] text-yellow-400"></i>
             <span class="text-[11px] font-black text-white">{{ movie.rating.toFixed(1) }}</span>
@@ -41,13 +58,27 @@
           </span>
         </div>
 
-        <!-- Hover overlay with actions -->
-        <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 gap-2">
+        <!-- Bulk mode: checkbox overlay -->
+        <div v-if="bulkMode" class="absolute top-2.5 right-2.5 z-30">
+          <div :class="['w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors', selected ? 'bg-red-600 border-red-500' : 'bg-black/40 border-white/40']">
+            <i v-if="selected" class="bi bi-check text-white text-xs"></i>
+          </div>
+        </div>
+
+        <!-- Normal hover overlay with actions (hidden in bulk mode) -->
+        <div v-if="!bulkMode" class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 gap-2">
           <button
             @click.stop="router.push(`/movies/${movie.id}/edit`)"
             class="flex-1 bg-blue-600/80 hover:bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
           >
             <i class="bi bi-pencil-fill"></i> Bearbeiten
+          </button>
+          <button
+            @click.stop="$emit('toggle-watched')"
+            :class="['w-8 h-8 rounded-lg flex items-center justify-center transition-colors text-sm', movie.is_watched ? 'bg-green-600/80 hover:bg-green-600' : 'bg-blue-600/80 hover:bg-blue-600']"
+            title="Gesehen-Status umschalten"
+          >
+            <i :class="movie.is_watched ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill'" class="text-white"></i>
           </button>
           <button
             @click.stop="$emit('delete')"
@@ -58,7 +89,6 @@
           </button>
         </div>
       </div>
-
     </div>
 
     <div class="mt-2 px-1">
@@ -73,11 +103,28 @@ import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import type { Movie } from '@/stores/movies'
 
-defineProps<{ movie: Movie }>()
-defineEmits<{ delete: [] }>()
+const props = defineProps<{
+  movie: Movie
+  bulkMode?: boolean
+  selected?: boolean
+}>()
+
+const emit = defineEmits<{
+  delete:         []
+  'toggle-watched': []
+  'toggle-select':  []
+}>()
 
 const router = useRouter()
 const { resolveMediaUrl } = useApi()
+
+function onClick() {
+  if (props.bulkMode) {
+    emit('toggle-select')
+  } else {
+    router.push(`/movies/${props.movie.id}`)
+  }
+}
 
 const TAG_MAP: Record<string, { label: string; bg: string }> = {
   DVD:       { label: 'DVD',     bg: 'bg-orange-800/80' },
