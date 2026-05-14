@@ -358,7 +358,7 @@ const parsedOverview = computed(() => {
   const text = movie.value?.overview as string
   if (!text) return []
 
-  const cleaned = text.replace(/<[^>]*>?/gm, '')
+  const cleaned = new DOMParser().parseFromString(text, 'text/html').body.textContent ?? ''
   const segments: { type: 'text' | 'actor', value: string, id?: number | null }[] = []
   const regex = /\{!Actor\}(.*?)\}|\(\[!Actor\](.*?)\)\)?/g
   let lastIndex = 0
