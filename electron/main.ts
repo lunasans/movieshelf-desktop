@@ -62,7 +62,7 @@ function createWindow() {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      webviewTag: false,
+      webviewTag: true,
     },
     icon: join(__dirname, '../public/icon.png'),
   })
