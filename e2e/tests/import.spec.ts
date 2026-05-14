@@ -1,7 +1,6 @@
 import { test, expect } from '../fixtures/app'
-import path from 'path'
 import fs from 'fs'
-import os from 'os'
+import tmp from 'tmp'
 
 test('CSV-Import-Button ist in Einstellungen sichtbar', async ({ page }) => {
   // Navigate to Settings → Backup
@@ -21,7 +20,8 @@ test('CSV-Import verarbeitet eine Test-CSV', async ({ page, app }) => {
   const csv = `Date,Name,Year,Letterboxd URI,Rating,Tags,Watched Date
 2024-01-01,E2E Test Film,2020,https://letterboxd.com/x,4.0,BluRay,2024-01-01
 `
-  const csvPath = path.join(os.tmpdir(), 'e2e-test.csv')
+  const tmpFile = tmp.fileSync({ postfix: '.csv' })
+  const csvPath = tmpFile.name
   fs.writeFileSync(csvPath, csv)
 
   // Use electron main process to call importMovies directly
