@@ -8,10 +8,14 @@
       </p>
       <span class="ml-auto text-xs text-[var(--text-muted)] opacity-50">{{ result.duration }}s</span>
     </div>
-    <div class="grid grid-cols-5 gap-3">
+    <div class="grid grid-cols-6 gap-3">
       <div class="text-center">
         <p class="text-xl font-black text-[var(--text-main)]">{{ result.pulled }}</p>
-        <p class="text-xs text-[var(--text-muted)] opacity-50">Gezogen</p>
+        <p class="text-xs text-[var(--text-muted)] opacity-50">Aktualisiert</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xl font-black text-[var(--text-muted)] opacity-40">{{ result.skipped }}</p>
+        <p class="text-xs text-[var(--text-muted)] opacity-50">Übersprungen</p>
       </div>
       <div class="text-center">
         <p class="text-xl font-black text-[var(--text-main)]">{{ result.pushed }}</p>
