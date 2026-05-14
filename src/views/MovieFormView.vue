@@ -9,6 +9,49 @@
       </div>
     </div>
 
+    <!-- Cover & Backdrop preview (edit only) -->
+    <div v-if="isEdit" class="flex gap-4 mb-6">
+      <!-- Cover -->
+      <div class="flex-shrink-0">
+        <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-2">Cover</p>
+        <div
+          class="relative w-28 rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] aspect-[2/3] cursor-pointer group"
+          @click="coverInput?.click()"
+          title="Eigenes Cover hochladen"
+        >
+          <img v-if="coverDisplayUrl" :src="coverDisplayUrl" class="w-full h-full object-cover" />
+          <div v-else class="w-full h-full flex items-center justify-center text-[var(--text-muted)] opacity-20">
+            <i class="bi bi-image text-2xl"></i>
+          </div>
+          <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+            <i class="bi bi-upload text-white text-lg"></i>
+            <span class="text-white text-[10px] font-bold">Upload</span>
+          </div>
+        </div>
+        <input ref="coverInput" type="file" accept="image/*" class="hidden" @change="uploadImage('cover', $event)" />
+      </div>
+
+      <!-- Backdrop -->
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-2">Backdrop</p>
+        <div
+          class="relative w-full rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] aspect-video cursor-pointer group"
+          @click="backdropInput?.click()"
+          title="Eigenes Backdrop hochladen"
+        >
+          <img v-if="backdropDisplayUrl" :src="backdropDisplayUrl" class="w-full h-full object-cover" />
+          <div v-else class="w-full h-full flex items-center justify-center text-[var(--text-muted)] opacity-20">
+            <i class="bi bi-image text-2xl"></i>
+          </div>
+          <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+            <i class="bi bi-upload text-white text-lg"></i>
+            <span class="text-white text-[10px] font-bold">Upload</span>
+          </div>
+        </div>
+        <input ref="backdropInput" type="file" accept="image/*" class="hidden" @change="uploadImage('backdrop', $event)" />
+      </div>
+    </div>
+
     <form @submit.prevent="save" class="space-y-4">
       <FormRow label="Titel *">
         <input v-model="form.title" required type="text" class="input" />
@@ -191,13 +234,64 @@ const reloadingTmdb = ref(false)
 const tmdbReloadError = ref('')
 const tmdbReloadSuccess = ref(false)
 
+const coverInput    = ref<HTMLInputElement | null>(null)
+const backdropInput = ref<HTMLInputElement | null>(null)
+const coverPreview    = ref<string | null>(null)
+const backdropPreview = ref<string | null>(null)
+
 const form = ref({
   title: '', year: null as number | null, genre: '', director: '',
   runtime: null as number | null, rating: null as number | null,
   rating_age: null as number | null, overview: '', trailer_url: '',
   collection_type: 'Film', tag: '', tmdb_id: null as number | null,
   created_at: new Date().toISOString().slice(0, 10),
+  cover_path: null as string | null,
+  backdrop_path: null as string | null,
+  remote_id: null as number | null,
 })
+
+const coverDisplayUrl = computed(() => {
+  if (coverPreview.value) return coverPreview.value
+  const p = form.value.cover_path
+  if (!p) return null
+  if (p.startsWith('http') || p.startsWith('movie-resource://')) return p
+  const fileId = form.value.remote_id ?? route.params.id
+  return `movie-resource://${fileId}.jpg`
+})
+
+const backdropDisplayUrl = computed(() => {
+  if (backdropPreview.value) return backdropPreview.value
+  const p = form.value.backdrop_path
+  if (!p) return null
+  if (p.startsWith('http') || p.startsWith('movie-resource://')) return p
+  const fileId = form.value.remote_id ?? route.params.id
+  return `movie-resource://${fileId}_backdrop.jpg`
+})
+
+async function uploadImage(type: 'cover' | 'backdrop', event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file || !isEdit.value) return
+  const movieId = Number(route.params.id)
+  // Use remote_id as file ID so sync sees the file and skips re-download
+  const fileId = form.value.remote_id ?? movieId
+
+  const buffer = await file.arrayBuffer()
+  const result = await window.electron.db.movies.upload(buffer, fileId, type)
+
+  if (result?.success) {
+    const localUrl = URL.createObjectURL(file)
+    if (type === 'cover') {
+      coverPreview.value = localUrl
+      form.value.cover_path = `movie-resource://${fileId}.jpg`
+      await window.electron.db.movies.update(movieId, { cover_path: form.value.cover_path })
+    } else {
+      backdropPreview.value = localUrl
+      form.value.backdrop_path = `movie-resource://${fileId}_backdrop.jpg`
+      await window.electron.db.movies.update(movieId, { backdrop_path: form.value.backdrop_path })
+    }
+  }
+  ;(event.target as HTMLInputElement).value = ''
+}
 
 function resolveActorImage(actor: any): string {
   if (!actor.image_path) return ''

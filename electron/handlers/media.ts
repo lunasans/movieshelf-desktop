@@ -1,6 +1,6 @@
 import { ipcMain, app } from 'electron'
 import { join } from 'path'
-import { existsSync, mkdirSync, createWriteStream } from 'fs'
+import { existsSync, mkdirSync, createWriteStream, writeFileSync } from 'fs'
 import axios from 'axios'
 
 const COVERS_DIR = join(app.getPath('userData'), 'covers')
@@ -49,8 +49,19 @@ export function registerMediaHandlers(): void {
     let fileName = `${id}.jpg`
     if (type === 'backdrop') fileName = `${id}_backdrop.jpg`
     if (type === 'actor') fileName = `actor_${id}.jpg`
-    
+
     const filePath = join(COVERS_DIR, fileName)
     return existsSync(filePath)
+  })
+
+  ipcMain.handle('media:upload', (_event, { data, id, type }: { data: ArrayBuffer; id: number; type: 'cover' | 'backdrop' }) => {
+    try {
+      const fileName = type === 'backdrop' ? `${id}_backdrop.jpg` : `${id}.jpg`
+      const filePath = join(COVERS_DIR, fileName)
+      writeFileSync(filePath, Buffer.from(data))
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
   })
 }
