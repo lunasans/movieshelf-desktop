@@ -146,6 +146,40 @@
             </div>
           </div>
 
+          <!-- Trailer Player -->
+          <div v-if="movie.trailer_url">
+            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">Trailer</h3>
+            <div v-if="!showTrailer"
+              class="relative aspect-video rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] cursor-pointer group"
+              @click="showTrailer = true"
+            >
+              <img
+                v-if="resolveMediaUrl((movie.backdrop_url || movie.backdrop_path) as string, Number(movie.remote_id), 'backdrop')"
+                :src="resolveMediaUrl((movie.backdrop_url || movie.backdrop_path) as string, Number(movie.remote_id), 'backdrop')!"
+                class="w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity duration-300"
+              />
+              <div class="absolute inset-0 flex items-center justify-center">
+                <div class="w-16 h-16 bg-red-600/90 hover:bg-red-600 rounded-full flex items-center justify-center shadow-2xl shadow-red-600/40 transition-all group-hover:scale-110">
+                  <i class="bi bi-play-fill text-white text-3xl ml-1"></i>
+                </div>
+              </div>
+            </div>
+            <div v-else class="relative aspect-video rounded-2xl overflow-hidden bg-black border border-[var(--border-ui)]">
+              <webview
+                :src="embedUrl!"
+                useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                class="w-full h-full"
+                allowpopups
+              />
+              <button
+                class="absolute top-3 right-3 w-8 h-8 bg-black/60 hover:bg-black/90 text-white rounded-full flex items-center justify-center transition-colors z-10"
+                @click="showTrailer = false"
+              >
+                <i class="bi bi-x text-lg"></i>
+              </button>
+            </div>
+          </div>
+
           <!-- Boxset Children -->
           <div v-if="boxsetChildren.length > 0">
             <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">Enthaltene Filme</h3>
@@ -283,6 +317,7 @@ const boxsetChildren = ref<any[]>([])
 const seasons = ref<any[]>([])
 const openSeasons = ref(new Set<number>())
 const isSticky = ref(false)
+const showTrailer = ref(false)
 
 function toggleSeason(seasonId: number) {
   if (openSeasons.value.has(seasonId)) {
@@ -434,6 +469,7 @@ async function loadMovie(id: number) {
   boxsetChildren.value = []
   seasons.value = []
   openSeasons.value = new Set()
+  showTrailer.value = false
 
   if (movie.value?.is_boxset) {
     boxsetChildren.value = await window.electron.db.movies.children(id)
