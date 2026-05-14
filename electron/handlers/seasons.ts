@@ -47,7 +47,7 @@ export function upsertEpisode(db: Database.Database, data: Record<string, unknow
       title = EXCLUDED.title,
       overview = EXCLUDED.overview,
       updated_at = EXCLUDED.updated_at
-  `).run({ title: null, overview: null, ...data, created_at: now, updated_at: now })
+  `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
 }
 
 export function registerSeasonHandlers(): void {
