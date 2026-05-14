@@ -362,7 +362,7 @@ const embedUrl = computed(() => {
   } else {
     videoId = url
   }
-  return `https://www.youtube.com/embed/${videoId}?autoplay=1`
+  return `https://www.youtube.com/watch?v=${videoId}&autoplay=1`
 })
 
 function openTrailer() {
