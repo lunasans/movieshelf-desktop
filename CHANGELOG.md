@@ -1,5 +1,13 @@
 # Changelog – MovieShelf Desktop
 
+## [0.9.6] – 2026-05-14
+
+### Behoben
+
+- **Vollsync: UNIQUE constraint failed: movies.remote_id**: Beim Vollsync konnte es passieren, dass ein Film lokal bereits synchronisiert (mit `remote_id`) und zusätzlich als Orphan (ohne `remote_id`, aber gleiche `tmdb_id`) vorlag. Der Orphan-Merge-Code versuchte dann, dem Orphan die bereits vergebene `remote_id` zuzuweisen → UNIQUE-Fehler. Fix: Orphan-Merge wird übersprungen wenn schon eine Zeile mit der eingehenden `remote_id` existiert — die bestehende `INSERT ... ON CONFLICT`-Logik übernimmt dann das Update
+
+---
+
 ## [0.9.5] – 2026-05-14
 
 ### Behoben

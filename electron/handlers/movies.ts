@@ -110,35 +110,40 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
 
   // If the incoming record has both remote_id and tmdb_id, check whether a local-only
   // film with the same tmdb_id exists (remote_id IS NULL). If so, merge into it instead
-  // of inserting a duplicate.
+  // of inserting a duplicate. Skip this if a row with the remote_id already exists —
+  // the INSERT ... ON CONFLICT below handles that case.
   if (data.remote_id != null && data.tmdb_id != null) {
-    const orphans = db.prepare(
-      'SELECT id FROM movies WHERE tmdb_id = ? AND remote_id IS NULL AND is_deleted = 0 ORDER BY id ASC'
-    ).all(data.tmdb_id) as { id: number }[]
+    const alreadySynced = db.prepare('SELECT id FROM movies WHERE remote_id = ?').get(data.remote_id)
 
-    if (orphans.length > 0) {
-      const orphan = orphans[0]
-      db.prepare(`
-        UPDATE movies SET
-          remote_id = @remote_id, title = @title, year = @year, genre = @genre,
-          director = @director, runtime = @runtime, rating = @rating, rating_age = @rating_age,
-          overview = @overview, cover_path = @cover_path, backdrop_path = @backdrop_path,
-          actors_names = @actors_names, trailer_url = @trailer_url,
-          collection_type = @collection_type, tag = @tag,
-          is_boxset = @is_boxset, boxset_parent_id = @boxset_parent_id, updated_at = @updated_at
-        WHERE id = @id
-      `).run({
-        title: null, year: null, genre: null, director: null, runtime: null,
-        rating: null, rating_age: null, overview: null, cover_path: null, backdrop_path: null,
-        actors_names: null, trailer_url: null, collection_type: 'Film', tag: null,
-        is_boxset: 0, boxset_parent_id: null,
-        ...data, updated_at: data.updated_at || now, id: orphan.id,
-      })
-      for (let i = 1; i < orphans.length; i++) {
-        db.prepare('DELETE FROM film_actor WHERE film_id = ?').run(orphans[i].id)
-        db.prepare('DELETE FROM movies WHERE id = ?').run(orphans[i].id)
+    if (!alreadySynced) {
+      const orphans = db.prepare(
+        'SELECT id FROM movies WHERE tmdb_id = ? AND remote_id IS NULL AND is_deleted = 0 ORDER BY id ASC'
+      ).all(data.tmdb_id) as { id: number }[]
+
+      if (orphans.length > 0) {
+        const orphan = orphans[0]
+        db.prepare(`
+          UPDATE movies SET
+            remote_id = @remote_id, title = @title, year = @year, genre = @genre,
+            director = @director, runtime = @runtime, rating = @rating, rating_age = @rating_age,
+            overview = @overview, cover_path = @cover_path, backdrop_path = @backdrop_path,
+            actors_names = @actors_names, trailer_url = @trailer_url,
+            collection_type = @collection_type, tag = @tag,
+            is_boxset = @is_boxset, boxset_parent_id = @boxset_parent_id, updated_at = @updated_at
+          WHERE id = @id
+        `).run({
+          title: null, year: null, genre: null, director: null, runtime: null,
+          rating: null, rating_age: null, overview: null, cover_path: null, backdrop_path: null,
+          actors_names: null, trailer_url: null, collection_type: 'Film', tag: null,
+          is_boxset: 0, boxset_parent_id: null,
+          ...data, updated_at: data.updated_at || now, id: orphan.id,
+        })
+        for (let i = 1; i < orphans.length; i++) {
+          db.prepare('DELETE FROM film_actor WHERE film_id = ?').run(orphans[i].id)
+          db.prepare('DELETE FROM movies WHERE id = ?').run(orphans[i].id)
+        }
+        return db.prepare('SELECT * FROM movies WHERE id = ?').get(orphan.id)
       }
-      return db.prepare('SELECT * FROM movies WHERE id = ?').get(orphan.id)
     }
   }
 
