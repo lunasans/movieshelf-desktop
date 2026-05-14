@@ -19,7 +19,7 @@
 
       <SyncProgress v-if="phase !== 'idle'" :phaseLabel="phaseLabel" :phaseDetail="phaseDetail" :progressPct="progressPct" />
 
-      <SyncPreview v-if="preview && phase === 'idle'" :preview="preview" @apply="applyPull" @cancel="preview = null" />
+      <SyncPreview v-if="preview && phase === 'idle'" :preview="preview" @apply="handleApply" @cancel="cancelPreview" />
 
       <SyncResult v-if="result && phase === 'idle' && !preview" :result="result" />
 
@@ -40,10 +40,10 @@
         </button>
       </div>
 
-      <button @click="runFullSync" :disabled="phase !== 'idle'"
+      <button @click="startFullSync" :disabled="phase !== 'idle' || previewLoading"
         class="w-full bg-[var(--status-red)] hover:opacity-90 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all text-sm flex items-center justify-center gap-3 shadow-lg shadow-red-600/10">
-        <i class="bi bi-arrow-repeat text-lg" :class="{ 'animate-spin': phase !== 'idle' }"></i>
-        {{ phase !== 'idle' ? phaseLabel : 'Vollständig synchronisieren' }}
+        <i class="bi text-lg" :class="phase !== 'idle' ? 'bi-arrow-repeat animate-spin' : previewLoading ? 'bi-hourglass-split animate-spin' : 'bi-arrow-repeat'"></i>
+        {{ phase !== 'idle' ? phaseLabel : previewLoading ? 'Lade Vorschau…' : 'Vollständig synchronisieren' }}
       </button>
 
       <SyncErrorLog v-if="errors.length > 0" :errors="errors" />
@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useSyncEngine } from '@/composables/useSyncEngine'
 import SyncStatusRow from '@/components/sync/SyncStatusRow.vue'
@@ -69,6 +69,28 @@ const {
   errors, previewLoading, preview, result,
   loadStats, loadPreview, applyPull, runPush, runFullSync,
 } = useSyncEngine()
+
+const fullSyncPending = ref(false)
+
+function startFullSync() {
+  fullSyncPending.value = true
+  loadPreview()
+}
+
+function handleApply() {
+  if (fullSyncPending.value) {
+    fullSyncPending.value = false
+    preview.value = null
+    runFullSync()
+  } else {
+    applyPull()
+  }
+}
+
+function cancelPreview() {
+  fullSyncPending.value = false
+  preview.value = null
+}
 
 onMounted(loadStats)
 </script>
