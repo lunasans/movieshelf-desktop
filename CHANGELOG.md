@@ -1,5 +1,13 @@
 # Changelog – MovieShelf Desktop
 
+## [0.9.2] – 2026-05-14
+
+### Behoben
+
+- **Serien-Suche liefert keine Ergebnisse**: `isOnline` hatte Priorität über `searchMode` — der Server-Endpoint `/tmdb/search` unterstützt nur Filme. TV-Suche geht jetzt immer direkt gegen TMDb, unabhängig vom Online-Modus
+
+---
+
 ## [0.9.1] – 2026-05-14
 
 ### Behoben
