@@ -153,6 +153,11 @@ app.whenReady().then(() => {
     if (!filePath.startsWith(coversDir + sep)) {
       return new Response('Forbidden', { status: 403 })
     }
+    const { existsSync } = require('fs') as typeof import('fs')
+    if (!existsSync(filePath)) {
+      console.warn(`[movie-resource] Datei nicht gefunden: ${filePath}`)
+      return new Response('Not Found', { status: 404 })
+    }
     return net.fetch('file://' + filePath)
   })
 
