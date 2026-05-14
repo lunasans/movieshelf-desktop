@@ -1,9 +1,56 @@
 <template>
-  <div class="p-8 max-w-4xl">
-    <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">
-      {{ isEdit ? 'Film bearbeiten' : 'Film hinzufügen' }}
-    </h1>
-    <p class="text-sm text-[var(--text-muted)] opacity-60 mb-8">{{ isEdit ? form.title : 'Neuen Film zur Sammlung hinzufügen' }}</p>
+  <div class="p-8 max-w-4xl mx-auto">
+    <div class="flex items-start justify-between mb-8">
+      <div>
+        <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">
+          {{ isEdit ? 'Film bearbeiten' : 'Film hinzufügen' }}
+        </h1>
+        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ isEdit ? form.title : 'Neuen Film zur Sammlung hinzufügen' }}</p>
+      </div>
+    </div>
+
+    <!-- Cover & Backdrop preview (edit only) -->
+    <div v-if="isEdit" class="flex gap-4 mb-6">
+      <!-- Cover -->
+      <div class="flex-shrink-0">
+        <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-2">Cover</p>
+        <div
+          class="relative w-28 rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] aspect-[2/3] cursor-pointer group"
+          @click="coverInput?.click()"
+          title="Eigenes Cover hochladen"
+        >
+          <img v-if="coverDisplayUrl" :src="coverDisplayUrl" class="w-full h-full object-cover" />
+          <div v-else class="w-full h-full flex items-center justify-center text-[var(--text-muted)] opacity-20">
+            <i class="bi bi-image text-2xl"></i>
+          </div>
+          <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+            <i class="bi bi-upload text-white text-lg"></i>
+            <span class="text-white text-[10px] font-bold">Upload</span>
+          </div>
+        </div>
+        <input ref="coverInput" type="file" accept="image/*" class="hidden" @change="uploadImage('cover', $event)" />
+      </div>
+
+      <!-- Backdrop -->
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-2">Backdrop</p>
+        <div
+          class="relative w-full rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] aspect-video cursor-pointer group"
+          @click="backdropInput?.click()"
+          title="Eigenes Backdrop hochladen"
+        >
+          <img v-if="backdropDisplayUrl" :src="backdropDisplayUrl" class="w-full h-full object-cover" />
+          <div v-else class="w-full h-full flex items-center justify-center text-[var(--text-muted)] opacity-20">
+            <i class="bi bi-image text-2xl"></i>
+          </div>
+          <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+            <i class="bi bi-upload text-white text-lg"></i>
+            <span class="text-white text-[10px] font-bold">Upload</span>
+          </div>
+        </div>
+        <input ref="backdropInput" type="file" accept="image/*" class="hidden" @change="uploadImage('backdrop', $event)" />
+      </div>
+    </div>
 
     <form @submit.prevent="save" class="space-y-4">
       <FormRow label="Titel *">
@@ -70,7 +117,21 @@
         </div>
       </FormRow>
       <FormRow label="TMDb ID">
-        <input v-model.number="form.tmdb_id" type="number" class="input" />
+        <div class="flex gap-2">
+          <input v-model.number="form.tmdb_id" type="number" class="input flex-1" />
+          <button
+            v-if="isEdit && form.tmdb_id"
+            type="button"
+            @click="reloadFromTmdb"
+            :disabled="reloadingTmdb"
+            class="px-4 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-xs font-bold text-[var(--text-main)] transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+          >
+            <i class="bi bi-arrow-repeat" :class="{ 'animate-spin': reloadingTmdb }"></i>
+            {{ reloadingTmdb ? 'Laden...' : 'Von TMDb laden' }}
+          </button>
+        </div>
+        <p v-if="tmdbReloadError" class="text-xs text-red-500 mt-1.5">{{ tmdbReloadError }}</p>
+        <p v-if="tmdbReloadSuccess" class="text-xs text-green-500 mt-1.5">Daten erfolgreich aktualisiert.</p>
       </FormRow>
       <FormRow label="Hinzugefügt am">
         <input v-model="form.created_at" type="date" class="input" />
@@ -152,18 +213,31 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
 import FormRow from '@/components/ui/FormRow.vue'
 import ActorPickerModal from '@/components/movies/ActorPickerModal.vue'
 import { useMovieStore } from '@/stores/movies'
+import { useSettingsStore } from '@/stores/settings'
+
+const TMDB_BASE = 'https://api.themoviedb.org/3'
 
 const route       = useRoute()
 const router      = useRouter()
 const movieStore  = useMovieStore()
+const settings    = useSettingsStore()
 
 const isEdit = computed(() => !!route.params.id)
 const saving = ref(false)
 const pickerOpen = ref(false)
 const actors = ref<any[]>([])
+const reloadingTmdb = ref(false)
+const tmdbReloadError = ref('')
+const tmdbReloadSuccess = ref(false)
+
+const coverInput    = ref<HTMLInputElement | null>(null)
+const backdropInput = ref<HTMLInputElement | null>(null)
+const coverPreview    = ref<string | null>(null)
+const backdropPreview = ref<string | null>(null)
 
 const form = ref({
   title: '', year: null as number | null, genre: '', director: '',
@@ -171,7 +245,53 @@ const form = ref({
   rating_age: null as number | null, overview: '', trailer_url: '',
   collection_type: 'Film', tag: '', tmdb_id: null as number | null,
   created_at: new Date().toISOString().slice(0, 10),
+  cover_path: null as string | null,
+  backdrop_path: null as string | null,
+  remote_id: null as number | null,
 })
+
+const coverDisplayUrl = computed(() => {
+  if (coverPreview.value) return coverPreview.value
+  const p = form.value.cover_path
+  if (!p) return null
+  if (p.startsWith('http') || p.startsWith('movie-resource://')) return p
+  const fileId = form.value.remote_id ?? route.params.id
+  return `movie-resource://${fileId}.jpg`
+})
+
+const backdropDisplayUrl = computed(() => {
+  if (backdropPreview.value) return backdropPreview.value
+  const p = form.value.backdrop_path
+  if (!p) return null
+  if (p.startsWith('http') || p.startsWith('movie-resource://')) return p
+  const fileId = form.value.remote_id ?? route.params.id
+  return `movie-resource://${fileId}_backdrop.jpg`
+})
+
+async function uploadImage(type: 'cover' | 'backdrop', event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file || !isEdit.value) return
+  const movieId = Number(route.params.id)
+  // Use remote_id as file ID so sync sees the file and skips re-download
+  const fileId = form.value.remote_id ?? movieId
+
+  const buffer = await file.arrayBuffer()
+  const result = await window.electron.db.movies.upload(buffer, fileId, type)
+
+  if (result?.success) {
+    const localUrl = URL.createObjectURL(file)
+    if (type === 'cover') {
+      coverPreview.value = localUrl
+      form.value.cover_path = `movie-resource://${fileId}.jpg`
+      await window.electron.db.movies.update(movieId, { cover_path: form.value.cover_path })
+    } else {
+      backdropPreview.value = localUrl
+      form.value.backdrop_path = `movie-resource://${fileId}_backdrop.jpg`
+      await window.electron.db.movies.update(movieId, { backdrop_path: form.value.backdrop_path })
+    }
+  }
+  ;(event.target as HTMLInputElement).value = ''
+}
 
 function resolveActorImage(actor: any): string {
   if (!actor.image_path) return ''
@@ -183,6 +303,69 @@ function searchYouTube() {
   const query = `${form.value.title} ${form.value.year || ''} trailer`.trim()
   const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`
   window.open(url, '_blank')
+}
+
+async function reloadFromTmdb() {
+  if (!form.value.tmdb_id || !isEdit.value) return
+  reloadingTmdb.value = true
+  tmdbReloadError.value = ''
+  tmdbReloadSuccess.value = false
+  const movieId = Number(route.params.id)
+  const isTv = form.value.collection_type === 'Serie'
+
+  try {
+    if (isTv) {
+      const { data: m } = await axios.get(`${TMDB_BASE}/tv/${form.value.tmdb_id}`, {
+        params: { api_key: settings.tmdbApiKey, language: 'de-DE', append_to_response: 'credits,videos' }
+      })
+      const creator = (m.created_by ?? [])[0]?.name ?? form.value.director
+      const trailer = (m.videos?.results ?? []).find((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'))
+      Object.assign(form.value, {
+        title:        m.name,
+        year:         m.first_air_date ? parseInt(m.first_air_date.slice(0, 4)) : form.value.year,
+        genre:        (m.genres ?? []).map((g: any) => g.name).join(', '),
+        director:     creator,
+        runtime:      (m.episode_run_time ?? [])[0] ?? form.value.runtime,
+        rating:       m.vote_average != null ? Math.round(m.vote_average * 10) / 10 : form.value.rating,
+        overview:     m.overview || form.value.overview,
+        trailer_url:  trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : form.value.trailer_url,
+        actors_names: (m.credits?.cast ?? []).slice(0, 10).map((c: any) => c.name).join(', '),
+      })
+      if (m.poster_path)   await window.electron.db.movies.download(`https://image.tmdb.org/t/p/w500${m.poster_path}`, movieId, 'cover')
+      if (m.backdrop_path) await window.electron.db.movies.download(`https://image.tmdb.org/t/p/w1280${m.backdrop_path}`, movieId, 'backdrop')
+    } else {
+      const [detailRes, videoRes] = await Promise.all([
+        axios.get(`${TMDB_BASE}/movie/${form.value.tmdb_id}`, {
+          params: { api_key: settings.tmdbApiKey, language: 'de-DE', append_to_response: 'credits' }
+        }),
+        axios.get(`${TMDB_BASE}/movie/${form.value.tmdb_id}/videos`, {
+          params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
+        }).catch(() => ({ data: { results: [] } }))
+      ])
+      const m        = detailRes.data
+      const director = (m.credits?.crew ?? []).find((c: any) => c.job === 'Director')?.name ?? form.value.director
+      const trailer  = (videoRes.data.results ?? []).find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
+      Object.assign(form.value, {
+        title:        m.title,
+        year:         m.release_date ? parseInt(m.release_date.slice(0, 4)) : form.value.year,
+        genre:        (m.genres ?? []).map((g: any) => g.name).join(', '),
+        director,
+        runtime:      m.runtime ?? form.value.runtime,
+        rating:       m.vote_average != null ? Math.round(m.vote_average * 10) / 10 : form.value.rating,
+        overview:     m.overview || form.value.overview,
+        trailer_url:  trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : form.value.trailer_url,
+        actors_names: (m.credits?.cast ?? []).slice(0, 10).map((c: any) => c.name).join(', '),
+      })
+      if (m.poster_path)   await window.electron.db.movies.download(`https://image.tmdb.org/t/p/w500${m.poster_path}`, movieId, 'cover')
+      if (m.backdrop_path) await window.electron.db.movies.download(`https://image.tmdb.org/t/p/w1280${m.backdrop_path}`, movieId, 'backdrop')
+    }
+    tmdbReloadSuccess.value = true
+    setTimeout(() => { tmdbReloadSuccess.value = false }, 3000)
+  } catch (e: any) {
+    tmdbReloadError.value = e?.response?.data?.status_message ?? e.message
+  } finally {
+    reloadingTmdb.value = false
+  }
 }
 
 async function loadActors() {

@@ -71,6 +71,7 @@ interface Window {
         delete:          (id: number) => Promise<{ success: boolean }>
         download:        (url: string, id: number, type: MediaType) => Promise<{ success: boolean; path?: string; error?: string }>
         exists:          (id: number, type: MediaType) => Promise<boolean>
+        upload:          (data: ArrayBuffer, id: number, type: 'cover' | 'backdrop') => Promise<{ success: boolean; error?: string }>
         count:           () => Promise<number>
         children:        (id: number) => Promise<unknown[]>
         checkTmdbIds:    (ids: number[]) => Promise<number[]>
