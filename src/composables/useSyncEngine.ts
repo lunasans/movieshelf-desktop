@@ -267,10 +267,10 @@ export function useSyncEngine() {
     return { pulled, deleted, media, pullErrors }
   }
 
-  async function push(): Promise<{ pushed: number; pushErrors: number }> {
+  async function push(): Promise<{ pushed: number; pushErrors: number; deleted: number }> {
     setPhase('push', 'Änderungen hochladen', '', 0)
     const dirty = await window.electron.db.movies.sync.dirty() as any[]
-    let pushed = 0, pushErrors = 0
+    let pushed = 0, pushErrors = 0, deleted = 0
 
     for (let i = 0; i < dirty.length; i++) {
       const movie = dirty[i]
@@ -285,6 +285,7 @@ export function useSyncEngine() {
             }
           }
           await window.electron.db.movies.sync.hardDelete(movie.id)
+          deleted++
         } else if (!movie.remote_id) {
           let res
           if (movie.tmdb_id) {
@@ -306,7 +307,7 @@ export function useSyncEngine() {
     }
 
     progressPct.value = 100
-    return { pushed, pushErrors }
+    return { pushed, pushErrors, deleted }
   }
 
   async function syncLists(): Promise<{ listsSynced: number; listErrors: number }> {
@@ -396,9 +397,9 @@ export function useSyncEngine() {
     result.value = null
     const start = Date.now()
     try {
-      const { pushed, pushErrors } = await push()
+      const { pushed, pushErrors, deleted } = await push()
       const { listErrors } = await syncLists()
-      result.value = { pulled: 0, deleted: 0, pushed, media: 0, errors: pushErrors + listErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
+      result.value = { pulled: 0, deleted, pushed, media: 0, errors: pushErrors + listErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
       await saveSyncTime()
     } catch (e: any) {
       errors.value.push(e.message)
@@ -420,7 +421,7 @@ export function useSyncEngine() {
       pulled = pr.pulled; deleted = pr.deleted; media = pr.media; totalErrors += pr.pullErrors
 
       const sr = await push()
-      pushed = sr.pushed; totalErrors += sr.pushErrors
+      pushed = sr.pushed; deleted += sr.deleted; totalErrors += sr.pushErrors
 
       const { listErrors } = await syncLists()
       totalErrors += listErrors
