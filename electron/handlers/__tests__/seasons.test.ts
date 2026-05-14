@@ -31,10 +31,11 @@ describe('upsertSeason', () => {
     expect(rows[0].season_number).toBe(2)
   })
 
-  it('gibt undefined zurück wenn kein remote_id angegeben', () => {
+  it('gibt lastInsertRowid zurück wenn kein remote_id angegeben', () => {
     const movieId = insertMovie(db)
     const result = upsertSeason(db, { movie_id: movieId, season_number: 1 })
-    expect(result).toBeUndefined()
+    expect(typeof result).toBe('number')
+    expect(result).toBeGreaterThan(0)
   })
 })
 
