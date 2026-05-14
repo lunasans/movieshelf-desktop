@@ -226,5 +226,9 @@ autoUpdater.on('update-downloaded', () => {
   mainWindow?.webContents.send('update:ready')
 })
 
-ipcMain.handle('update:check',   () => autoUpdater.checkForUpdates())
-ipcMain.handle('update:install', () => autoUpdater.quitAndInstall())
+ipcMain.handle('update:check',    () => autoUpdater.checkForUpdates())
+ipcMain.handle('update:download', async () => {
+  await autoUpdater.checkForUpdates()
+  return autoUpdater.downloadUpdate()
+})
+ipcMain.handle('update:install',  () => autoUpdater.quitAndInstall())

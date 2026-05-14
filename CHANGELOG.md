@@ -1,5 +1,13 @@
 # Changelog – MovieShelf Desktop
 
+## [0.9.1] – 2026-05-14
+
+### Behoben
+
+- **Update-Download bleibt auf 0%**: `autoUpdater.quitAndInstall()` wurde aufgerufen ohne dass `downloadUpdate()` vorher ausgeführt wurde (`autoDownload = false`). Neuer IPC-Handler `update:download` ruft `checkForUpdates()` + `downloadUpdate()` in Sequenz auf; `installUpdate()` startet jetzt den Download, und ein `onReady`-Listener löst danach automatisch `quitAndInstall()` aus
+
+---
+
 ## [0.9.0] – 2026-05-14
 
 ### Hinzugefügt

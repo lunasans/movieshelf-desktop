@@ -80,6 +80,7 @@ contextBridge.exposeInMainWorld('electron', {
   // Updater
   update: {
     check:      () => ipcRenderer.invoke('update:check'),
+    download:   () => ipcRenderer.invoke('update:download'),
     install:    () => ipcRenderer.invoke('update:install'),
     onProgress: (callback: (percent: number) => void) => {
       ipcRenderer.on('update:progress', (_event, percent) => callback(percent))
