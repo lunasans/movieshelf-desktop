@@ -311,7 +311,32 @@ async function reloadFromTmdb() {
   tmdbReloadError.value = ''
   tmdbReloadSuccess.value = false
   const movieId = Number(route.params.id)
-  const isTv = form.value.collection_type === 'Serie'
+  // Use remote_id as file ID (sync-compatible); fall back to local id
+  const fileId  = form.value.remote_id ?? movieId
+  const isTv    = form.value.collection_type === 'Serie'
+
+  async function downloadAndSave(posterPath: string | null, backdropPath: string | null) {
+    const dbUpdates: Record<string, string> = {}
+    if (posterPath) {
+      const res = await window.electron.db.movies.download(`https://image.tmdb.org/t/p/w500${posterPath}`, fileId, 'cover')
+      console.log('[TMDb reload] cover download:', res)
+      if (res?.success) {
+        form.value.cover_path = `movie-resource://${fileId}.jpg`
+        dbUpdates.cover_path  = form.value.cover_path
+        coverPreview.value    = null
+      }
+    }
+    if (backdropPath) {
+      const res = await window.electron.db.movies.download(`https://image.tmdb.org/t/p/w1280${backdropPath}`, fileId, 'backdrop')
+      console.log('[TMDb reload] backdrop download:', res)
+      if (res?.success) {
+        form.value.backdrop_path = `movie-resource://${fileId}_backdrop.jpg`
+        dbUpdates.backdrop_path  = form.value.backdrop_path
+        backdropPreview.value    = null
+      }
+    }
+    if (Object.keys(dbUpdates).length) await window.electron.db.movies.update(movieId, dbUpdates)
+  }
 
   try {
     if (isTv) {
@@ -331,8 +356,7 @@ async function reloadFromTmdb() {
         trailer_url:  trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : form.value.trailer_url,
         actors_names: (m.credits?.cast ?? []).slice(0, 10).map((c: any) => c.name).join(', '),
       })
-      if (m.poster_path)   await window.electron.db.movies.download(`https://image.tmdb.org/t/p/w500${m.poster_path}`, movieId, 'cover')
-      if (m.backdrop_path) await window.electron.db.movies.download(`https://image.tmdb.org/t/p/w1280${m.backdrop_path}`, movieId, 'backdrop')
+      await downloadAndSave(m.poster_path ?? null, m.backdrop_path ?? null)
     } else {
       const [detailRes, videoRes] = await Promise.all([
         axios.get(`${TMDB_BASE}/movie/${form.value.tmdb_id}`, {
@@ -356,8 +380,7 @@ async function reloadFromTmdb() {
         trailer_url:  trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : form.value.trailer_url,
         actors_names: (m.credits?.cast ?? []).slice(0, 10).map((c: any) => c.name).join(', '),
       })
-      if (m.poster_path)   await window.electron.db.movies.download(`https://image.tmdb.org/t/p/w500${m.poster_path}`, movieId, 'cover')
-      if (m.backdrop_path) await window.electron.db.movies.download(`https://image.tmdb.org/t/p/w1280${m.backdrop_path}`, movieId, 'backdrop')
+      await downloadAndSave(m.poster_path ?? null, m.backdrop_path ?? null)
     }
     tmdbReloadSuccess.value = true
     setTimeout(() => { tmdbReloadSuccess.value = false }, 3000)
