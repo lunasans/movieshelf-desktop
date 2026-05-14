@@ -61,14 +61,11 @@ export function useTmdbSearch() {
     results.value = []
     importedIds.value = new Set()
     try {
-      if (isOnline.value) {
-        const data = await apiGet('/tmdb/search', { query: query.value })
-        results.value = data.results ?? []
-      } else if (searchMode.value === 'tv') {
+      if (searchMode.value === 'tv') {
+        // TV search always goes directly to TMDb (server API only supports movies)
         const { data } = await axios.get(`${TMDB_BASE}/search/tv`, {
           params: { api_key: settings.tmdbApiKey, query: query.value, language: 'de-DE' }
         })
-        // Normalize TV results to the TmdbResult shape
         results.value = (data.results ?? []).map((r: any) => ({
           id: r.id,
           title: r.name,
@@ -76,6 +73,9 @@ export function useTmdbSearch() {
           release_date: r.first_air_date ?? '',
           media_type: 'tv' as const,
         }))
+      } else if (isOnline.value) {
+        const data = await apiGet('/tmdb/search', { query: query.value })
+        results.value = data.results ?? []
       } else {
         const { data } = await axios.get(`${TMDB_BASE}/search/movie`, {
           params: { api_key: settings.tmdbApiKey, query: query.value, language: 'de-DE' }
