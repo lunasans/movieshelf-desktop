@@ -88,7 +88,7 @@ npm run test:e2e:ui   # with interactive UI
 
 **Stack:** Electron 41 + Vue 3 + TypeScript + Vite + Pinia + Tailwind CSS + better-sqlite3
 
-**Current version:** 0.9.2
+**Current version:** 0.9.3
 
 ### Process boundary: the IPC bridge
 

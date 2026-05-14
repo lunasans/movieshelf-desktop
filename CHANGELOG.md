@@ -1,5 +1,13 @@
 # Changelog – MovieShelf Desktop
 
+## [0.9.3] – 2026-05-14
+
+### Behoben
+
+- **Installer wird heruntergeladen aber nicht ausgeführt**: `autoUpdater.quitAndInstall()` löste intern `app.quit()` aus, das vom `mainWindow.on('close')`-Handler abgefangen wurde (dieser ruft `e.preventDefault()` auf, sofern `isQuitting` nicht gesetzt ist). `isQuitting` wird jetzt vor dem `quitAndInstall()`-Aufruf auf `true` gesetzt, sodass der Close-Handler die App-Beendigung durchlässt
+
+---
+
 ## [0.9.2] – 2026-05-14
 
 ### Behoben

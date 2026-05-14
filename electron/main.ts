@@ -231,4 +231,7 @@ ipcMain.handle('update:download', async () => {
   await autoUpdater.checkForUpdates()
   return autoUpdater.downloadUpdate()
 })
-ipcMain.handle('update:install',  () => autoUpdater.quitAndInstall())
+ipcMain.handle('update:install',  () => {
+  ;(app as any).isQuitting = true
+  autoUpdater.quitAndInstall()
+})
