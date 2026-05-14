@@ -57,8 +57,9 @@ export function useApi() {
     // 2. If path is already a full URL or local resource, use it
     if (path && (path.startsWith('http') || path.startsWith('movie-resource://'))) return path
 
-    // 3. Fallback to local resources (synced files) if we have a remote ID
-    if (remoteId) {
+    // 3. Fallback to local resources (synced files) if we have a remote ID.
+    //    For actors: only when image_path is set (confirms an image actually exists).
+    if (remoteId && (type !== 'actor' || path)) {
       let fileName = `${remoteId}.jpg`
       if (type === 'backdrop') fileName = `${remoteId}_backdrop.jpg`
       if (type === 'actor') fileName = `actor_${remoteId}.jpg`

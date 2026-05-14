@@ -254,7 +254,13 @@ export function useSyncEngine() {
           if (!processedActors.has(a.id) && a.image_url) {
             if (!await window.electron.db.movies.exists(a.id, 'actor')) {
               const url = resolveMediaUrl(a.image_url)
-              if (url) { const r = await window.electron.db.movies.download(url, a.id, 'actor'); if (r.success) media++ }
+              if (url) {
+                const r = await window.electron.db.movies.download(url, a.id, 'actor')
+                if (r.success) {
+                  media++
+                  await window.electron.db.movies.actors.upsert({ remote_id: a.id, name: a.name, image_path: `movie-resource://actor_${a.id}.jpg` })
+                }
+              }
             }
             mediaDone++; progressPct.value = 50 + Math.round((mediaDone / Math.max(mediaTotal, 1)) * 50)
             processedActors.add(a.id)
