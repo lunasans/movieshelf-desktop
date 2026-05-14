@@ -4,10 +4,11 @@ import { useApi } from '@/composables/useApi'
 export type Phase = 'idle' | 'connecting' | 'metadata' | 'media' | 'push' | 'lists'
 
 export type PreviewItem = {
-  remoteId: number
+  remoteId: number | null
   title: string
   year: number | null
   action: 'new' | 'updated' | 'deleted'
+  direction: 'pull' | 'push'
   changes: string[]
 }
 
@@ -16,6 +17,9 @@ export type PreviewData = {
   new: number
   updated: number
   deleted: number
+  pushNew: number
+  pushUpdated: number
+  pushDeleted: number
   overflow: number
   rawMovies: any[]
 }
@@ -97,7 +101,7 @@ export function useSyncEngine() {
             deletedCount++
             const local = await window.electron.db.movies.getByRemoteId(row.remote_id) as any
             if (items.length < PREVIEW_LIMIT)
-              items.push({ remoteId: row.remote_id, title: local?.title ?? `ID ${row.remote_id}`, year: local?.year ?? null, action: 'deleted', changes: [] })
+              items.push({ remoteId: row.remote_id, title: local?.title ?? `ID ${row.remote_id}`, year: local?.year ?? null, action: 'deleted', direction: 'pull', changes: [] })
           }
         }
       }
@@ -106,14 +110,14 @@ export function useSyncEngine() {
         if (movie.is_deleted) {
           deletedCount++
           if (items.length < PREVIEW_LIMIT)
-            items.push({ remoteId: movie.id, title: movie.title, year: movie.year, action: 'deleted', changes: [] })
+            items.push({ remoteId: movie.id, title: movie.title, year: movie.year, action: 'deleted', direction: 'pull', changes: [] })
           continue
         }
         const local = await window.electron.db.movies.getByRemoteId(movie.id)
         if (!local) {
           newCount++
           if (items.length < PREVIEW_LIMIT)
-            items.push({ remoteId: movie.id, title: movie.title, year: movie.year, action: 'new', changes: [] })
+            items.push({ remoteId: movie.id, title: movie.title, year: movie.year, action: 'new', direction: 'pull', changes: [] })
         } else {
           const changed: string[] = []
           for (const [field, label] of Object.entries(FIELD_LABELS)) {
@@ -122,13 +126,34 @@ export function useSyncEngine() {
           if (changed.length > 0) {
             updatedCount++
             if (items.length < PREVIEW_LIMIT)
-              items.push({ remoteId: movie.id, title: movie.title, year: movie.year, action: 'updated', changes: changed })
+              items.push({ remoteId: movie.id, title: movie.title, year: movie.year, action: 'updated', direction: 'pull', changes: changed })
           }
         }
       }
 
-      const total = newCount + updatedCount + deletedCount
-      preview.value = { items, new: newCount, updated: updatedCount, deleted: deletedCount, overflow: Math.max(0, total - items.length), rawMovies: movies }
+      // Push-side: locally dirty records
+      const dirty = await window.electron.db.movies.sync.dirty() as any[]
+      let pushNew = 0, pushUpdated = 0, pushDeleted = 0
+      for (const m of dirty) {
+        if (m.is_deleted) {
+          if (m.remote_id) {
+            pushDeleted++
+            if (items.length < PREVIEW_LIMIT)
+              items.push({ remoteId: m.remote_id, title: m.title, year: m.year, action: 'deleted', direction: 'push', changes: [] })
+          }
+        } else if (!m.remote_id) {
+          pushNew++
+          if (items.length < PREVIEW_LIMIT)
+            items.push({ remoteId: null, title: m.title, year: m.year, action: 'new', direction: 'push', changes: [] })
+        } else {
+          pushUpdated++
+          if (items.length < PREVIEW_LIMIT)
+            items.push({ remoteId: m.remote_id, title: m.title, year: m.year, action: 'updated', direction: 'push', changes: [] })
+        }
+      }
+
+      const total = newCount + updatedCount + deletedCount + pushNew + pushUpdated + pushDeleted
+      preview.value = { items, new: newCount, updated: updatedCount, deleted: deletedCount, pushNew, pushUpdated, pushDeleted, overflow: Math.max(0, total - items.length), rawMovies: movies }
     } catch (e: any) {
       errors.value = [e.message]
     } finally {
