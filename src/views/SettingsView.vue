@@ -449,10 +449,6 @@ onMounted(async () => {
     downloadProgress.value = percent
   })
 
-  window.electron.update.onReady(() => {
-    window.electron.update.install()
-  })
-
   handleUpdateCheck()
 })
 
@@ -548,6 +544,7 @@ async function installUpdate() {
   updateError.value      = ''
   try {
     await window.electron.update.download()
+    window.electron.update.install()
   } catch (e: unknown) {
     updateError.value = String(e)
     downloading.value = false

@@ -1,5 +1,13 @@
 # Changelog – MovieShelf Desktop
 
+## [0.9.5] – 2026-05-14
+
+### Behoben
+
+- **Installer startet nach Download nicht**: `install()` wurde ausschließlich über ein IPC-Event (`update:ready`) ausgelöst, das unter bestimmten Timing-Bedingungen nicht ankam. Da `download()` intern bereits auf die vollständige Fertigstellung wartet (`downloadUpdate()` resolved erst nach abgeschlossenem Download), wird `install()` jetzt direkt danach aufgerufen — zuverlässig und ohne Event-Abhängigkeit
+
+---
+
 ## [0.9.4] – 2026-05-14
 
 ### Behoben
