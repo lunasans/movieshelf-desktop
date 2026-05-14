@@ -12,13 +12,14 @@ export function useUpdateService() {
     try {
       const platform = navigator.platform.toLowerCase().includes('linux') ? 'linux' : 'win'
       const response = await axios.get(`${UPDATE_URL}?platform=${platform}`)
-      const { version: remoteVersion, url, sha256 } = response.data
+      const { version: remoteVersion, url, sha256, manual } = response.data
 
       settings.newestVersion = remoteVersion
       settings.updateUrl     = url
         ? (url.startsWith('http') ? url : `https://movieshelf.info${url.startsWith('/') ? '' : '/'}${url}`)
         : ''
       settings.updateSha256  = sha256 ?? ''
+      settings.updateManual  = manual === true
 
       if (remoteVersion !== settings.appVersion) {
         settings.updateAvailable = compareVersions(remoteVersion, settings.appVersion) > 0

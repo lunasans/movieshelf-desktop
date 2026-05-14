@@ -17,6 +17,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const updateUrl       = ref('')
   const updateSha256    = ref('')
   const updateChangelog = ref('')
+  const updateManual    = ref(false)
 
   async function load() {
     const all = await window.electron.settings.getAll()
@@ -39,5 +40,5 @@ export const useSettingsStore = defineStore('settings', () => {
     await window.electron.settings.set('tmdb_api_key',  tmdbApiKey.value)
   }
 
-  return { mode, theme, shelfUrl, token, tmdbApiKey, isOnline, hasTmdb, load, save, appVersion, newestVersion, updateAvailable, updateUrl, updateSha256, updateChangelog }
+  return { mode, theme, shelfUrl, token, tmdbApiKey, isOnline, hasTmdb, load, save, appVersion, newestVersion, updateAvailable, updateUrl, updateSha256, updateChangelog, updateManual }
 })

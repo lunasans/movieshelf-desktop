@@ -168,14 +168,33 @@
           <p v-if="updateError" class="text-xs text-[var(--status-red)] font-bold mt-3">{{ updateError }}</p>
         </div>
 
+        <!-- Manual download notice -->
+        <div v-if="settings.updateAvailable && settings.updateManual && !downloading"
+          class="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 mb-3">
+          <i class="bi bi-exclamation-triangle-fill text-amber-400 flex-shrink-0 mt-0.5"></i>
+          <p class="text-xs text-[var(--text-main)] opacity-80">
+            Dieses Update muss <strong>manuell heruntergeladen</strong> und installiert werden.
+          </p>
+        </div>
+
         <div class="flex gap-3">
+          <!-- Auto-install button -->
           <button
-            v-if="settings.updateAvailable && !downloading"
+            v-if="settings.updateAvailable && !settings.updateManual && !downloading"
             @click="installUpdate"
             class="flex-1 bg-[var(--status-green)] hover:opacity-90 text-white font-black py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
           >
             <i class="bi bi-download"></i> Jetzt installieren
           </button>
+          <!-- Manual download button -->
+          <a
+            v-if="settings.updateAvailable && settings.updateManual && settings.updateUrl && !downloading"
+            :href="settings.updateUrl"
+            target="_blank"
+            class="flex-1 bg-[var(--status-green)] hover:opacity-90 text-white font-black py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
+          >
+            <i class="bi bi-box-arrow-up-right"></i> Herunterladen
+          </a>
           <button
             v-if="!downloading"
             @click="handleUpdateCheck"
