@@ -1,5 +1,14 @@
 # Changelog – MovieShelf Desktop
 
+## [0.9.4] – 2026-05-14
+
+### Behoben
+
+- **Serien-Import: Folgen werden nicht importiert**: `upsertSeason` gab beim lokalen Import (ohne `remote_id`) immer `undefined` zurück statt der neuen Zeilen-ID. Dadurch schlug die `seasonId != null`-Prüfung in `importSeasons` immer fehl und keine Folge wurde gespeichert. Fix: `lastInsertRowid` wird jetzt zurückgegeben wenn `remote_id` nicht gesetzt ist
+- **Update-Changelog wird nicht angezeigt**: `extractVersionSection` hat die Versionsnummer für den Regex-Vergleich falsch escaped — zwei aufeinanderfolgende `.replace('.')` haben den ersten Punkt doppelt escaped. Fix: `.replace(/\./g, '\\.')` tauscht alle Punkte in einem Durchlauf aus
+
+---
+
 ## [0.9.3] – 2026-05-14
 
 ### Behoben

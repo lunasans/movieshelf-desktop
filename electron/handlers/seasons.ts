@@ -18,7 +18,7 @@ export function getSeasonsForMovie(db: Database.Database, movieId: number) {
 
 export function upsertSeason(db: Database.Database, data: Record<string, unknown>): number | undefined {
   const now = new Date().toISOString()
-  db.prepare(`
+  const result = db.prepare(`
     INSERT INTO seasons (remote_id, movie_id, season_number, title, overview, created_at, updated_at)
     VALUES (@remote_id, @movie_id, @season_number, @title, @overview, @created_at, @updated_at)
     ON CONFLICT(remote_id) DO UPDATE SET
@@ -33,7 +33,7 @@ export function upsertSeason(db: Database.Database, data: Record<string, unknown
     const row = db.prepare('SELECT id FROM seasons WHERE remote_id = ?').get(data.remote_id) as { id: number } | undefined
     return row?.id
   }
-  return undefined
+  return result.lastInsertRowid as number
 }
 
 export function upsertEpisode(db: Database.Database, data: Record<string, unknown>): void {
