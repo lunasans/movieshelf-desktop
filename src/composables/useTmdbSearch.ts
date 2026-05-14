@@ -12,6 +12,14 @@ export interface TmdbResult {
   title: string
   poster_path: string | null
   release_date: string
+  media_type?: 'movie' | 'tv'
+}
+
+export interface TmdbSeason {
+  season_number: number
+  name: string
+  episode_count: number
+  overview: string | null
 }
 
 export function useTmdbSearch() {
@@ -21,6 +29,7 @@ export function useTmdbSearch() {
   const { apiGet, isOnline } = useApi()
 
   const query              = ref('')
+  const searchMode         = ref<'movie' | 'tv'>('movie')
   const results            = ref<TmdbResult[]>([])
   const loading            = ref(false)
   const importing          = ref<number | null>(null)
@@ -32,6 +41,8 @@ export function useTmdbSearch() {
   const previewForm        = ref<Record<string, any> | null>(null)
   const previewSource      = ref<TmdbResult | null>(null)
   const previewLoading     = ref(false)
+  const tmdbSeasons        = ref<TmdbSeason[]>([])
+  const selectedSeasons    = ref<number[]>([])
 
   let toastTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -53,6 +64,18 @@ export function useTmdbSearch() {
       if (isOnline.value) {
         const data = await apiGet('/tmdb/search', { query: query.value })
         results.value = data.results ?? []
+      } else if (searchMode.value === 'tv') {
+        const { data } = await axios.get(`${TMDB_BASE}/search/tv`, {
+          params: { api_key: settings.tmdbApiKey, query: query.value, language: 'de-DE' }
+        })
+        // Normalize TV results to the TmdbResult shape
+        results.value = (data.results ?? []).map((r: any) => ({
+          id: r.id,
+          title: r.name,
+          poster_path: r.poster_path,
+          release_date: r.first_air_date ?? '',
+          media_type: 'tv' as const,
+        }))
       } else {
         const { data } = await axios.get(`${TMDB_BASE}/search/movie`, {
           params: { api_key: settings.tmdbApiKey, query: query.value, language: 'de-DE' }
@@ -74,13 +97,17 @@ export function useTmdbSearch() {
     if (previewLoading.value || importedIds.value.has(result.id)) return
     previewSource.value = result
     error.value = ''
+    tmdbSeasons.value = []
+    selectedSeasons.value = []
+
+    const isTv = result.media_type === 'tv' || searchMode.value === 'tv'
 
     if (!settings.tmdbApiKey) {
       previewForm.value = {
         title: result.title,
         year: result.release_date ? parseInt(result.release_date.slice(0, 4)) : null,
         genre: '', director: '', runtime: null, rating: null, rating_age: null,
-        overview: '', collection_type: 'Film', tag: '', trailer_url: '',
+        overview: '', collection_type: isTv ? 'Serie' : 'Film', tag: '', trailer_url: '',
         tmdb_id: result.id,
         cover_path: result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null,
         backdrop_path: null, actors_names: '',
@@ -91,34 +118,75 @@ export function useTmdbSearch() {
 
     previewLoading.value = true
     try {
-      const [detailRes, videoRes] = await Promise.all([
-        axios.get(`${TMDB_BASE}/movie/${result.id}`, {
-          params: { api_key: settings.tmdbApiKey, language: 'de-DE', append_to_response: 'credits' }
-        }),
-        axios.get(`${TMDB_BASE}/movie/${result.id}/videos`, {
-          params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
-        }).catch(() => ({ data: { results: [] } }))
-      ])
-      const m        = detailRes.data
-      const director = (m.credits?.crew ?? []).find((c: any) => c.job === 'Director')?.name ?? ''
-      const trailer  = (videoRes.data.results ?? []).find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
-      previewForm.value = {
-        title:           m.title,
-        year:            m.release_date ? parseInt(m.release_date.slice(0, 4)) : null,
-        genre:           (m.genres ?? []).map((g: any) => g.name).join(', '),
-        director,
-        runtime:         m.runtime ?? null,
-        rating:          m.vote_average != null ? Math.round(m.vote_average * 10) / 10 : null,
-        rating_age:      null,
-        overview:        m.overview ?? '',
-        collection_type: 'Film',
-        tag:             '',
-        trailer_url:     trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : '',
-        tmdb_id:         m.id,
-        cover_path:      m.poster_path    ? `https://image.tmdb.org/t/p/w500${m.poster_path}`    : null,
-        backdrop_path:   m.backdrop_path  ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
-        actors_names:    (m.credits?.cast ?? []).slice(0, 10).map((c: any) => c.name).join(', '),
-        created_at:      new Date().toISOString().slice(0, 10),
+      if (isTv) {
+        const detailRes = await axios.get(`${TMDB_BASE}/tv/${result.id}`, {
+          params: { api_key: settings.tmdbApiKey, language: 'de-DE', append_to_response: 'credits,videos,content_ratings' }
+        })
+        const m = detailRes.data
+        const creator = (m.created_by ?? [])[0]?.name ?? ''
+        const trailer = (m.videos?.results ?? []).find((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'))
+
+        previewForm.value = {
+          title:           m.name,
+          year:            m.first_air_date ? parseInt(m.first_air_date.slice(0, 4)) : null,
+          genre:           (m.genres ?? []).map((g: any) => g.name).join(', '),
+          director:        creator,
+          runtime:         (m.episode_run_time ?? [])[0] ?? null,
+          rating:          m.vote_average != null ? Math.round(m.vote_average * 10) / 10 : null,
+          rating_age:      null,
+          overview:        m.overview ?? '',
+          collection_type: 'Serie',
+          tag:             '',
+          trailer_url:     trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : '',
+          tmdb_id:         m.id,
+          cover_path:      m.poster_path    ? `https://image.tmdb.org/t/p/w500${m.poster_path}`    : null,
+          backdrop_path:   m.backdrop_path  ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
+          actors_names:    (m.credits?.cast ?? []).slice(0, 10).map((c: any) => c.name).join(', '),
+          created_at:      new Date().toISOString().slice(0, 10),
+        }
+
+        // Build season list, skip season 0 (Specials)
+        const seasons: TmdbSeason[] = (m.seasons ?? [])
+          .filter((s: any) => s.season_number > 0)
+          .map((s: any) => ({
+            season_number: s.season_number,
+            name: s.name,
+            episode_count: s.episode_count,
+            overview: s.overview || null,
+          }))
+        tmdbSeasons.value = seasons
+        selectedSeasons.value = seasons.map(s => s.season_number)
+
+      } else {
+        const [detailRes, videoRes] = await Promise.all([
+          axios.get(`${TMDB_BASE}/movie/${result.id}`, {
+            params: { api_key: settings.tmdbApiKey, language: 'de-DE', append_to_response: 'credits' }
+          }),
+          axios.get(`${TMDB_BASE}/movie/${result.id}/videos`, {
+            params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
+          }).catch(() => ({ data: { results: [] } }))
+        ])
+        const m        = detailRes.data
+        const director = (m.credits?.crew ?? []).find((c: any) => c.job === 'Director')?.name ?? ''
+        const trailer  = (videoRes.data.results ?? []).find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
+        previewForm.value = {
+          title:           m.title,
+          year:            m.release_date ? parseInt(m.release_date.slice(0, 4)) : null,
+          genre:           (m.genres ?? []).map((g: any) => g.name).join(', '),
+          director,
+          runtime:         m.runtime ?? null,
+          rating:          m.vote_average != null ? Math.round(m.vote_average * 10) / 10 : null,
+          rating_age:      null,
+          overview:        m.overview ?? '',
+          collection_type: 'Film',
+          tag:             '',
+          trailer_url:     trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : '',
+          tmdb_id:         m.id,
+          cover_path:      m.poster_path    ? `https://image.tmdb.org/t/p/w500${m.poster_path}`    : null,
+          backdrop_path:   m.backdrop_path  ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
+          actors_names:    (m.credits?.cast ?? []).slice(0, 10).map((c: any) => c.name).join(', '),
+          created_at:      new Date().toISOString().slice(0, 10),
+        }
       }
     } catch (e: any) {
       error.value = `Fehler beim Laden: ${e?.response?.data?.status_message ?? e.message}`
@@ -142,6 +210,35 @@ export function useTmdbSearch() {
     if (Object.keys(updates).length) await window.electron.db.movies.update(movie.id, updates)
   }
 
+  async function importSeasons(movieId: number, tmdbId: number) {
+    for (const seasonNum of selectedSeasons.value) {
+      try {
+        const { data } = await axios.get(`${TMDB_BASE}/tv/${tmdbId}/season/${seasonNum}`, {
+          params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
+        })
+        const season = tmdbSeasons.value.find(s => s.season_number === seasonNum)
+        const seasonId = await window.electron.db.seasons.upsert({
+          movie_id: movieId,
+          season_number: seasonNum,
+          title: season?.name ?? data.name ?? null,
+          overview: data.overview ?? null,
+        })
+        if (seasonId != null && Array.isArray(data.episodes)) {
+          for (const ep of data.episodes) {
+            await window.electron.db.episodes.upsert({
+              season_id: seasonId,
+              episode_number: ep.episode_number,
+              title: ep.name ?? null,
+              overview: ep.overview ?? null,
+            })
+          }
+        }
+      } catch {
+        // Continue with remaining seasons if one fails
+      }
+    }
+  }
+
   async function confirmImport() {
     if (!previewForm.value || !previewSource.value) return
     const result = previewSource.value
@@ -154,13 +251,21 @@ export function useTmdbSearch() {
         ...previewForm.value,
         in_collection: importToCollection.value ? 1 : 0,
         remote_id: null,
-      })
+      }) as any
+
       await downloadImages(movie, coverUrl, backdropUrl)
+
+      if (previewForm.value.collection_type === 'Serie' && selectedSeasons.value.length > 0 && previewForm.value.tmdb_id) {
+        await importSeasons(movie.id, previewForm.value.tmdb_id)
+      }
+
       importedIds.value = new Set(importedIds.value).add(result.id)
       movieStore.clearCache()
       showToast(`„${previewForm.value.title}" wurde zur Sammlung hinzugefügt.`)
       previewForm.value   = null
       previewSource.value = null
+      tmdbSeasons.value   = []
+      selectedSeasons.value = []
     } catch (e: any) {
       error.value = `Import fehlgeschlagen: ${e?.response?.data?.status_message ?? e.message}`
     } finally {
@@ -215,8 +320,9 @@ export function useTmdbSearch() {
   }
 
   return {
-    query, results, loading, importing, importedIds, error, toast,
+    query, searchMode, results, loading, importing, importedIds, error, toast,
     importToCollection, listPickerFor, previewForm, previewSource, previewLoading,
+    tmdbSeasons, selectedSeasons,
     canSearch, search, openPreview, confirmImport, addToList,
   }
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="p-8">
     <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">TMDb Suche</h1>
-    <p class="text-sm text-[var(--text-muted)] opacity-60 mb-6">Film in TMDb suchen und zur Sammlung hinzufügen</p>
+    <p class="text-sm text-[var(--text-muted)] opacity-60 mb-6">Film oder Serie in TMDb suchen und zur Sammlung hinzufügen</p>
 
     <!-- Toast -->
     <Transition name="toast">
@@ -25,13 +25,35 @@
     </div>
 
     <template v-else>
+      <!-- Search mode toggle -->
+      <div class="flex gap-2 mb-4">
+        <button
+          @click="searchMode = 'movie'"
+          class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+          :class="searchMode === 'movie'
+            ? 'bg-[var(--status-red)] text-white'
+            : 'bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/40'"
+        >
+          <i class="bi bi-film mr-1.5"></i>Film
+        </button>
+        <button
+          @click="searchMode = 'tv'"
+          class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+          :class="searchMode === 'tv'
+            ? 'bg-[var(--status-red)] text-white'
+            : 'bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/40'"
+        >
+          <i class="bi bi-tv mr-1.5"></i>Serie
+        </button>
+      </div>
+
       <!-- Search bar -->
       <div class="flex gap-3 mb-6">
         <input
           v-model="query"
           @keyup.enter="search"
           type="text"
-          placeholder="Filmtitel eingeben..."
+          :placeholder="searchMode === 'tv' ? 'Serientitel eingeben...' : 'Filmtitel eingeben...'"
           class="flex-1 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors"
         />
         <button @click="search" :disabled="loading"
@@ -83,6 +105,9 @@
       :previewForm="previewForm"
       :previewSource="previewSource"
       :importing="importing"
+      :tmdbSeasons="tmdbSeasons"
+      :selectedSeasons="selectedSeasons"
+      @update:selectedSeasons="selectedSeasons = $event"
       @confirm="confirmImport"
       @cancel="previewForm = null; previewSource = null"
     />
@@ -98,8 +123,9 @@ import TmdbImportModal from '@/components/tmdb/TmdbImportModal.vue'
 
 const listStore = useListStore()
 const {
-  query, results, loading, importing, importedIds, error, toast,
+  query, searchMode, results, loading, importing, importedIds, error, toast,
   importToCollection, listPickerFor, previewForm, previewSource, previewLoading,
+  tmdbSeasons, selectedSeasons,
   canSearch, search, openPreview, confirmImport, addToList,
 } = useTmdbSearch()
 

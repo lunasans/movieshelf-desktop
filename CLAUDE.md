@@ -60,20 +60,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Run Vue dev server only (no Electron)
+# Run Vue dev server (renderer only, no Electron shell)
 npm run dev
-
-# Run full Electron app in development (Vite + Electron concurrently)
-npm run electron:dev
 
 # Type-check and build for production
 npm run build
 
 # Build distributable installer (runs vite build + electron-builder)
 npm run electron:build
+
+# Run handler unit tests (vitest, node environment)
+npm test
+
+# Run a single test file
+npx vitest run electron/handlers/__tests__/movies.test.ts
+
+# Run E2E tests (Playwright, requires built app)
+npm run test:e2e
+npm run test:e2e:ui   # with interactive UI
 ```
 
-There are no tests in this project.
+**Tests:** Handler unit tests live in `electron/handlers/__tests__/` (vitest, `node` environment, real in-memory SQLite via `testDb.ts`). E2E tests use Playwright + `electron-playwright-helpers`. There is no renderer/Vue test suite.
 
 ---
 
@@ -81,7 +88,7 @@ There are no tests in this project.
 
 **Stack:** Electron 41 + Vue 3 + TypeScript + Vite + Pinia + Tailwind CSS + better-sqlite3
 
-**Current version:** 0.6.5
+**Current version:** 0.9.0
 
 ### Process boundary: the IPC bridge
 
@@ -126,11 +133,13 @@ The `isOnline` computed in `useSettingsStore` (`src/stores/settings.ts`) gates w
 
 | File | Domain |
 |------|--------|
-| `electron/handlers/movies.ts` | Movie + actor CRUD, boxset children, sync state, TMDb deduplication |
+| `electron/handlers/movies.ts` | Movie CRUD, boxset children, sync state, TMDb deduplication |
+| `electron/handlers/actors.ts` | Actor CRUD, TMDb actor lookup |
 | `electron/handlers/settings.ts` | get/set/getAll (allowlisted keys only) |
 | `electron/handlers/media.ts` | Cover/backdrop/actor image downloads, HTTPS-only |
 | `electron/handlers/lists.ts` | List CRUD, movie associations, sync state |
 | `electron/handlers/seasons.ts` | Season + episode upserts for TV series |
+| `electron/handlers/sync.ts` | Remote sync helpers |
 | `electron/handlers/stats.ts` | Aggregate stats (genres, runtime buckets, top actors, by year) |
 | `electron/handlers/oauth.ts` | OAuth popup window + deep-link callback (`movieshelf://`) |
 | `electron/handlers/backup.ts` | Export/import `.ms` ZIP (DB tables + media files) |
@@ -168,7 +177,13 @@ Manual updater in `main.ts` (`update:install`): downloads installer to `tmpdir`,
 | `electron/database.ts` | SQLite setup + all migrations |
 | `electron/handlers/movies.ts` | Movie + actor CRUD and sync IPC handlers (largest handler, 14 KB) |
 | `src/composables/useApi.ts` | Axios client factory + `resolveMediaUrl` |
+| `src/composables/useTmdbSearch.ts` | TMDb search logic, result normalisation |
+| `src/composables/useSyncEngine.ts` | Full/delta sync orchestration, conflict resolution |
 | `src/stores/settings.ts` | App-wide mode/theme/credentials, loaded once on mount |
 | `src/stores/movies.ts` | Movie list with online/offline branching, per-tab pagination cache |
 | `src/views/SyncView.vue` | Delta/full sync UI, progress tracking, conflict resolution (33 KB) |
 | `src/views/TmdbSearchView.vue` | TMDb search, pre-fill form, media download (24 KB) |
+
+### Component structure
+
+`src/components/` is split by domain: `layout/` (Sidebar, TitleBar), `movies/` (MovieCard, MovieListRow), `sync/` (SyncProgress, SyncPreview, …), `tmdb/` (TmdbImportModal, TmdbResultGrid), `ui/` (FormRow, StatCard, ThemeSwitcher). Top-level components: `BulkActionBar.vue`, `RandomPickerModal.vue`.

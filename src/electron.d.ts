@@ -88,6 +88,8 @@ interface Window {
           link:        (params: { film_id: number; actor_id: number; role?: string; is_main_role?: boolean }) => Promise<unknown>
           get:         (id: number) => Promise<unknown>
           movies:      (actorId: number) => Promise<unknown[]>
+          search:      (query: string) => Promise<unknown[]>
+          unlink:      (filmId: number, actorId: number) => Promise<void>
         }
         sync: {
           dirty:      () => Promise<unknown[]>

@@ -15,6 +15,13 @@ export function getActorsForMovie(db: Database.Database, movieId: number): unkno
 
 export function upsertActor(db: Database.Database, data: Record<string, unknown>): number | undefined {
   const now = new Date().toISOString()
+
+  // Deduplicate by tmdb_id when no remote_id is given (standalone TMDb import)
+  if (data.remote_id == null && data.tmdb_id != null) {
+    const existing = db.prepare('SELECT id FROM actors WHERE tmdb_id = ?').get(data.tmdb_id) as { id: number } | undefined
+    if (existing) return existing.id
+  }
+
   const result = db.prepare(`
     INSERT INTO actors (remote_id, name, bio, birthday, place_of_birth, image_path, tmdb_id, created_at, updated_at)
     VALUES (@remote_id, @name, @bio, @birthday, @place_of_birth, @image_path, @tmdb_id, @created_at, @updated_at)
@@ -36,6 +43,16 @@ export function upsertActor(db: Database.Database, data: Record<string, unknown>
     return actor?.id
   }
   return result.lastInsertRowid ? Number(result.lastInsertRowid) : undefined
+}
+
+export function searchActors(db: Database.Database, query: string): unknown[] {
+  return db.prepare(
+    "SELECT * FROM actors WHERE name LIKE ? ORDER BY name ASC LIMIT 20"
+  ).all(`%${query}%`)
+}
+
+export function unlinkActor(db: Database.Database, filmId: number, actorId: number): void {
+  db.prepare('DELETE FROM film_actor WHERE film_id = ? AND actor_id = ?').run(filmId, actorId)
 }
 
 export function linkActor(db: Database.Database, params: {
@@ -63,9 +80,11 @@ export function getMoviesForActor(db: Database.Database, actorId: number): unkno
 
 export function registerActorHandlers(): void {
   const db = () => getDb()
-  ipcMain.handle('db:movies:actors', (_e, movieId) => getActorsForMovie(db(), movieId))
-  ipcMain.handle('db:actors:upsert', (_e, data)    => upsertActor(db(), data))
-  ipcMain.handle('db:actors:link',   (_e, params)  => linkActor(db(), params))
-  ipcMain.handle('db:actors:get',    (_e, id)      => getActor(db(), id))
-  ipcMain.handle('db:actors:movies', (_e, actorId) => getMoviesForActor(db(), actorId))
+  ipcMain.handle('db:movies:actors',  (_e, movieId)         => getActorsForMovie(db(), movieId))
+  ipcMain.handle('db:actors:upsert',  (_e, data)            => upsertActor(db(), data))
+  ipcMain.handle('db:actors:link',    (_e, params)          => linkActor(db(), params))
+  ipcMain.handle('db:actors:get',     (_e, id)              => getActor(db(), id))
+  ipcMain.handle('db:actors:movies',  (_e, actorId)         => getMoviesForActor(db(), actorId))
+  ipcMain.handle('db:actors:search',  (_e, query)           => searchActors(db(), query))
+  ipcMain.handle('db:actors:unlink',  (_e, filmId, actorId) => unlinkActor(db(), filmId, actorId))
 }

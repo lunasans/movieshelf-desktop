@@ -25,10 +25,12 @@ contextBridge.exposeInMainWorld('electron', {
       exists:   (id: number, type: 'cover' | 'backdrop' | 'actor')           => ipcRenderer.invoke('media:exists',   { id, type }),
       actors: {
         getForMovie: (movieId: number) => ipcRenderer.invoke('db:movies:actors', movieId),
-        upsert: (data: any) => ipcRenderer.invoke('db:actors:upsert', data),
-        link:   (params: any) => ipcRenderer.invoke('db:actors:link', params),
-        get:    (id: number) => ipcRenderer.invoke('db:actors:get', id),
-        movies: (actorId: number) => ipcRenderer.invoke('db:actors:movies', actorId),
+        upsert:  (data: any)                       => ipcRenderer.invoke('db:actors:upsert', data),
+        link:    (params: any)                     => ipcRenderer.invoke('db:actors:link', params),
+        get:     (id: number)                      => ipcRenderer.invoke('db:actors:get', id),
+        movies:  (actorId: number)                 => ipcRenderer.invoke('db:actors:movies', actorId),
+        search:  (query: string)                   => ipcRenderer.invoke('db:actors:search', query),
+        unlink:  (filmId: number, actorId: number) => ipcRenderer.invoke('db:actors:unlink', filmId, actorId),
       },
       sync: {
         dirty:      () => ipcRenderer.invoke('db:sync:dirty'),

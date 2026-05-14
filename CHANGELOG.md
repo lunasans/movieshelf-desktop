@@ -1,5 +1,33 @@
 # Changelog – MovieShelf Desktop
 
+## [0.9.0] – 2026-05-14
+
+### Hinzugefügt
+
+- **Serien-Import mit Staffelauswahl**: TMDb-Suche unterstützt jetzt den Modus „Serie" (Toggle Film / Serie über der Suchleiste). Beim Importieren einer Serie lädt die App die verfügbaren Staffeln von TMDb und zeigt eine Auswahl-Checkbox-Liste im Import-Modal – Staffeln 0 (Specials) werden automatisch ausgeblendet. Mit „Alle / Keine" können alle Staffeln in einem Klick selektiert werden. Nach dem Bestätigen werden alle gewählten Staffeln inkl. ihrer Folgen (Nummer, Titel, Beschreibung) direkt in die lokale Datenbank geschrieben
+- **Schauspieler im Bearbeitungsformular**: Film-Bearbeiten-Ansicht zeigt jetzt eine Schauspieler-Sektion mit Avatar, Rollenname und Hauptrolle-Badge. Über „Hinzufügen" öffnet sich ein Modal mit zwei Modi:
+  - *Lokal*: Debounced-Suche über alle bereits in der Datenbank vorhandenen Schauspieler
+  - *TMDb*: Personensuche via `/search/person` mit Profilbild-Vorschau und automatischem Download beim Hinzufügen
+  - Beide Modi erlauben die Angabe eines Rollennamen und des Hauptrolle-Flags vor dem Speichern
+  - Schauspieler können per X-Button direkt aus dem Film entfernt werden
+
+### Geändert
+
+- `useTmdbSearch.ts`: `searchMode`-State (`'movie' | 'tv'`), normalisierter TV-Result-Shape, TV-Detail-Fetch mit `/tv/{id}?append_to_response=credits,videos,content_ratings`, Season/Episode-Import-Schleife in `confirmImport()`
+- `TmdbImportModal.vue`: neues Staffelauswahl-Panel (nur wenn `collection_type === 'Serie'`), `selectedSeasons` als v-model-Prop
+- `TmdbSearchView.vue`: Film/Serie Toggle-Buttons, Suchfeld-Placeholder passt sich dem Modus an
+
+### Neu: Backend-Funktionen (`electron/handlers/actors.ts`)
+
+| Funktion | IPC-Kanal |
+|---|---|
+| `searchActors(db, query)` | `db:actors:search` |
+| `unlinkActor(db, filmId, actorId)` | `db:actors:unlink` |
+
+- `upsertActor` dedupliziert jetzt nach `tmdb_id` wenn keine `remote_id` vorhanden ist (verhindert Duplikate beim manuellen TMDb-Import)
+
+---
+
 ## [0.8.0] – 2026-05-13
 
 ### Hinzugefügt
