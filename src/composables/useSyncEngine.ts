@@ -22,6 +22,7 @@ export type PreviewData = {
 
 export type SyncResult = {
   pulled: number
+  skipped: number
   deleted: number
   pushed: number
   media: number
@@ -141,13 +142,13 @@ export function useSyncEngine() {
     await runPull()
   }
 
-  async function pull(full = false): Promise<{ pulled: number; deleted: number; media: number; pullErrors: number }> {
+  async function pull(full = false): Promise<{ pulled: number; skipped: number; deleted: number; media: number; pullErrors: number }> {
     setPhase('connecting', 'Verbinde mit Shelf…', '', 0)
 
     const since  = full ? null : await window.electron.settings.get('last_sync_at') as string | null
     const data   = await apiGet('/admin/export', since ? { since } : {})
     const movies = data.movies as any[]
-    let pulled = 0, deleted = 0, pullErrors = 0
+    let pulled = 0, skipped = 0, deleted = 0, pullErrors = 0
     const remoteToLocalId = new Map<number, number>()
 
     setPhase('metadata', data.is_delta ? 'Delta laden' : 'Metadaten laden', '', 0)
@@ -164,6 +165,9 @@ export function useSyncEngine() {
           if (r.success && r.localId != null) { await window.electron.db.movies.sync.hardDelete(r.localId); deleted++ }
           continue
         }
+
+        const existing = await window.electron.db.movies.getByRemoteId(movie.id) as any
+        const needsUpdate = !existing || (existing.updated_at ?? '') <= (movie.updated_at ?? '')
 
         const local = await window.electron.db.movies.create({
           title: movie.title, year: movie.year, genre: movie.genre, director: movie.director,
@@ -197,7 +201,8 @@ export function useSyncEngine() {
               }
             }
           }
-          pulled++
+          if (needsUpdate) pulled++
+          else skipped++
         }
       } catch (e: any) {
         errors.value.push(`Pull ${movie.title}: ${e.message}`)
@@ -270,7 +275,7 @@ export function useSyncEngine() {
     }
 
     progressPct.value = 100
-    return { pulled, deleted, media, pullErrors }
+    return { pulled, skipped, deleted, media, pullErrors }
   }
 
   async function push(): Promise<{ pushed: number; pushErrors: number; deleted: number }> {
@@ -386,9 +391,9 @@ export function useSyncEngine() {
     result.value = null
     const start = Date.now()
     try {
-      const { pulled, deleted, media, pullErrors } = await pull()
+      const { pulled, skipped, deleted, media, pullErrors } = await pull()
       const { listErrors } = await syncLists()
-      result.value = { pulled, deleted, pushed: 0, media, errors: pullErrors + listErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
+      result.value = { pulled, skipped, deleted, pushed: 0, media, errors: pullErrors + listErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
       await saveSyncTime()
     } catch (e: any) {
       errors.value.push(e.message)
@@ -420,11 +425,11 @@ export function useSyncEngine() {
     result.value = null
     preview.value = null
     const start = Date.now()
-    let pulled = 0, deleted = 0, pushed = 0, media = 0, totalErrors = 0
+    let pulled = 0, skipped = 0, deleted = 0, pushed = 0, media = 0, totalErrors = 0
 
     try {
       const pr = await pull(true)
-      pulled = pr.pulled; deleted = pr.deleted; media = pr.media; totalErrors += pr.pullErrors
+      pulled = pr.pulled; skipped = pr.skipped; deleted = pr.deleted; media = pr.media; totalErrors += pr.pullErrors
 
       const sr = await push()
       pushed = sr.pushed; deleted += sr.deleted; totalErrors += sr.pushErrors
@@ -432,7 +437,7 @@ export function useSyncEngine() {
       const { listErrors } = await syncLists()
       totalErrors += listErrors
 
-      result.value = { pulled, deleted, pushed, media, errors: totalErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
+      result.value = { pulled, skipped, deleted, pushed, media, errors: totalErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
       await saveSyncTime()
     } catch (e: any) {
       errors.value.push(e.message)
