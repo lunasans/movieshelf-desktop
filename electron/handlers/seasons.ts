@@ -18,6 +18,24 @@ export function getSeasonsForMovie(db: Database.Database, movieId: number) {
 
 export function upsertSeason(db: Database.Database, data: Record<string, unknown>): number | undefined {
   const now = new Date().toISOString()
+
+  // If a remote_id is incoming, check if a local-only season (remote_id IS NULL)
+  // with the same movie_id + season_number exists. If so, merge into it to avoid
+  // creating a duplicate row on first sync.
+  if (data.remote_id != null && data.movie_id != null && data.season_number != null) {
+    const local = db.prepare(
+      'SELECT id FROM seasons WHERE movie_id = ? AND season_number = ? AND remote_id IS NULL'
+    ).get(data.movie_id, data.season_number) as { id: number } | undefined
+
+    if (local) {
+      db.prepare(`
+        UPDATE seasons SET remote_id = @remote_id, title = @title, overview = @overview, updated_at = @updated_at
+        WHERE id = @id
+      `).run({ remote_id: data.remote_id, title: data.title ?? null, overview: data.overview ?? null, updated_at: now, id: local.id })
+      return local.id
+    }
+  }
+
   const result = db.prepare(`
     INSERT INTO seasons (remote_id, movie_id, season_number, title, overview, created_at, updated_at)
     VALUES (@remote_id, @movie_id, @season_number, @title, @overview, @created_at, @updated_at)
