@@ -330,6 +330,8 @@ const embedUrl = computed(() => {
   return `https://www.youtube.com/embed/${videoId}?autoplay=1`
 })
 
+import sanitizeHtml from 'sanitize-html'
+
 function openTrailer() {
   const url = movie.value?.trailer_url
   if (!url) return
@@ -358,7 +360,7 @@ const parsedOverview = computed(() => {
   const text = movie.value?.overview as string
   if (!text) return []
 
-  const cleaned = text.replace(/<[^>]*>?/gm, '')
+  const cleaned = sanitizeHtml(text, { allowedTags: [], allowedAttributes: {} })
   const segments: { type: 'text' | 'actor', value: string, id?: number | null }[] = []
   const regex = /\{!Actor\}(.*?)\}|\(\[!Actor\](.*?)\)\)?/g
   let lastIndex = 0
