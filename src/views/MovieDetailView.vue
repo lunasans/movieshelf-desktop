@@ -264,7 +264,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { useUiStore } from '@/stores/ui'
@@ -427,17 +427,13 @@ async function toggleList(listId: number) {
   movieListIds.value = new Set(movieListIds.value)
 }
 
-onMounted(async () => {
-  const id = Number(route.params.id)
-
-  const scroller = document.querySelector('main')
-  if (scroller) {
-    scroller.addEventListener('scroll', handleScroll)
-  }
-
+async function loadMovie(id: number) {
   movie.value = await window.electron.db.movies.get(id)
   linkedActors.value = await window.electron.db.movies.actors.getForMovie(id)
   localMovieId.value = id
+  boxsetChildren.value = []
+  seasons.value = []
+  openSeasons.value = new Set()
 
   if (movie.value?.is_boxset) {
     boxsetChildren.value = await window.electron.db.movies.children(id)
@@ -475,10 +471,18 @@ onMounted(async () => {
   }
 
   await listStore.fetchLists()
-  if (localMovieId.value !== null) {
-    const ids = await window.electron.db.lists.forMovie(localMovieId.value)
-    movieListIds.value = new Set(ids)
-  }
+  const ids = await window.electron.db.lists.forMovie(id)
+  movieListIds.value = new Set(ids)
+}
+
+watch(() => route.params.id, (newId) => {
+  if (newId) loadMovie(Number(newId))
+})
+
+onMounted(async () => {
+  const scroller = document.querySelector('main')
+  if (scroller) scroller.addEventListener('scroll', handleScroll)
+  await loadMovie(Number(route.params.id))
 })
 
 onUnmounted(() => {
