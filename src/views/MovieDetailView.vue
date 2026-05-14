@@ -95,6 +95,10 @@
             <div v-if="movie.rating" class="flex items-center gap-2 bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">
               <span class="text-yellow-600">★ {{ Number(movie.rating).toFixed(1) }}</span>
             </div>
+            <div v-if="movie.director" class="flex items-center gap-2">
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">Regie</span>
+              <span class="text-[var(--text-main)] opacity-70">{{ movie.director }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -209,10 +213,6 @@
             </div>
           </div>
 
-          <div v-if="movie.director">
-            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-4">Regie</h3>
-            <p class="text-[var(--text-main)] text-xl font-bold">{{ movie.director }}</p>
-          </div>
         </div>
 
         <!-- Sidebar Actions -->
