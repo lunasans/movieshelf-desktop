@@ -135,6 +135,26 @@
           </div>
         </div>
 
+        <!-- Changelog for new version -->
+        <div v-if="settings.updateAvailable && settings.updateChangelog && !downloading"
+          class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+          <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-3">
+            Was ist neu in v{{ settings.newestVersion }}
+          </p>
+          <div class="space-y-1.5">
+            <template v-for="line in changelogLines" :key="line.text">
+              <p v-if="line.type === 'heading'"
+                class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-50 mt-3 first:mt-0">
+                {{ line.text }}
+              </p>
+              <div v-else-if="line.type === 'item'" class="flex gap-2">
+                <span class="text-[var(--status-red)] flex-shrink-0 mt-0.5">·</span>
+                <span class="text-xs text-[var(--text-main)] opacity-80">{{ line.text }}</span>
+              </div>
+            </template>
+          </div>
+        </div>
+
         <!-- Download progress -->
         <div v-if="downloading" class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
           <div class="flex items-center justify-between mb-3">
@@ -367,6 +387,18 @@ const checkingUpdate   = ref(false)
 const downloading      = ref(false)
 const downloadProgress = ref(0)
 const updateError      = ref('')
+
+const changelogLines = computed(() => {
+  if (!settings.updateChangelog) return []
+  return settings.updateChangelog.split('\n')
+    .filter(l => l.trim())
+    .map(l => {
+      if (/^###\s+/.test(l)) return { type: 'heading', text: l.replace(/^###\s+/, '') }
+      if (/^-\s+/.test(l))   return { type: 'item',    text: l.replace(/^-\s+/, '').replace(/\*\*(.+?)\*\*/g, '$1') }
+      return null
+    })
+    .filter(Boolean) as { type: string; text: string }[]
+})
 
 const backupLoading    = ref(false)
 const backupResult     = ref<{ success: boolean; movies?: number; error?: string } | null>(null)

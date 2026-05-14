@@ -1,11 +1,11 @@
 import axios from 'axios'
 import { useSettingsStore } from '@/stores/settings'
 
+const CHANGELOG_URL = 'https://raw.githubusercontent.com/lunasans/movieshelf-desktop/main/CHANGELOG.md'
+
 export function useUpdateService() {
   const settings = useSettingsStore()
-  
-  // HINWEIS: Dies ist die URL zu deiner zentralen App (SaaS)
-  // Ein Endpunkt, der z.B. JSON zurückgibt: { "version": "0.2.0", "url": "..." }
+
   const UPDATE_URL = 'https://movieshelf.info/api/desktop-version'
 
   async function checkForUpdates() {
@@ -25,7 +25,11 @@ export function useUpdateService() {
       } else {
         settings.updateAvailable = false
       }
-      
+
+      if (settings.updateAvailable) {
+        settings.updateChangelog = await fetchChangelog(remoteVersion)
+      }
+
       return settings.updateAvailable
     } catch (error) {
       console.error('Update-Check fehlgeschlagen:', error)
@@ -33,12 +37,44 @@ export function useUpdateService() {
     }
   }
 
+  async function fetchChangelog(version: string): Promise<string> {
+    try {
+      const { data } = await axios.get(CHANGELOG_URL)
+      return extractVersionSection(data, version)
+    } catch {
+      return ''
+    }
+  }
+
+  function extractVersionSection(markdown: string, version: string): string {
+    const lines = markdown.split('\n')
+    const startPattern = new RegExp(`^##\\s+\\[${version.replace('.', '\\.').replace('.', '\\.')}\\]`)
+    let inSection = false
+    const result: string[] = []
+
+    for (const line of lines) {
+      if (startPattern.test(line)) {
+        inSection = true
+        continue // skip the version headline itself
+      }
+      if (inSection) {
+        if (/^##\s+\[/.test(line)) break // next version starts
+        result.push(line)
+      }
+    }
+
+    // Trim leading/trailing blank lines
+    while (result.length && !result[0].trim()) result.shift()
+    while (result.length && !result[result.length - 1].trim()) result.pop()
+    return result.join('\n')
+  }
+
   function compareVersions(v1: string, v2: string) {
     const parts1 = v1.split('.').map(Number)
     const parts2 = v2.split('.').map(Number)
     for (let i = 0; i < 3; i++) {
-        if (parts1[i] > parts2[i]) return 1
-        if (parts1[i] < parts2[i]) return -1
+      if (parts1[i] > parts2[i]) return 1
+      if (parts1[i] < parts2[i]) return -1
     }
     return 0
   }
