@@ -13,7 +13,7 @@
       <div class="absolute inset-0 bg-gradient-to-t from-[var(--bg-app)] via-[var(--bg-app)]/60 to-transparent"></div>
 
       <!-- Manual Search Button (If no trailer) -->
-      <div v-else class="absolute inset-0 flex items-center justify-center z-20">
+      <div v-if="!movie.trailer_url" class="absolute inset-0 flex items-center justify-center z-20">
         <button 
           @click="searchYouTube"
           class="flex items-center gap-3 px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-2xl border border-white/20 transition-all hover:scale-105 active:scale-95 group font-bold shadow-2xl"
