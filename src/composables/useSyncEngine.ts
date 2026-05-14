@@ -410,7 +410,7 @@ export function useSyncEngine() {
     try {
       const { pushed, pushErrors, deleted } = await push()
       const { listErrors } = await syncLists()
-      result.value = { pulled: 0, deleted, pushed, media: 0, errors: pushErrors + listErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
+      result.value = { pulled: 0, skipped: 0, deleted, pushed, media: 0, errors: pushErrors + listErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
       await saveSyncTime()
     } catch (e: any) {
       errors.value.push(e.message)
