@@ -51,7 +51,7 @@ export function useUpdateService() {
 
   function extractVersionSection(markdown: string, version: string): string {
     const lines = markdown.split('\n').map(l => l.replace(/\r$/, ''))
-    const startPattern = new RegExp(`^##\\s+\\[${version.replace(/\./g, '\\.')}\\]`)
+    const startPattern = new RegExp(`^##\\s+\\[${version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`)
     let inSection = false
     const result: string[] = []
 
