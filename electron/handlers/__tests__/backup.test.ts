@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
-import { existsSync, unlinkSync, mkdirSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync, mkdtempSync, rmSync } from 'fs'
 import AdmZip from 'adm-zip'
 import type Database from 'better-sqlite3'
 import { createTestDb, insertMovie, insertActor } from './testDb'
@@ -10,15 +10,17 @@ import { createBackupZip, restoreFromZip } from '../backup'
 
 let db: Database.Database
 let tempZip: string
+let tempDir: string
 const noCovers = join(tmpdir(), 'ms_test_covers_none')
 
 beforeEach(() => {
   db = createTestDb()
-  tempZip = join(tmpdir(), `test_backup_${randomUUID()}.ms`)
+  tempDir = mkdtempSync(join(tmpdir(), 'ms_backup_test_'))
+  tempZip = join(tempDir, `test_backup_${randomUUID()}.ms`)
 })
 
 afterEach(() => {
-  try { unlinkSync(tempZip) } catch { /* ignorieren wenn nicht erstellt */ }
+  try { rmSync(tempDir, { recursive: true, force: true }) } catch { /* ignorieren wenn nicht erstellt */ }
 })
 
 describe('createBackupZip', () => {
