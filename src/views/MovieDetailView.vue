@@ -276,10 +276,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import axios from 'axios'
 import { useApi } from '@/composables/useApi'
 import { useUiStore } from '@/stores/ui'
 import { useListStore } from '@/stores/lists'
 import { useSettingsStore } from '@/stores/settings'
+
+const TMDB_BASE = 'https://api.themoviedb.org/3'
 const route = useRoute()
 const { resolveMediaUrl, apiGet } = useApi()
 const settings = useSettingsStore()
@@ -461,6 +464,29 @@ async function loadMovie(id: number) {
           seasons.value = await window.electron.db.seasons.forMovie(id)
         }
       } catch { /* offline oder kein Zugriff – ignorieren */ }
+    }
+
+    // TMDb-Fallback: Folgen nachladen wenn Staffeln vorhanden aber Folgen fehlen
+    if (settings.tmdbApiKey && movie.value?.tmdb_id) {
+      const missing = seasons.value.filter(s => s.episodes.length === 0)
+      if (missing.length > 0) {
+        for (const season of missing) {
+          try {
+            const { data } = await axios.get(`${TMDB_BASE}/tv/${movie.value.tmdb_id}/season/${season.season_number}`, {
+              params: { api_key: settings.tmdbApiKey, language: 'de-DE' },
+            })
+            for (const ep of (data.episodes ?? [])) {
+              await window.electron.db.episodes.upsert({
+                season_id: season.id,
+                episode_number: ep.episode_number,
+                title: ep.name ?? null,
+                overview: ep.overview ?? null,
+              })
+            }
+          } catch { /* ignorieren */ }
+        }
+        seasons.value = await window.electron.db.seasons.forMovie(id)
+      }
     }
 
     if (seasons.value.length > 0) openSeasons.value = new Set([seasons.value[0].id])

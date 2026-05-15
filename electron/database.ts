@@ -174,4 +174,16 @@ function runMigrations(instance: Database.Database = db): void {
       FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE CASCADE
     );
   `)
+
+  // Deduplicate episodes before adding unique index on (season_id, episode_number)
+  try {
+    instance.exec(`
+      DELETE FROM episodes
+      WHERE id NOT IN (
+        SELECT MAX(id) FROM episodes
+        GROUP BY season_id, episode_number
+      )
+    `)
+    instance.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_episodes_season_ep ON episodes(season_id, episode_number)')
+  } catch (e) {}
 }
