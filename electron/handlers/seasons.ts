@@ -56,16 +56,29 @@ export function upsertSeason(db: Database.Database, data: Record<string, unknown
 
 export function upsertEpisode(db: Database.Database, data: Record<string, unknown>): void {
   const now = new Date().toISOString()
-  db.prepare(`
-    INSERT INTO episodes (remote_id, season_id, episode_number, title, overview, created_at, updated_at)
-    VALUES (@remote_id, @season_id, @episode_number, @title, @overview, @created_at, @updated_at)
-    ON CONFLICT(remote_id) DO UPDATE SET
-      season_id = EXCLUDED.season_id,
-      episode_number = EXCLUDED.episode_number,
-      title = EXCLUDED.title,
-      overview = EXCLUDED.overview,
-      updated_at = EXCLUDED.updated_at
-  `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
+  if (data.remote_id != null) {
+    // From shelf sync: conflict on remote_id
+    db.prepare(`
+      INSERT INTO episodes (remote_id, season_id, episode_number, title, overview, created_at, updated_at)
+      VALUES (@remote_id, @season_id, @episode_number, @title, @overview, @created_at, @updated_at)
+      ON CONFLICT(remote_id) DO UPDATE SET
+        season_id = EXCLUDED.season_id,
+        episode_number = EXCLUDED.episode_number,
+        title = EXCLUDED.title,
+        overview = EXCLUDED.overview,
+        updated_at = EXCLUDED.updated_at
+    `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
+  } else {
+    // From TMDb: conflict on (season_id, episode_number) to prevent duplicates
+    db.prepare(`
+      INSERT INTO episodes (remote_id, season_id, episode_number, title, overview, created_at, updated_at)
+      VALUES (@remote_id, @season_id, @episode_number, @title, @overview, @created_at, @updated_at)
+      ON CONFLICT(season_id, episode_number) DO UPDATE SET
+        title = COALESCE(EXCLUDED.title, episodes.title),
+        overview = COALESCE(EXCLUDED.overview, episodes.overview),
+        updated_at = EXCLUDED.updated_at
+    `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
+  }
 }
 
 export function registerSeasonHandlers(): void {
