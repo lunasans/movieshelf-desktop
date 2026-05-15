@@ -192,7 +192,7 @@ export function useSyncEngine() {
         }
 
         const existing = await window.electron.db.movies.getByRemoteId(movie.id) as any
-        const needsUpdate = !existing || (existing.updated_at ?? '') <= (movie.updated_at ?? '')
+        const needsUpdate = !existing || (existing.updated_at ?? '') < (movie.updated_at ?? '')
 
         const local = await window.electron.db.movies.create({
           title: movie.title, year: movie.year, genre: movie.genre, director: movie.director,
@@ -445,6 +445,33 @@ export function useSyncEngine() {
     }
   }
 
+  async function runPreviewSync() {
+    errors.value = []
+    result.value = null
+    preview.value = null
+    const start = Date.now()
+    let pulled = 0, skipped = 0, deleted = 0, pushed = 0, media = 0, totalErrors = 0
+
+    try {
+      const pr = await pull(false)
+      pulled = pr.pulled; skipped = pr.skipped; deleted = pr.deleted; media = pr.media; totalErrors += pr.pullErrors
+
+      const sr = await push()
+      pushed = sr.pushed; deleted += sr.deleted; totalErrors += sr.pushErrors
+
+      const { listErrors } = await syncLists()
+      totalErrors += listErrors
+
+      result.value = { pulled, skipped, deleted, pushed, media, errors: totalErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
+      await saveSyncTime()
+    } catch (e: any) {
+      errors.value.push(e.message)
+    } finally {
+      phase.value = 'idle'
+      await loadStats()
+    }
+  }
+
   async function runFullSync() {
     errors.value = []
     result.value = null
@@ -476,6 +503,6 @@ export function useSyncEngine() {
     phase, phaseLabel, phaseDetail, progressPct,
     localCount, dirtyCount, lastSyncLabel,
     errors, previewLoading, preview, result,
-    loadStats, loadPreview, applyPull, runPull, runPush, runFullSync,
+    loadStats, loadPreview, applyPull, runPull, runPush, runPreviewSync, runFullSync,
   }
 }
