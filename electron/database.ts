@@ -175,12 +175,17 @@ function runMigrations(instance: Database.Database = db): void {
     );
   `)
 
-  // Deduplicate episodes before adding unique index on (season_id, episode_number)
+  // Deduplicate episodes before adding unique index on (season_id, episode_number).
+  // Prefer the row with remote_id when available; otherwise keep the highest id.
   try {
     instance.exec(`
       DELETE FROM episodes
       WHERE id NOT IN (
-        SELECT MAX(id) FROM episodes
+        SELECT COALESCE(
+          MAX(CASE WHEN remote_id IS NOT NULL THEN id END),
+          MAX(id)
+        )
+        FROM episodes
         GROUP BY season_id, episode_number
       )
     `)

@@ -78,7 +78,9 @@ function startFullSync() {
 }
 
 function handleApply() {
-  if (fullSyncPending.value) {
+  const hasPushChanges = preview.value
+    && (preview.value.pushNew + preview.value.pushUpdated + preview.value.pushDeleted) > 0
+  if (fullSyncPending.value || hasPushChanges) {
     fullSyncPending.value = false
     preview.value = null
     runFullSync()
