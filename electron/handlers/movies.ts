@@ -25,10 +25,11 @@ export function listMovies(db: Database.Database, params: {
   const col = ALLOWED_SORT.has(sortBy as string) ? sortBy : 'title'
   const dir = sortDir === 'DESC' ? 'DESC' : 'ASC'
 
-  // List query: top-level items only, no boxset parents or children
-  let listWhere  = 'is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL AND (is_boxset IS NULL OR is_boxset = 0)'
-  // Count query: all real films incl. boxset children, but not the parent containers
-  let countWhere = 'is_deleted = 0 AND in_collection = 1 AND (is_boxset IS NULL OR is_boxset = 0)'
+  // Without search: top-level only (standalone films + boxset parents, children hidden).
+  // With search: include boxset children so individual parts appear in results.
+  const topLevelOnly = q ? '' : ' AND boxset_parent_id IS NULL'
+  let listWhere  = `is_deleted = 0 AND in_collection = 1${topLevelOnly}`
+  let countWhere = `is_deleted = 0 AND in_collection = 1${topLevelOnly}`
   const listArgs: unknown[] = []
   const countArgs: unknown[] = []
 

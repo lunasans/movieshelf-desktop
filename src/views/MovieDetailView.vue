@@ -12,18 +12,8 @@
       <!-- Gradient Overlay -->
       <div class="absolute inset-0 bg-gradient-to-t from-[var(--bg-app)] via-[var(--bg-app)]/60 to-transparent"></div>
 
-      <!-- Play Button -->
-      <div v-if="movie.trailer_url" class="absolute inset-0 flex items-center justify-center z-20">
-        <button
-          @click="openTrailer"
-          class="w-20 h-20 bg-red-600/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-2xl shadow-red-600/40 border-4 border-white/20"
-        >
-          <i class="bi bi-play-fill text-4xl ml-1"></i>
-        </button>
-      </div>
-
       <!-- Manual Search Button (If no trailer) -->
-      <div v-else class="absolute inset-0 flex items-center justify-center z-20">
+      <div v-if="!movie.trailer_url" class="absolute inset-0 flex items-center justify-center z-20">
         <button 
           @click="searchYouTube"
           class="flex items-center gap-3 px-6 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-2xl border border-white/20 transition-all hover:scale-105 active:scale-95 group font-bold shadow-2xl"
@@ -95,6 +85,10 @@
             <div v-if="movie.rating" class="flex items-center gap-2 bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">
               <span class="text-yellow-600">★ {{ Number(movie.rating).toFixed(1) }}</span>
             </div>
+            <div v-if="movie.director" class="flex items-center gap-2">
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">Regie</span>
+              <span class="text-[var(--text-main)] opacity-70">{{ movie.director }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -143,6 +137,26 @@
                   <p v-if="actor.role" class="text-[var(--text-muted)] text-xs mt-0.5">{{ actor.role }}</p>
                 </div>
               </router-link>
+            </div>
+          </div>
+
+          <!-- Trailer -->
+          <div v-if="movie.trailer_url">
+            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">Trailer</h3>
+            <div
+              class="relative aspect-video rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] cursor-pointer group"
+              @click="openTrailer"
+            >
+              <img
+                v-if="resolveMediaUrl((movie.backdrop_url || movie.backdrop_path) as string, Number(movie.remote_id), 'backdrop')"
+                :src="resolveMediaUrl((movie.backdrop_url || movie.backdrop_path) as string, Number(movie.remote_id), 'backdrop')!"
+                class="w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity duration-300"
+              />
+              <div class="absolute inset-0 flex items-center justify-center">
+                <div class="w-16 h-16 bg-red-600/90 rounded-full flex items-center justify-center shadow-2xl shadow-red-600/40 transition-all group-hover:scale-110">
+                  <i class="bi bi-play-fill text-white text-3xl ml-1"></i>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -209,10 +223,6 @@
             </div>
           </div>
 
-          <div v-if="movie.director">
-            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-4">Regie</h3>
-            <p class="text-[var(--text-main)] text-xl font-bold">{{ movie.director }}</p>
-          </div>
         </div>
 
         <!-- Sidebar Actions -->
@@ -264,12 +274,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import axios from 'axios'
 import { useApi } from '@/composables/useApi'
 import { useUiStore } from '@/stores/ui'
 import { useListStore } from '@/stores/lists'
 import { useSettingsStore } from '@/stores/settings'
+
+const TMDB_BASE = 'https://api.themoviedb.org/3'
 const route = useRoute()
 const { resolveMediaUrl, apiGet } = useApi()
 const settings = useSettingsStore()
@@ -314,21 +327,6 @@ const handleScroll = (e: Event) => {
   }
 }
 
-const embedUrl = computed(() => {
-  if (!movie.value?.trailer_url) return null
-  const url = movie.value.trailer_url
-  let videoId = ''
-  if (url.includes('v=')) {
-    videoId = url.split('v=')[1].split('&')[0]
-  } else if (url.includes('youtu.be/')) {
-    videoId = url.split('youtu.be/')[1].split('?')[0]
-  } else if (url.includes('embed/')) {
-    videoId = url.split('embed/')[1].split('?')[0]
-  } else {
-    videoId = url
-  }
-  return `https://www.youtube.com/embed/${videoId}?autoplay=1`
-})
 
 function openTrailer() {
   const url = movie.value?.trailer_url
@@ -358,7 +356,7 @@ const parsedOverview = computed(() => {
   const text = movie.value?.overview as string
   if (!text) return []
 
-  const cleaned = text.replace(/<[^>]*>?/gm, '')
+  const cleaned = new DOMParser().parseFromString(text, 'text/html').body.textContent ?? ''
   const segments: { type: 'text' | 'actor', value: string, id?: number | null }[] = []
   const regex = /\{!Actor\}(.*?)\}|\(\[!Actor\](.*?)\)\)?/g
   let lastIndex = 0
@@ -427,17 +425,14 @@ async function toggleList(listId: number) {
   movieListIds.value = new Set(movieListIds.value)
 }
 
-onMounted(async () => {
-  const id = Number(route.params.id)
-
-  const scroller = document.querySelector('main')
-  if (scroller) {
-    scroller.addEventListener('scroll', handleScroll)
-  }
-
+async function loadMovie(id: number) {
   movie.value = await window.electron.db.movies.get(id)
   linkedActors.value = await window.electron.db.movies.actors.getForMovie(id)
   localMovieId.value = id
+  boxsetChildren.value = []
+  seasons.value = []
+  openSeasons.value = new Set()
+
 
   if (movie.value?.is_boxset) {
     boxsetChildren.value = await window.electron.db.movies.children(id)
@@ -471,14 +466,45 @@ onMounted(async () => {
       } catch { /* offline oder kein Zugriff – ignorieren */ }
     }
 
+    // TMDb-Fallback: Folgen nachladen wenn Staffeln vorhanden aber Folgen fehlen
+    if (settings.tmdbApiKey && movie.value?.tmdb_id) {
+      const missing = seasons.value.filter(s => s.episodes.length === 0)
+      if (missing.length > 0) {
+        for (const season of missing) {
+          try {
+            const { data } = await axios.get(`${TMDB_BASE}/tv/${movie.value.tmdb_id}/season/${season.season_number}`, {
+              params: { api_key: settings.tmdbApiKey, language: 'de-DE' },
+            })
+            for (const ep of (data.episodes ?? [])) {
+              await window.electron.db.episodes.upsert({
+                season_id: season.id,
+                episode_number: ep.episode_number,
+                title: ep.name ?? null,
+                overview: ep.overview ?? null,
+              })
+            }
+          } catch { /* ignorieren */ }
+        }
+        seasons.value = await window.electron.db.seasons.forMovie(id)
+      }
+    }
+
     if (seasons.value.length > 0) openSeasons.value = new Set([seasons.value[0].id])
   }
 
   await listStore.fetchLists()
-  if (localMovieId.value !== null) {
-    const ids = await window.electron.db.lists.forMovie(localMovieId.value)
-    movieListIds.value = new Set(ids)
-  }
+  const ids = await window.electron.db.lists.forMovie(id)
+  movieListIds.value = new Set(ids)
+}
+
+watch(() => route.params.id, (newId) => {
+  if (newId) loadMovie(Number(newId))
+})
+
+onMounted(async () => {
+  const scroller = document.querySelector('main')
+  if (scroller) scroller.addEventListener('scroll', handleScroll)
+  await loadMovie(Number(route.params.id))
 })
 
 onUnmounted(() => {

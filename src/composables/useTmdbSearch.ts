@@ -197,30 +197,54 @@ export function useTmdbSearch() {
   }
 
   async function downloadImages(movie: any, coverUrl: string | null, backdropUrl: string | null) {
-    if (!movie?.id) return
+    console.log('[TMDb] downloadImages movie.id=%o coverUrl=%o backdropUrl=%o', movie?.id, coverUrl, backdropUrl)
+    if (!movie?.id) { console.warn('[TMDb] downloadImages aborted: movie.id fehlt', movie); return }
     const updates: Record<string, string> = {}
     if (coverUrl) {
       const res = await window.electron.db.movies.download(coverUrl, movie.id, 'cover')
+      console.log('[TMDb] cover download result:', res)
       if (res?.success) updates.cover_path = `movie-resource://${movie.id}.jpg`
+      else console.warn('[TMDb] cover download fehlgeschlagen:', res?.error)
+    } else {
+      console.warn('[TMDb] kein coverUrl – Cover wird nicht heruntergeladen')
     }
     if (backdropUrl) {
       const res = await window.electron.db.movies.download(backdropUrl, movie.id, 'backdrop')
+      console.log('[TMDb] backdrop download result:', res)
       if (res?.success) updates.backdrop_path = `movie-resource://${movie.id}_backdrop.jpg`
+      else console.warn('[TMDb] backdrop download fehlgeschlagen:', res?.error)
+    } else {
+      console.warn('[TMDb] kein backdropUrl – Backdrop wird nicht heruntergeladen')
     }
+    console.log('[TMDb] DB-Update mit:', updates)
     if (Object.keys(updates).length) await window.electron.db.movies.update(movie.id, updates)
   }
 
   async function importSeasons(movieId: number, tmdbId: number) {
-    for (const seasonNum of selectedSeasons.value) {
+    let numsToImport = [...selectedSeasons.value]
+
+    // If no seasons were selected/loaded yet, fetch all from TMDb
+    if (numsToImport.length === 0) {
+      try {
+        const { data: show } = await axios.get(`${TMDB_BASE}/tv/${tmdbId}`, {
+          params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
+        })
+        numsToImport = (show.seasons ?? [])
+          .filter((s: any) => s.season_number > 0)
+          .map((s: any) => s.season_number)
+      } catch { return }
+    }
+
+    for (const seasonNum of numsToImport) {
       try {
         const { data } = await axios.get(`${TMDB_BASE}/tv/${tmdbId}/season/${seasonNum}`, {
           params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
         })
-        const season = tmdbSeasons.value.find(s => s.season_number === seasonNum)
+        const knownSeason = tmdbSeasons.value.find(s => s.season_number === seasonNum)
         const seasonId = await window.electron.db.seasons.upsert({
           movie_id: movieId,
           season_number: seasonNum,
-          title: season?.name ?? data.name ?? null,
+          title: knownSeason?.name ?? data.name ?? null,
           overview: data.overview ?? null,
         })
         if (seasonId != null && Array.isArray(data.episodes)) {
@@ -233,9 +257,7 @@ export function useTmdbSearch() {
             })
           }
         }
-      } catch {
-        // Continue with remaining seasons if one fails
-      }
+      } catch { /* continue with remaining seasons */ }
     }
   }
 
@@ -247,15 +269,20 @@ export function useTmdbSearch() {
     try {
       const coverUrl    = previewForm.value.cover_path
       const backdropUrl = previewForm.value.backdrop_path
+      console.log('[TMDb] confirmImport start – coverUrl=%o backdropUrl=%o', coverUrl, backdropUrl)
       const movie = await window.electron.db.movies.create({
         ...previewForm.value,
         in_collection: importToCollection.value ? 1 : 0,
         remote_id: null,
       }) as any
 
+      console.log('[TMDb] confirmImport – erstellter Film:', movie)
       await downloadImages(movie, coverUrl, backdropUrl)
 
-      if (previewForm.value.collection_type === 'Serie' && selectedSeasons.value.length > 0 && previewForm.value.tmdb_id) {
+      // Import seasons if: specific seasons selected OR seasons were never loaded (auto-fetch all).
+      // Skip only when user explicitly chose "Keine" (tmdbSeasons loaded but selectedSeasons empty).
+      const userChoseNone = tmdbSeasons.value.length > 0 && selectedSeasons.value.length === 0
+      if (previewForm.value.collection_type === 'Serie' && previewForm.value.tmdb_id && settings.tmdbApiKey && !userChoseNone) {
         await importSeasons(movie.id, previewForm.value.tmdb_id)
       }
 

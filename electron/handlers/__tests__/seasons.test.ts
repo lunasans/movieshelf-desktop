@@ -60,6 +60,18 @@ describe('upsertEpisode', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0].title).toBe('Neu')
   })
+
+  it('merged lokale TMDb-Episode beim ersten Shelf-Sync in die remote_id', () => {
+    const movieId = insertMovie(db)
+    const seasonId = upsertSeason(db, { remote_id: 1, movie_id: movieId, season_number: 1 })
+    upsertEpisode(db, { season_id: seasonId, episode_number: 1, title: 'Lokal' })
+    upsertEpisode(db, { remote_id: 30, season_id: seasonId, episode_number: 1, title: 'Remote' })
+
+    const rows = db.prepare('SELECT * FROM episodes WHERE season_id = ? AND episode_number = 1').all(seasonId) as any[]
+    expect(rows).toHaveLength(1)
+    expect(rows[0].remote_id).toBe(30)
+    expect(rows[0].title).toBe('Remote')
+  })
 })
 
 describe('getSeasonsForMovie', () => {

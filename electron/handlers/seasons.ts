@@ -18,36 +18,103 @@ export function getSeasonsForMovie(db: Database.Database, movieId: number) {
 
 export function upsertSeason(db: Database.Database, data: Record<string, unknown>): number | undefined {
   const now = new Date().toISOString()
-  const result = db.prepare(`
-    INSERT INTO seasons (remote_id, movie_id, season_number, title, overview, created_at, updated_at)
-    VALUES (@remote_id, @movie_id, @season_number, @title, @overview, @created_at, @updated_at)
-    ON CONFLICT(remote_id) DO UPDATE SET
-      movie_id = EXCLUDED.movie_id,
-      season_number = EXCLUDED.season_number,
-      title = EXCLUDED.title,
-      overview = EXCLUDED.overview,
-      updated_at = EXCLUDED.updated_at
-  `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
+
+  // If a remote_id is incoming, check if a local-only season (remote_id IS NULL)
+  // with the same movie_id + season_number exists. If so, merge into it to avoid
+  // creating a duplicate row on first sync.
+  if (data.remote_id != null && data.movie_id != null && data.season_number != null) {
+    const local = db.prepare(
+      'SELECT id FROM seasons WHERE movie_id = ? AND season_number = ? AND remote_id IS NULL'
+    ).get(data.movie_id, data.season_number) as { id: number } | undefined
+
+    if (local) {
+      db.prepare(`
+        UPDATE seasons SET remote_id = @remote_id, title = @title, overview = @overview, updated_at = @updated_at
+        WHERE id = @id
+      `).run({ remote_id: data.remote_id, title: data.title ?? null, overview: data.overview ?? null, updated_at: now, id: local.id })
+      return local.id
+    }
+  }
 
   if (data.remote_id != null) {
+    // Has remote_id: insert or update by remote_id
+    db.prepare(`
+      INSERT INTO seasons (remote_id, movie_id, season_number, title, overview, created_at, updated_at)
+      VALUES (@remote_id, @movie_id, @season_number, @title, @overview, @created_at, @updated_at)
+      ON CONFLICT(remote_id) DO UPDATE SET
+        movie_id = EXCLUDED.movie_id,
+        season_number = EXCLUDED.season_number,
+        title = EXCLUDED.title,
+        overview = EXCLUDED.overview,
+        updated_at = EXCLUDED.updated_at
+    `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
     const row = db.prepare('SELECT id FROM seasons WHERE remote_id = ?').get(data.remote_id) as { id: number } | undefined
     return row?.id
   }
+
+  // No remote_id (TMDb import): use (movie_id, season_number) as unique key
+  if (data.movie_id != null && data.season_number != null) {
+    const existing = db.prepare(
+      'SELECT id FROM seasons WHERE movie_id = ? AND season_number = ?'
+    ).get(data.movie_id, data.season_number) as { id: number } | undefined
+    if (existing) {
+      db.prepare(`UPDATE seasons SET title = COALESCE(@title, title), overview = COALESCE(@overview, overview), updated_at = @updated_at WHERE id = @id`)
+        .run({ title: data.title ?? null, overview: data.overview ?? null, updated_at: now, id: existing.id })
+      return existing.id
+    }
+  }
+
+  const result = db.prepare(`
+    INSERT INTO seasons (remote_id, movie_id, season_number, title, overview, created_at, updated_at)
+    VALUES (@remote_id, @movie_id, @season_number, @title, @overview, @created_at, @updated_at)
+  `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
   return result.lastInsertRowid as number
 }
 
 export function upsertEpisode(db: Database.Database, data: Record<string, unknown>): void {
   const now = new Date().toISOString()
-  db.prepare(`
-    INSERT INTO episodes (remote_id, season_id, episode_number, title, overview, created_at, updated_at)
-    VALUES (@remote_id, @season_id, @episode_number, @title, @overview, @created_at, @updated_at)
-    ON CONFLICT(remote_id) DO UPDATE SET
-      season_id = EXCLUDED.season_id,
-      episode_number = EXCLUDED.episode_number,
-      title = EXCLUDED.title,
-      overview = EXCLUDED.overview,
-      updated_at = EXCLUDED.updated_at
-  `).run({ title: null, overview: null, ...data, created_at: now, updated_at: now })
+
+  if (data.remote_id != null) {
+    // Sync path: if a local-only episode (no remote_id) already exists for the same
+    // (season_id, episode_number), merge into it to avoid a unique-constraint conflict.
+    if (data.season_id != null && data.episode_number != null) {
+      const local = db.prepare(
+        'SELECT id FROM episodes WHERE season_id = ? AND episode_number = ? AND remote_id IS NULL'
+      ).get(data.season_id, data.episode_number) as { id: number } | undefined
+      if (local) {
+        db.prepare(`
+          UPDATE episodes
+          SET remote_id = @remote_id,
+              title = COALESCE(@title, title),
+              overview = COALESCE(@overview, overview),
+              updated_at = @updated_at
+          WHERE id = @id
+        `).run({ remote_id: data.remote_id, title: data.title ?? null, overview: data.overview ?? null, updated_at: now, id: local.id })
+        return
+      }
+    }
+    // No local-only duplicate found: normal insert/update by remote_id
+    db.prepare(`
+      INSERT INTO episodes (remote_id, season_id, episode_number, title, overview, created_at, updated_at)
+      VALUES (@remote_id, @season_id, @episode_number, @title, @overview, @created_at, @updated_at)
+      ON CONFLICT(remote_id) DO UPDATE SET
+        season_id = EXCLUDED.season_id,
+        episode_number = EXCLUDED.episode_number,
+        title = EXCLUDED.title,
+        overview = EXCLUDED.overview,
+        updated_at = EXCLUDED.updated_at
+    `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
+  } else {
+    // TMDb path: conflict on (season_id, episode_number) — idempotent re-import
+    db.prepare(`
+      INSERT INTO episodes (remote_id, season_id, episode_number, title, overview, created_at, updated_at)
+      VALUES (@remote_id, @season_id, @episode_number, @title, @overview, @created_at, @updated_at)
+      ON CONFLICT(season_id, episode_number) DO UPDATE SET
+        title = COALESCE(EXCLUDED.title, episodes.title),
+        overview = COALESCE(EXCLUDED.overview, episodes.overview),
+        updated_at = EXCLUDED.updated_at
+    `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
+  }
 }
 
 export function registerSeasonHandlers(): void {

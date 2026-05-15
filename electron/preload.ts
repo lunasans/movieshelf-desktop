@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('electron', {
       delete:  (id: number)            => ipcRenderer.invoke('db:movies:delete', id),
       download: (url: string, id: number, type: 'cover' | 'backdrop' | 'actor') => ipcRenderer.invoke('media:download', { url, id, type }),
       exists:   (id: number, type: 'cover' | 'backdrop' | 'actor')           => ipcRenderer.invoke('media:exists',   { id, type }),
+      upload:   (data: ArrayBuffer, id: number, type: 'cover' | 'backdrop')  => ipcRenderer.invoke('media:upload',   { data, id, type }),
       actors: {
         getForMovie: (movieId: number) => ipcRenderer.invoke('db:movies:actors', movieId),
         upsert:  (data: any)                       => ipcRenderer.invoke('db:actors:upsert', data),

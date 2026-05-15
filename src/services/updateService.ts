@@ -12,7 +12,9 @@ export function useUpdateService() {
     try {
       const platform = navigator.platform.toLowerCase().includes('linux') ? 'linux' : 'win'
       const response = await axios.get(`${UPDATE_URL}?platform=${platform}`)
-      const { version: remoteVersion, url, sha256, manual } = response.data
+      const raw = response.data
+      const remoteVersion = (raw.version as string).replace(/^v/, '')
+      const { url, sha256, manual } = raw
 
       settings.newestVersion = remoteVersion
       settings.updateUrl     = url
@@ -48,8 +50,8 @@ export function useUpdateService() {
   }
 
   function extractVersionSection(markdown: string, version: string): string {
-    const lines = markdown.split('\n')
-    const startPattern = new RegExp(`^##\\s+\\[${version.replace(/\./g, '\\.')}\\]`)
+    const lines = markdown.split('\n').map(l => l.replace(/\r$/, ''))
+    const startPattern = new RegExp(`^##\\s+\\[${version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`)
     let inSection = false
     const result: string[] = []
 

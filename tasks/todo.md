@@ -1,5 +1,31 @@
 # Todo
 
+## Release 0.10.0
+- [x] Version in `package.json` auf 0.10.0 setzen
+- [x] Root-Versionen in `package-lock.json` synchronisieren
+- [x] Changelog-Eintrag fuer 0.10.0 ergaenzen
+- [x] TypeScript-Verifikation ausfuehren
+- [x] Test-/Build-Status dokumentieren
+
+### Release 0.10.0 Verification - 2026-05-15
+- `node_modules\.bin\vue-tsc.cmd --noEmit`: passed.
+- `npm.cmd test`: blocked by local `better-sqlite3` native module ABI mismatch (`NODE_MODULE_VERSION 145` vs required `137`).
+- `npm.cmd run build`: TypeScript and Vite transforms start successfully, then Rollup fails with `EPERM` writing `dist-electron/main.js`.
+
+## Open PR Review Sweep
+- [x] Inventar aller offenen PRs erstellen
+- [x] Diffs und Überschneidungen prüfen
+- [x] Pro PR Review-Findings oder Merge-Empfehlung festhalten
+- [x] Kritische PRs nach Möglichkeit reparieren oder klare nächste Aktion ableiten
+- [x] Verifikation/Rest-Risiken dokumentieren
+
+### Review Results - 2026-05-15
+- Open PRs reviewed and stale PRs closed: #14, #15, #16, #17, #18, #19, #21, #22, #23, #24.
+- #25 is now the only open/current PR and contains the integration work plus the latest sync/episode review fixes.
+- #21, #22, #23, and #24 are superseded by #25 and should not be merged independently.
+- #14, #15, #16, #17, #18, and #19 were stale or covered by the later integration PR.
+- Verification attempted: `vue-tsc --noEmit` passes; full Vitest run fails globally with runner discovery errors; targeted Season tests are blocked by a `better-sqlite3` Node ABI mismatch and locked native binary; `npm.cmd run build` passes typecheck/transform but fails writing `dist-electron/main.js` with EPERM.
+
 ## Major Dependency Upgrade (v0.6.x)
 
 ### Stage 1 — Patch updates (kein Code-Änderungsbedarf)
