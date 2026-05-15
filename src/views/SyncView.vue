@@ -67,7 +67,7 @@ const {
   phase, phaseLabel, phaseDetail, progressPct,
   localCount, dirtyCount, lastSyncLabel,
   errors, previewLoading, preview, result,
-  loadStats, loadPreview, applyPull, runPush, runFullSync,
+  loadStats, loadPreview, applyPull, runPush, runPreviewSync, runFullSync,
 } = useSyncEngine()
 
 const fullSyncPending = ref(false)
@@ -81,9 +81,13 @@ function handleApply() {
   const hasPushChanges = preview.value
     && (preview.value.pushNew + preview.value.pushUpdated + preview.value.pushDeleted) > 0
   if (fullSyncPending.value || hasPushChanges) {
-    fullSyncPending.value = false
     preview.value = null
-    runFullSync()
+    if (fullSyncPending.value) {
+      fullSyncPending.value = false
+      runFullSync()
+    } else {
+      runPreviewSync()
+    }
   } else {
     applyPull()
   }
