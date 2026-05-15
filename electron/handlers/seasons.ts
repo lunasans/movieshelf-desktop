@@ -36,21 +36,38 @@ export function upsertSeason(db: Database.Database, data: Record<string, unknown
     }
   }
 
-  const result = db.prepare(`
-    INSERT INTO seasons (remote_id, movie_id, season_number, title, overview, created_at, updated_at)
-    VALUES (@remote_id, @movie_id, @season_number, @title, @overview, @created_at, @updated_at)
-    ON CONFLICT(remote_id) DO UPDATE SET
-      movie_id = EXCLUDED.movie_id,
-      season_number = EXCLUDED.season_number,
-      title = EXCLUDED.title,
-      overview = EXCLUDED.overview,
-      updated_at = EXCLUDED.updated_at
-  `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
-
   if (data.remote_id != null) {
+    // Has remote_id: insert or update by remote_id
+    db.prepare(`
+      INSERT INTO seasons (remote_id, movie_id, season_number, title, overview, created_at, updated_at)
+      VALUES (@remote_id, @movie_id, @season_number, @title, @overview, @created_at, @updated_at)
+      ON CONFLICT(remote_id) DO UPDATE SET
+        movie_id = EXCLUDED.movie_id,
+        season_number = EXCLUDED.season_number,
+        title = EXCLUDED.title,
+        overview = EXCLUDED.overview,
+        updated_at = EXCLUDED.updated_at
+    `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
     const row = db.prepare('SELECT id FROM seasons WHERE remote_id = ?').get(data.remote_id) as { id: number } | undefined
     return row?.id
   }
+
+  // No remote_id (TMDb import): use (movie_id, season_number) as unique key
+  if (data.movie_id != null && data.season_number != null) {
+    const existing = db.prepare(
+      'SELECT id FROM seasons WHERE movie_id = ? AND season_number = ?'
+    ).get(data.movie_id, data.season_number) as { id: number } | undefined
+    if (existing) {
+      db.prepare(`UPDATE seasons SET title = COALESCE(@title, title), overview = COALESCE(@overview, overview), updated_at = @updated_at WHERE id = @id`)
+        .run({ title: data.title ?? null, overview: data.overview ?? null, updated_at: now, id: existing.id })
+      return existing.id
+    }
+  }
+
+  const result = db.prepare(`
+    INSERT INTO seasons (remote_id, movie_id, season_number, title, overview, created_at, updated_at)
+    VALUES (@remote_id, @movie_id, @season_number, @title, @overview, @created_at, @updated_at)
+  `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
   return result.lastInsertRowid as number
 }
 
