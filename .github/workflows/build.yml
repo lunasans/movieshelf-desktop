@@ -1,4 +1,4 @@
-name: Release
+name: Build & Publish
 
 on:
   push:
@@ -108,40 +108,21 @@ jobs:
           name: windows-installer
           path: release/*.exe
 
-  release:
-    name: GitHub Release erstellen
+  notify:
+    name: Website benachrichtigen
     needs: [build-linux, build-windows]
     if: always() && (needs.build-linux.result == 'success' || needs.build-linux.result == 'skipped') && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped') && (needs.build-linux.result == 'success' || needs.build-windows.result == 'success')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
-
-      - name: Changelog-Abschnitt extrahieren
-        id: changelog
-        run: |
-          VERSION="${{ github.ref_name }}"
-          VERSION="${VERSION#v}"
-          BODY=$(awk "/^## \[${VERSION}\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
-          echo "body<<EOF" >> $GITHUB_OUTPUT
-          echo "$BODY" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Artefakte herunterladen
         uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
-
-      - name: Release veröffentlichen
-        id: release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/*
-          body: ${{ steps.changelog.outputs.body }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: SHA256 berechnen
         id: hashes
@@ -151,9 +132,27 @@ jobs:
           echo "win=${SHA256_WIN}" >> $GITHUB_OUTPUT
           echo "deb=${SHA256_DEB}" >> $GITHUB_OUTPUT
 
+      - name: Release-Assets von GitHub holen
+        id: assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ASSETS_JSON=$(gh release view "${{ github.ref_name }}" --json assets --jq '.assets')
+          echo "json=${ASSETS_JSON}" >> $GITHUB_OUTPUT
+
+      - name: Changelog-Abschnitt aus Release-Notes holen
+        id: changelog
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY=$(gh release view "${{ github.ref_name }}" --json body --jq '.body')
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Website benachrichtigen
         env:
-          ASSETS_JSON: ${{ steps.release.outputs.assets }}
+          ASSETS_JSON: ${{ steps.assets.outputs.json }}
           CHANGELOG_BODY: ${{ steps.changelog.outputs.body }}
           WEBHOOK_SECRET: ${{ secrets.DESKTOP_WEBHOOK_SECRET }}
           WEBHOOK_URL: ${{ secrets.DESKTOP_WEBHOOK_URL }}

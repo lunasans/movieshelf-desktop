@@ -57,6 +57,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## Release Flow
+
+Releases werden vollautomatisch durch semantic-release ausgelöst.
+
+**Auslöser:** PR `dev → main` mergen. Das ist das einzige Release-Signal — kein manueller Tag, kein Version-Bump.
+
+**Was dann automatisch passiert:**
+1. `semantic-release.yml` analysiert alle Commits seit dem letzten Tag
+2. Versionsnummer wird aus Commit-Typen berechnet: `fix` → Patch, `feat` → Minor, `BREAKING CHANGE` → Major
+3. `CHANGELOG.md` wird aktualisiert, `package.json` gebumpt, beides committet (`[skip ci]`)
+4. Git-Tag wird gesetzt, GitHub Release wird erstellt
+5. `build.yml` (tag-getriggert) baut Linux + Windows Installer und lädt sie hoch
+
+**Commit-Konvention (entscheidet über Versionsnummer):**
+- `fix(scope): …` → Patch-Bump
+- `feat(scope): …` → Minor-Bump
+- `BREAKING CHANGE:` im Commit-Footer → Major-Bump
+
+---
+
 ## Commands
 
 ```bash
