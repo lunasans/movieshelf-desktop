@@ -55,9 +55,7 @@ jobs:
         run: npx vite build
 
       - name: Linux .deb bauen
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --linux deb --publish always
+        run: npx electron-builder --linux deb --publish never
 
       - name: Artefakt hochladen
         uses: actions/upload-artifact@v4
@@ -99,10 +97,9 @@ jobs:
 
       - name: Windows Installer bauen
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: movieshelf-cert.pfx
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-        run: npx electron-builder --win --publish always
+        run: npx electron-builder --win --publish never
 
       - name: Artefakt hochladen
         uses: actions/upload-artifact@v4
