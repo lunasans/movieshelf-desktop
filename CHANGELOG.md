@@ -1,5 +1,25 @@
 # Changelog – MovieShelf Desktop
 
+## [0.10.0] - 2026-05-15
+
+### Hinzugefuegt
+
+- **Sync-Vorschau mit Pull + Push**: Wenn die Vorschau sowohl Shelf- als auch lokale Desktop-Aenderungen zeigt, fuehrt das Bestaetigen jetzt einen bidirektionalen Delta-Sync aus: Pull, Push und Listen-Sync. Der Vollsync-Button bleibt weiterhin ein echter Vollsync.
+- **Serien-/Episoden-Import robuster**: Lokale TMDb-Folgen ohne `remote_id` werden beim spaeteren Shelf-Sync mit der passenden Remote-Folge zusammengefuehrt, statt einen `UNIQUE`-Konflikt auf `(season_id, episode_number)` auszuloesen.
+- **Regressionstest fuer Episode-Merge**: Abgedeckt ist nun der Fall, dass eine lokal importierte Folge beim ersten Shelf-Sync ihre `remote_id` erhaelt.
+
+### Geaendert
+
+- **Sync-Ergebnis zaehlt uebersprungene Filme korrekt**: Filme mit identischem `updated_at` werden nicht mehr als aktualisiert gezaehlt, sondern als uebersprungen.
+- **Episode-Deduplizierung bevorzugt Remote-Daten**: Die Migration behaelt bei doppelten Episoden bevorzugt eine Zeile mit `remote_id`.
+
+### Release
+
+- App-Version auf `0.10.0` gesetzt.
+- `package-lock.json` Root-Version wieder mit `package.json` synchronisiert.
+
+---
+
 ## [0.9.6] – 2026-05-14
 
 ### Behoben
