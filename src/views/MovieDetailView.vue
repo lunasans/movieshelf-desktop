@@ -160,6 +160,12 @@
             </div>
           </div>
 
+          <!-- Collection Parts (fehlende Teile einer Filmreihe) -->
+          <CollectionPartsSection
+            v-if="movie.tmdb_id && !movie.is_boxset && movie.collection_type !== 'Serie'"
+            :tmdbId="movie.tmdb_id"
+          />
+
           <!-- Boxset Children -->
           <div v-if="boxsetChildren.length > 0">
             <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">Enthaltene Filme</h3>
@@ -281,6 +287,7 @@ import { useApi } from '@/composables/useApi'
 import { useUiStore } from '@/stores/ui'
 import { useListStore } from '@/stores/lists'
 import { useSettingsStore } from '@/stores/settings'
+import CollectionPartsSection from '@/components/movies/CollectionPartsSection.vue'
 
 const TMDB_BASE = 'https://api.themoviedb.org/3'
 const route = useRoute()
