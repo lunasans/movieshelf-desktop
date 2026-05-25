@@ -1,3 +1,10 @@
+## [0.9.8](https://github.com/lunasans/movieshelf-desktop/compare/v0.9.7...v0.9.8) (2026-05-25)
+
+
+### Bug Fixes
+
+* **ci:** Build-Workflow auf release:published Event umstellen ([ddd099d](https://github.com/lunasans/movieshelf-desktop/commit/ddd099da035c9302d793946e1ff2df531c605fa9))
+
 ## [0.9.7](https://github.com/lunasans/movieshelf-desktop/compare/v0.9.6...v0.9.7) (2026-05-25)
 
 
