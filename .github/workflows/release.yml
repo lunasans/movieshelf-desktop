@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+  release:
+    types: [published]
 
 jobs:
   test:
@@ -114,7 +116,7 @@ jobs:
     if: always() && (needs.build-linux.result == 'success' || needs.build-linux.result == 'skipped') && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped') && (needs.build-linux.result == 'success' || needs.build-windows.result == 'success')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -142,18 +144,17 @@ jobs:
           echo "$BODY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Release erstellen und Assets hochladen
-        id: release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/*
-          body: ${{ steps.changelog.outputs.body }}
+      - name: Release-Assets abrufen
+        id: assets
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ASSETS_JSON=$(gh release view "${{ github.ref_name }}" --json assets --jq '.assets')
+          echo "json=${ASSETS_JSON}" >> $GITHUB_OUTPUT
 
       - name: Website benachrichtigen
         env:
-          ASSETS_JSON: ${{ steps.release.outputs.assets }}
+          ASSETS_JSON: ${{ steps.assets.outputs.json }}
           CHANGELOG_BODY: ${{ steps.changelog.outputs.body }}
           WEBHOOK_SECRET: ${{ secrets.DESKTOP_WEBHOOK_SECRET }}
           WEBHOOK_URL: ${{ secrets.DESKTOP_WEBHOOK_URL }}
