@@ -1,3 +1,11 @@
+## [0.9.7](https://github.com/lunasans/movieshelf-desktop/compare/v0.9.6...v0.9.7) (2026-05-25)
+
+
+### Bug Fixes
+
+* **ci:** npm install statt npm ci für semantic-release (Linux optional deps fehlen im Windows lock file) ([#27](https://github.com/lunasans/movieshelf-desktop/issues/27)) ([a1ba24a](https://github.com/lunasans/movieshelf-desktop/commit/a1ba24adcf52a5c83885a378a24bbf10e1a647f2))
+* **sync:** runPreviewSync + needsUpdate-Vergleich korrigiert ([#25](https://github.com/lunasans/movieshelf-desktop/issues/25)) ([9bf8208](https://github.com/lunasans/movieshelf-desktop/commit/9bf8208298234894031ed169fa7098a8fde13051)), closes [#1](https://github.com/lunasans/movieshelf-desktop/issues/1) [#3](https://github.com/lunasans/movieshelf-desktop/issues/3) [#1](https://github.com/lunasans/movieshelf-desktop/issues/1) [#3](https://github.com/lunasans/movieshelf-desktop/issues/3)
+
 # Changelog – MovieShelf Desktop
 
 ## [0.10.0] - 2026-05-15
