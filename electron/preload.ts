@@ -86,6 +86,12 @@ contextBridge.exposeInMainWorld('electron', {
     onProgress: (callback: (percent: number) => void) => {
       ipcRenderer.on('update:progress', (_event, percent) => callback(percent))
     },
+    onReady: (callback: () => void) => {
+      ipcRenderer.on('update:ready', () => callback())
+    },
+    onError: (callback: (message: string) => void) => {
+      ipcRenderer.on('update:error', (_event, message) => callback(message))
+    },
   },
 
   // Trailer

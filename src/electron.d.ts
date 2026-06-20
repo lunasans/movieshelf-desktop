@@ -142,6 +142,8 @@ interface Window {
       download:   () => Promise<void>
       install:    () => Promise<void>
       onProgress: (callback: (percent: number) => void) => void
+      onReady:    (callback: () => void) => void
+      onError:    (callback: (message: string) => void) => void
     }
 
     settings: {
