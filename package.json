@@ -65,6 +65,9 @@
       ],
       "icon": "public/icon.png"
     },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
     "mac": {
       "target": "dmg",
       "icon": "public/icon.png"
