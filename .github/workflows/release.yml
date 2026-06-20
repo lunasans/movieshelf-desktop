@@ -59,7 +59,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-deb
-          path: release/*.deb
+          path: |
+            release/*.deb
+            release/latest-linux.yml
 
   build-windows:
     name: Build Windows (.exe)
@@ -101,7 +103,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: release/*.exe
+          path: |
+            release/*.exe
+            release/*.blockmap
+            release/latest.yml
 
   notify:
     name: Website benachrichtigen

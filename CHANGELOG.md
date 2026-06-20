@@ -16,6 +16,8 @@
 
 - App-Version auf `0.12.0` gesetzt; `package-lock.json` synchronisiert.
 - Duplikat-Installer (`MovieShelf.Setup.0.11.0.exe`) aus dem v0.11.0-Release entfernt.
+- **`build.yml` entfernt** (lief parallel zu `release.yml` auf `v*` und erzeugte den zweiten, inkonsistenten Installer → Blockmap-Mismatch).
+- **`release.yml` veröffentlicht jetzt `latest.yml`** (Update-Manifest): bisher kam es nur aus dem entfernten `build.yml`; ohne dieses Manifest kann electron-updater Updates gar nicht erst erkennen.
 
 ---
 
