@@ -168,6 +168,13 @@
           <p v-if="updateError" class="text-xs text-[var(--status-red)] font-bold mt-3">{{ updateError }}</p>
         </div>
 
+        <!-- Persistent error (also visible after download finished/failed) -->
+        <div v-if="updateError && !downloading"
+          class="flex items-start gap-3 bg-[var(--status-red)]/10 border border-[var(--status-red)]/20 rounded-2xl px-4 py-3 mb-3">
+          <i class="bi bi-exclamation-octagon-fill text-[var(--status-red)] flex-shrink-0 mt-0.5"></i>
+          <p class="text-xs text-[var(--text-main)] opacity-90">{{ updateError }}</p>
+        </div>
+
         <!-- Manual download notice -->
         <div v-if="settings.updateAvailable && settings.updateManual && !downloading"
           class="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 mb-3">
@@ -447,6 +454,12 @@ onMounted(async () => {
 
   window.electron.update.onProgress((percent: number) => {
     downloadProgress.value = percent
+  })
+  // Fehler aus dem Updater-Prozess (z. B. fehlgeschlagene Signaturprüfung nach
+  // dem Download, oder quitAndInstall) sichtbar machen statt sie zu verschlucken.
+  window.electron.update.onError((message: string) => {
+    updateError.value = message || 'Update fehlgeschlagen.'
+    downloading.value = false
   })
 
   handleUpdateCheck()

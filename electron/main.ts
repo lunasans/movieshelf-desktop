@@ -274,6 +274,32 @@ ipcMain.handle('app:get-version', () => app.getVersion())
 
 autoUpdater.autoDownload = false
 
+// Differential-Download (Blockmap-Patching) abschalten: Wenn die `.blockmap`
+// nicht exakt zur veröffentlichten `.exe` passt (z. B. durch frühere doppelte
+// Build-Pipelines), liefert das Patchen am Ende eine andere SHA512 → der Download
+// läuft auf 100 % und bricht dann mit einem Prüfsummen-Fehler ab. Voller Download
+// ist robuster und nur unwesentlich größer.
+autoUpdater.disableDifferentialDownload = true
+
+// Logger in Datei (userData/updater.log) – damit Update-Fehler in der
+// Produktion diagnostizierbar sind und nicht nur auf der unsichtbaren Konsole landen.
+const updaterLog = (level: string, msg: unknown) => {
+  const text = msg instanceof Error ? (msg.stack || msg.message) : (typeof msg === 'string' ? msg : JSON.stringify(msg))
+  try {
+    require('fs').appendFileSync(
+      join(app.getPath('userData'), 'updater.log'),
+      `[${new Date().toISOString()}] [${level}] ${text}\n`,
+    )
+  } catch { /* Log-Fehler ignorieren */ }
+  console.log('[autoUpdater]', level, text)
+}
+autoUpdater.logger = {
+  info:  (m: unknown) => updaterLog('info', m),
+  warn:  (m: unknown) => updaterLog('warn', m),
+  error: (m: unknown) => updaterLog('error', m),
+  debug: () => { /* zu gesprächig – weglassen */ },
+} as never
+
 autoUpdater.on('download-progress', p => {
   mainWindow?.webContents.send('update:progress', Math.round(p.percent))
 })
@@ -283,8 +309,8 @@ autoUpdater.on('update-downloaded', () => {
 })
 
 autoUpdater.on('error', (err) => {
-  console.error('[autoUpdater] error:', err)
-  mainWindow?.webContents.send('update:error', String(err))
+  updaterLog('error', err)
+  mainWindow?.webContents.send('update:error', String(err?.message || err))
 })
 
 ipcMain.handle('update:check',    () => autoUpdater.checkForUpdates())
@@ -294,5 +320,16 @@ ipcMain.handle('update:download', async () => {
 })
 ipcMain.handle('update:install',  () => {
   ;(app as any).isQuitting = true
-  autoUpdater.quitAndInstall()
+  // setImmediate: erst die IPC-Antwort an den Renderer flushen, dann herunterfahren –
+  // sonst kann quitAndInstall den Aufruf abwürgen, bevor er beim Renderer ankommt.
+  // Explizite Argumente: isSilent=false → NSIS-Setup-Dialog erscheint zuverlässig,
+  // isForceRunAfter=true → App startet nach dem Update automatisch neu.
+  setImmediate(() => {
+    try {
+      autoUpdater.quitAndInstall(false, true)
+    } catch (e) {
+      updaterLog('error', `quitAndInstall failed: ${e instanceof Error ? e.stack : String(e)}`)
+      mainWindow?.webContents.send('update:error', `Installation konnte nicht gestartet werden: ${String(e)}`)
+    }
+  })
 })
