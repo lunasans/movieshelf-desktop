@@ -1,3 +1,29 @@
+## [0.11.0] - 2026-06-20
+
+### Sicherheit
+
+- **Bild-Downloads nur noch vom konfigurierten Master-Server** (kein TMDb/Fremdhost). Zusätzlich: Datei-ID strikt numerisch (Schutz vor Pfad-Traversal) und 15-MB-Größenlimit.
+- **Token & TMDb-API-Key verschlüsselt** im OS-Schlüsselspeicher (`safeStorage`) statt im Klartext in der lokalen Datenbank — sanfte Migration bestehender Werte.
+- **Content-Security-Policy** für die App-Oberfläche; OAuth- und Trailer-Fenster bleiben unberührt.
+- **Navigations-Härtung**: Links/Popups zu fremden Zielen öffnen extern statt im App-, Login- oder Trailer-Fenster (`will-navigate` + Window-Open-Handler).
+
+### Behoben
+
+- **Sync – stiller Datenverlust behoben**: Das Delta-Wasserzeichen (`since`) kommt jetzt vom Server (`exported_at`) statt von der lokalen Uhr. Damit gehen bei Zeitabweichung zwischen Computer und Server keine Änderungen mehr verloren. Reines Hochladen verschiebt das Wasserzeichen nicht mehr.
+- **Auto-Updater**: Fehler werden jetzt sauber behandelt und gemeldet statt unbemerkt zu bleiben.
+- **Backup-Wiederherstellung**: `foreign_keys` wird auch im Fehlerfall wieder aktiviert.
+- **Globale Fehler-Behandlung** im Haupt- und Renderer-Prozess, damit Fehler nicht still verschluckt werden.
+
+### CI
+
+- Obsoletes `build.yml` entfernt (Duplikat von `release.yml`, das einen fehlschlagenden Parallel-Lauf verursachte).
+
+### Release
+
+- App-Version auf `0.11.0` gesetzt; `package-lock.json` mit `package.json` synchronisiert.
+
+---
+
 ## [0.9.8](https://github.com/lunasans/movieshelf-desktop/compare/v0.9.7...v0.9.8) (2026-05-25)
 
 
