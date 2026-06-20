@@ -1,3 +1,50 @@
+## [0.12.0] - 2026-06-20
+
+### Behoben
+
+- **Update wird heruntergeladen, aber nicht installiert**: Der Download lief bis 100 % und brach dann ab, ohne dass etwas passierte. Ursachen und Fixes:
+  - **Differential-Download abgeschaltet** (`disableDifferentialDownload = true`): Passte die `.blockmap` nicht exakt zur veröffentlichten `.exe` (Folge einer früheren doppelten Build-Pipeline), ergab das Blockmap-Patching am Ende eine abweichende SHA512 → Prüfsummen-Fehler genau bei 100 %. Es wird jetzt die vollständige Datei geladen.
+  - **Fehler waren unsichtbar**: Das `update:error`-Event wurde nie im Renderer abonniert, und die Meldung stand nur im Download-Block (verschwand also sofort wieder). Es gibt jetzt `update.onError`/`update.onReady` in der Bridge und einen dauerhaft sichtbaren Fehlerhinweis.
+  - **Installer-Start abgesichert**: `quitAndInstall(false, true)` wird per `setImmediate` aufgerufen (IPC-Antwort wird zuerst geflusht), der NSIS-Setup-Dialog erscheint zuverlässig und die App startet nach dem Update neu.
+- **Update-Logdatei**: Updater-Vorgänge und -Fehler werden jetzt nach `userData/updater.log` geschrieben — in der Produktion diagnostizierbar statt nur auf der unsichtbaren Konsole.
+
+### Hinweis
+
+- Diese Verbesserungen wirken erst ab einem Build, der sie enthält. Die Aktualisierung **auf** 0.12.0 muss daher einmalig **manuell** (Setup von der Release-Seite) installiert werden; danach läuft Auto-Update sauber.
+
+### Release
+
+- App-Version auf `0.12.0` gesetzt; `package-lock.json` synchronisiert.
+- Duplikat-Installer (`MovieShelf.Setup.0.11.0.exe`) aus dem v0.11.0-Release entfernt.
+
+---
+
+## [0.11.0] - 2026-06-20
+
+### Sicherheit
+
+- **Bild-Downloads nur noch vom konfigurierten Master-Server** (kein TMDb/Fremdhost). Zusätzlich: Datei-ID strikt numerisch (Schutz vor Pfad-Traversal) und 15-MB-Größenlimit.
+- **Token & TMDb-API-Key verschlüsselt** im OS-Schlüsselspeicher (`safeStorage`) statt im Klartext in der lokalen Datenbank — sanfte Migration bestehender Werte.
+- **Content-Security-Policy** für die App-Oberfläche; OAuth- und Trailer-Fenster bleiben unberührt.
+- **Navigations-Härtung**: Links/Popups zu fremden Zielen öffnen extern statt im App-, Login- oder Trailer-Fenster (`will-navigate` + Window-Open-Handler).
+
+### Behoben
+
+- **Sync – stiller Datenverlust behoben**: Das Delta-Wasserzeichen (`since`) kommt jetzt vom Server (`exported_at`) statt von der lokalen Uhr. Damit gehen bei Zeitabweichung zwischen Computer und Server keine Änderungen mehr verloren. Reines Hochladen verschiebt das Wasserzeichen nicht mehr.
+- **Auto-Updater**: Fehler werden jetzt sauber behandelt und gemeldet statt unbemerkt zu bleiben.
+- **Backup-Wiederherstellung**: `foreign_keys` wird auch im Fehlerfall wieder aktiviert.
+- **Globale Fehler-Behandlung** im Haupt- und Renderer-Prozess, damit Fehler nicht still verschluckt werden.
+
+### CI
+
+- Obsoletes `build.yml` entfernt (Duplikat von `release.yml`, das einen fehlschlagenden Parallel-Lauf verursachte).
+
+### Release
+
+- App-Version auf `0.11.0` gesetzt; `package-lock.json` mit `package.json` synchronisiert.
+
+---
+
 ## [0.9.8](https://github.com/lunasans/movieshelf-desktop/compare/v0.9.7...v0.9.8) (2026-05-25)
 
 
