@@ -12,6 +12,14 @@ async function init() {
   app.use(pinia)
   app.use(router)
 
+  // Globale Fehler-Behandlung, damit nichts still verschluckt wird.
+  app.config.errorHandler = (err, _instance, info) => {
+    console.error('[vue] error:', err, info)
+  }
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error('[renderer] unhandled rejection:', e.reason)
+  })
+
   // App sofort mounten — Settings werden in App.vue nachgeladen
   app.mount('#app')
 
