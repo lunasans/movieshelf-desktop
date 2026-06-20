@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, shell } from 'electron'
 
 export function registerOAuthHandlers() {
   let oauthWindow: BrowserWindow | null = null
@@ -27,6 +27,13 @@ export function registerOAuthHandlers() {
     })
 
     oauthWindow.once('ready-to-show', () => oauthWindow?.show())
+
+    // Popups aus dem Login-Fenster nicht privilegiert öffnen, sondern extern.
+    oauthWindow.webContents.setWindowOpenHandler(({ url: openUrl }) => {
+      if (openUrl.startsWith('https://') || openUrl.startsWith('http://')) shell.openExternal(openUrl)
+      return { action: 'deny' }
+    })
+
     oauthWindow.loadURL(url)
 
     // HTTP-302-Redirect vom Server auf movieshelf:// abfangen

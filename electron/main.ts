@@ -1,8 +1,16 @@
-import { app, BrowserWindow, ipcMain, shell, protocol, net } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, protocol, net, session } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { globalAgent } from 'https'
 globalAgent.setMaxListeners(30)
 import { join, sep } from 'path'
+
+// Globale Absicherung: nichts soll den Main-Process unbemerkt killen.
+process.on('unhandledRejection', (reason) => {
+  console.error('[main] Unhandled promise rejection:', reason)
+})
+process.on('uncaughtException', (err) => {
+  console.error('[main] Uncaught exception:', err)
+})
 import { setupDatabase, getDb } from './database'
 import { registerMovieHandlers } from './handlers/movies'
 import { registerActorHandlers } from './handlers/actors'
@@ -83,6 +91,17 @@ function createWindow() {
     return { action: 'deny' }
   })
 
+  // Navigation weg von der eigenen App unterbinden (extern öffnen statt im App-Fenster laden).
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const ownPrefix = isDev ? 'http://localhost:5173' : 'file://'
+    if (!url.startsWith(ownPrefix)) {
+      event.preventDefault()
+      if (url.startsWith('https://') || url.startsWith('http://')) {
+        shell.openExternal(url)
+      }
+    }
+  })
+
   // Prompt for sync before closing
   mainWindow.on('close', (e) => {
     if ((app as any).isQuitting) return
@@ -129,6 +148,31 @@ function createWindow() {
 app.whenReady().then(() => {
   // Register custom protocol for OAuth deep links
   app.setAsDefaultProtocolClient('movieshelf')
+
+  // Content-Security-Policy NUR für die eigenen App-Seiten (file://) setzen –
+  // entfernte Inhalte in OAuth-/Trailer-Fenstern (https://) bleiben unberührt,
+  // damit deren eigene Seiten nicht zerschossen werden.
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    if (!details.url.startsWith('file://')) {
+      callback({ responseHeaders: details.responseHeaders })
+      return
+    }
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; " +
+            "script-src 'self'; " +
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+            "font-src 'self' https://fonts.gstatic.com data:; " +
+            "img-src 'self' data: blob: movie-resource: https: http:; " +
+            "connect-src 'self' https: http:; " +
+            "media-src 'self' https:; " +
+            "object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+        ],
+      },
+    })
+  })
 
   setupDatabase()
   registerMovieHandlers()
@@ -209,6 +253,13 @@ ipcMain.handle('trailer:open', (_event, url: string) => {
   win.webContents.setUserAgent(
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
   )
+
+  // Popups (window.open) nicht im privilegierten Fenster öffnen, sondern extern.
+  win.webContents.setWindowOpenHandler(({ url: openUrl }) => {
+    if (openUrl.startsWith('https://') || openUrl.startsWith('http://')) shell.openExternal(openUrl)
+    return { action: 'deny' }
+  })
+
   win.loadURL(url)
 
   win.webContents.on('before-input-event', (_e, input) => {
@@ -229,6 +280,11 @@ autoUpdater.on('download-progress', p => {
 
 autoUpdater.on('update-downloaded', () => {
   mainWindow?.webContents.send('update:ready')
+})
+
+autoUpdater.on('error', (err) => {
+  console.error('[autoUpdater] error:', err)
+  mainWindow?.webContents.send('update:error', String(err))
 })
 
 ipcMain.handle('update:check',    () => autoUpdater.checkForUpdates())

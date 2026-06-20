@@ -167,12 +167,14 @@ export function useSyncEngine() {
     await runPull()
   }
 
-  async function pull(full = false): Promise<{ pulled: number; skipped: number; deleted: number; media: number; pullErrors: number }> {
+  async function pull(full = false): Promise<{ pulled: number; skipped: number; deleted: number; media: number; pullErrors: number; exportedAt: string | null }> {
     setPhase('connecting', 'Verbinde mit Shelf…', '', 0)
 
     const since  = full ? null : await window.electron.settings.get('last_sync_at') as string | null
     const data   = await apiGet('/admin/export', since ? { since } : {})
     const movies = data.movies as any[]
+    // Server-autoritativer Zeitstempel (kein Client-Clock-Skew) als nächstes `since`-Wasserzeichen.
+    const exportedAt = (data.exported_at as string | undefined) ?? null
     let pulled = 0, skipped = 0, deleted = 0, pullErrors = 0
     const remoteToLocalId = new Map<number, number>()
 
@@ -300,7 +302,7 @@ export function useSyncEngine() {
     }
 
     progressPct.value = 100
-    return { pulled, skipped, deleted, media, pullErrors }
+    return { pulled, skipped, deleted, media, pullErrors, exportedAt }
   }
 
   async function push(): Promise<{ pushed: number; pushErrors: number; deleted: number }> {
@@ -407,8 +409,14 @@ export function useSyncEngine() {
     return { listsSynced, listErrors }
   }
 
-  async function saveSyncTime() {
-    await window.electron.settings.set('last_sync_at', new Date().toISOString())
+  async function saveSyncTime(serverTime: string | null) {
+    // Wasserzeichen für den Delta-Sync (`since`) ausschließlich aus dem
+    // Server-Zeitstempel `exported_at` setzen – nie aus der Client-Uhr
+    // (verhindert stillen Datenverlust bei Uhrzeit-Differenz Client/Server).
+    // Push-only liefert kein `exported_at` -> Wasserzeichen bleibt unverändert,
+    // da kein Server-Stand frisch gepullt wurde.
+    if (!serverTime) return
+    await window.electron.settings.set('last_sync_at', serverTime)
   }
 
   async function runPull() {
@@ -416,10 +424,10 @@ export function useSyncEngine() {
     result.value = null
     const start = Date.now()
     try {
-      const { pulled, skipped, deleted, media, pullErrors } = await pull()
+      const { pulled, skipped, deleted, media, pullErrors, exportedAt } = await pull()
       const { listErrors } = await syncLists()
       result.value = { pulled, skipped, deleted, pushed: 0, media, errors: pullErrors + listErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
-      await saveSyncTime()
+      await saveSyncTime(exportedAt)
     } catch (e: any) {
       errors.value.push(e.message)
     } finally {
@@ -436,7 +444,8 @@ export function useSyncEngine() {
       const { pushed, pushErrors, deleted } = await push()
       const { listErrors } = await syncLists()
       result.value = { pulled: 0, skipped: 0, deleted, pushed, media: 0, errors: pushErrors + listErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
-      await saveSyncTime()
+      // Push-only: kein frischer Server-Pull -> Wasserzeichen NICHT vorrücken.
+      await saveSyncTime(null)
     } catch (e: any) {
       errors.value.push(e.message)
     } finally {
@@ -463,7 +472,7 @@ export function useSyncEngine() {
       totalErrors += listErrors
 
       result.value = { pulled, skipped, deleted, pushed, media, errors: totalErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
-      await saveSyncTime()
+      await saveSyncTime(pr.exportedAt)
     } catch (e: any) {
       errors.value.push(e.message)
     } finally {
@@ -490,7 +499,7 @@ export function useSyncEngine() {
       totalErrors += listErrors
 
       result.value = { pulled, skipped, deleted, pushed, media, errors: totalErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
-      await saveSyncTime()
+      await saveSyncTime(pr.exportedAt)
     } catch (e: any) {
       errors.value.push(e.message)
     } finally {

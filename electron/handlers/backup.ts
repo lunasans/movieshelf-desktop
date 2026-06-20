@@ -75,40 +75,43 @@ export function restoreFromZip(db: Database.Database, zipPath: string, coversDir
 
     db.pragma('foreign_keys = OFF')
 
-    const restore = db.transaction(() => {
-      db.exec('DELETE FROM film_actor')
-      db.exec('DELETE FROM list_movies')
-      db.exec('DELETE FROM movies')
-      db.exec('DELETE FROM actors')
-      db.exec('DELETE FROM lists')
+    try {
+      const restore = db.transaction(() => {
+        db.exec('DELETE FROM film_actor')
+        db.exec('DELETE FROM list_movies')
+        db.exec('DELETE FROM movies')
+        db.exec('DELETE FROM actors')
+        db.exec('DELETE FROM lists')
 
-      insertRows(db, 'actors',     database['actors']     ?? [], ['id','remote_id','name','bio','birthday','place_of_birth','image_path','tmdb_id','created_at','updated_at'])
-      insertRows(db, 'movies',     database['movies']     ?? [], ['id','title','year','genre','director','runtime','rating','rating_age','overview','cover_path','backdrop_path','actors_names','trailer_url','collection_type','tag','tmdb_id','remote_id','synced_at','is_deleted','is_boxset','boxset_parent_id','view_count','is_watched','in_collection','created_at','updated_at'])
-      insertRows(db, 'film_actor', database['film_actor'] ?? [], ['film_id','actor_id','role','is_main_role'])
-      insertRows(db, 'lists',      database['lists']      ?? [], ['id','name','remote_id','created_at','updated_at','synced_at'])
-      insertRows(db, 'list_movies',database['list_movies'] ?? [], ['list_id','movie_id','added_at'])
+        insertRows(db, 'actors',     database['actors']     ?? [], ['id','remote_id','name','bio','birthday','place_of_birth','image_path','tmdb_id','created_at','updated_at'])
+        insertRows(db, 'movies',     database['movies']     ?? [], ['id','title','year','genre','director','runtime','rating','rating_age','overview','cover_path','backdrop_path','actors_names','trailer_url','collection_type','tag','tmdb_id','remote_id','synced_at','is_deleted','is_boxset','boxset_parent_id','view_count','is_watched','in_collection','created_at','updated_at'])
+        insertRows(db, 'film_actor', database['film_actor'] ?? [], ['film_id','actor_id','role','is_main_role'])
+        insertRows(db, 'lists',      database['lists']      ?? [], ['id','name','remote_id','created_at','updated_at','synced_at'])
+        insertRows(db, 'list_movies',database['list_movies'] ?? [], ['list_id','movie_id','added_at'])
 
-      const SKIP_KEYS = new Set(['shelf_token', 'shelf_url'])
-      for (const row of database['settings'] ?? []) {
-        if (SKIP_KEYS.has(row['key'] as string)) continue
-        db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(row['key'], row['value'])
+        const SKIP_KEYS = new Set(['shelf_token', 'shelf_url'])
+        for (const row of database['settings'] ?? []) {
+          if (SKIP_KEYS.has(row['key'] as string)) continue
+          db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(row['key'], row['value'])
+        }
+      })
+
+      restore()
+
+      const mediaDir = join(tempDir, 'media')
+      if (existsSync(mediaDir)) {
+        mkdirSync(coversDir, { recursive: true })
+        for (const file of readdirSync(mediaDir)) {
+          copyFileSync(join(mediaDir, file), join(coversDir, file))
+        }
       }
-    })
 
-    restore()
-    db.pragma('foreign_keys = ON')
-
-    const mediaDir = join(tempDir, 'media')
-    if (existsSync(mediaDir)) {
-      mkdirSync(coversDir, { recursive: true })
-      for (const file of readdirSync(mediaDir)) {
-        copyFileSync(join(mediaDir, file), join(coversDir, file))
+      return {
+        movies: (database['movies'] ?? []).length,
+        actors: (database['actors'] ?? []).length,
       }
-    }
-
-    return {
-      movies: (database['movies'] ?? []).length,
-      actors: (database['actors'] ?? []).length,
+    } finally {
+      db.pragma('foreign_keys = ON')
     }
   } finally {
     rmSync(tempDir, { recursive: true, force: true })
