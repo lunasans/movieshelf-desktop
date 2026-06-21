@@ -10,15 +10,33 @@ const COVERS_DIR = join(app.getPath('userData'), 'covers')
 // Maximalgröße eines heruntergeladenen Bildes (Schutz gegen volllaufende Platte)
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024 // 15 MB
 
-/** Origin (Schema+Host+Port) des konfigurierten Master-Servers – oder null, wenn keiner gesetzt ist. */
-function getShelfOrigin(): string | null {
+/** Konfigurierte Master-Server-URL als URL-Objekt – oder null, wenn keiner gesetzt ist. */
+function getShelfUrl(): URL | null {
   try {
     const url = getSetting(getDb(), 'shelf_url')
     if (!url) return null
-    return new URL(url).origin
+    return new URL(url)
   } catch {
     return null
   }
+}
+
+/** Registrierbare Domain (vereinfachte Näherung: letzte zwei Labels; IPv4 bleibt unverändert). */
+function baseDomain(host: string): string {
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return host
+  const labels = host.split('.')
+  return labels.length <= 2 ? host : labels.slice(-2).join('.')
+}
+
+/**
+ * Erlaubt sind Downloads vom Master-Server selbst ODER von einer Subdomain derselben
+ * registrierbaren Domain – die Shelf liefert Bilder oft von einer eigenen Medien-Domain
+ * (z. B. `medien.<domain>`). Fremde Hosts wie image.tmdb.org bleiben blockiert.
+ */
+function isAllowedMediaHost(parsed: URL, shelf: URL): boolean {
+  if (parsed.origin === shelf.origin) return true
+  if (parsed.protocol !== shelf.protocol) return false
+  return baseDomain(parsed.hostname) === baseDomain(shelf.hostname)
 }
 
 export function registerMediaHandlers(): void {
@@ -33,8 +51,8 @@ export function registerMediaHandlers(): void {
 
     // Downloads ausschließlich vom konfigurierten Master-Server zulassen
     // (kein TMDb / kein fremder Host).
-    const shelfOrigin = getShelfOrigin()
-    if (!shelfOrigin) {
+    const shelfUrl = getShelfUrl()
+    if (!shelfUrl) {
       return { success: false, error: 'Kein Master-Server konfiguriert.' }
     }
     let parsed: URL
@@ -43,9 +61,9 @@ export function registerMediaHandlers(): void {
     } catch {
       return { success: false, error: 'Ungültige URL.' }
     }
-    if (parsed.origin !== shelfOrigin) {
-      console.warn(`[media:download] Abgelehnt – nur Master-Server (${shelfOrigin}) erlaubt, war: ${parsed.origin}`)
-      return { success: false, error: 'Download nur vom Master-Server erlaubt.' }
+    if (!isAllowedMediaHost(parsed, shelfUrl)) {
+      console.warn(`[media:download] Abgelehnt – nur Master-Server/dessen Medien-Domain (${shelfUrl.origin}) erlaubt, war: ${parsed.origin}`)
+      return { success: false, error: 'Download nur vom Master-Server (oder dessen Medien-Domain) erlaubt.' }
     }
 
     // ID strikt numerisch erzwingen (verhindert Pfad-Traversal im Dateinamen)

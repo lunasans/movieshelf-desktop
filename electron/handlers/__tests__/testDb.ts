@@ -18,6 +18,19 @@ export function insertActor(db: Database.Database, overrides: Record<string, unk
   return Number(result.lastInsertRowid)
 }
 
+export function insertExternal(db: Database.Database, overrides: Record<string, unknown> = {}): number {
+  const now = new Date().toISOString()
+  const result = db.prepare(`
+    INSERT INTO external_movies (title, year, collection_type, tmdb_id, remote_id, created_at, updated_at)
+    VALUES (@title, @year, @collection_type, @tmdb_id, @remote_id, @created_at, @updated_at)
+  `).run({
+    title: 'Externer Film', year: 2021, collection_type: 'Film',
+    tmdb_id: null, remote_id: null, created_at: now, updated_at: now,
+    ...overrides,
+  })
+  return Number(result.lastInsertRowid)
+}
+
 export function insertMovie(db: Database.Database, overrides: Record<string, unknown> = {}): number {
   const now = new Date().toISOString()
   const result = db.prepare(`

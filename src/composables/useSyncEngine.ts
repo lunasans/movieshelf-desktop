@@ -200,7 +200,7 @@ export function useSyncEngine() {
           title: movie.title, year: movie.year, genre: movie.genre, director: movie.director,
           runtime: movie.runtime, rating: movie.rating, rating_age: movie.rating_age,
           overview: movie.overview, collection_type: movie.collection_type ?? 'Film',
-          tag: movie.tag, tmdb_id: movie.tmdb_id, remote_id: movie.id,
+          tag: movie.tag, tmdb_id: movie.tmdb_id, remote_id: movie.id, collection_no: movie.collection_no ?? null,
           cover_path: movie.cover_url, backdrop_path: movie.backdrop_url,
           actors_names: movie.actors_names, trailer_url: movie.trailer_url,
           created_at: movie.created_at, updated_at: movie.updated_at,
@@ -348,65 +348,196 @@ export function useSyncEngine() {
     return { pushed, pushErrors, deleted }
   }
 
-  async function syncLists(): Promise<{ listsSynced: number; listErrors: number }> {
-    setPhase('lists', 'Listen synchronisieren', '', 0)
-    let listsSynced = 0, listErrors = 0
+  // ── Listen-Sync (richtungsbewusst, immer UNION → kein Datenverlust) ──────────
+  //
+  // Wichtig: Listen werden NIE überschrieben. Ein Pull fügt nur lokal hinzu, ein
+  // Push vereinigt die lokale Mitgliedschaft mit dem aktuellen Server-Stand.
+  // Dadurch kann ein „Shelf → Desktop"-Sync nicht mehr serverseitig hinzugefügte
+  // Filme löschen (und umgekehrt). Listen-Löschungen werden bewusst NICHT
+  // propagiert (Vermeidung von Datenverlust).
 
+  /** Sammlungsfilm aus Server-Daten lokal anlegen (inkl. Cover) und als synchronisiert markieren. */
+  async function createLocalFromServerMovie(m: any): Promise<{ id: number } | null> {
+    const local = await window.electron.db.movies.create({
+      title: m.title, year: m.year, genre: m.genre, director: m.director,
+      runtime: m.runtime, rating: m.rating, rating_age: m.rating_age,
+      overview: m.overview, collection_type: m.collection_type ?? 'Film',
+      tag: m.tag, tmdb_id: m.tmdb_id, remote_id: m.id, collection_no: m.collection_no ?? null,
+      cover_path: m.cover_url, backdrop_path: m.backdrop_url,
+      actors_names: m.actors_names, trailer_url: m.trailer_url,
+      created_at: m.created_at, updated_at: m.updated_at,
+      is_boxset: m.is_boxset ? 1 : 0, boxset_parent_id: m.boxset_parent_id ?? null,
+      view_count: m.view_count ?? 0, is_watched: m.is_watched ? 1 : 0,
+      in_collection: 1,
+    }) as { id: number } | null
+    if (local?.id) {
+      await window.electron.db.movies.sync.markSynced({ id: local.id, remote_id: m.id, synced_at: new Date().toISOString() })
+      const coverUrl = resolveMediaUrl(m.cover_url)
+      if (coverUrl && !(await window.electron.db.movies.exists(m.id, 'cover'))) {
+        const r = await window.electron.db.movies.download(coverUrl, m.id, 'cover')
+        if (r.success) await window.electron.db.movies.update(local.id, { cover_path: `movie-resource://${m.id}.jpg` })
+      }
+    }
+    return local
+  }
+
+  /** Externen Film aus Server-Daten lokal anlegen (Cover bleibt als Server-URL). */
+  async function createLocalExternal(e: any): Promise<{ id: number } | null> {
+    return await window.electron.db.external.create({
+      remote_id: e.id, title: e.title, year: e.year, genre: e.genre, director: e.director,
+      runtime: e.runtime, rating: e.rating, rating_age: e.rating_age, overview: e.overview,
+      collection_type: e.collection_type, cover_path: e.cover_url, backdrop_path: e.backdrop_url,
+      trailer_url: e.trailer_url, tmdb_id: e.tmdb_id, synced_at: new Date().toISOString(),
+      created_at: e.created_at, updated_at: e.updated_at,
+    }) as { id: number } | null
+  }
+
+  /** Lokalen Sammlungsfilm (neu) auf dem Server anlegen, neue remote_id lokal übernehmen. */
+  async function createMovieOnServer(m: any): Promise<number | null> {
+    let res
+    if (m.tmdb_id) {
+      res = await apiPost('/tmdb/import', { tmdb_id: m.tmdb_id, type: m.collection_type === 'Serie' ? 'tv' : 'movie' })
+    } else {
+      res = await apiPost('/admin/movies', { title: m.title, year: m.year, genre: m.genre, director: m.director, runtime: m.runtime, rating: m.rating, rating_age: m.rating_age, overview: m.overview, collection_type: m.collection_type, tag: m.tag, tmdb_id: m.tmdb_id, trailer_url: m.trailer_url, in_collection: 1 })
+    }
+    const newId = res?.data?.id ?? null
+    if (newId) {
+      await window.electron.db.movies.sync.markSynced({ id: m.id, remote_id: newId, synced_at: new Date().toISOString() })
+      m.remote_id = newId
+    }
+    return newId
+  }
+
+  /** Lokalen externen Film (neu) auf dem Server anlegen, neue remote_id lokal übernehmen. */
+  async function createExternalOnServer(e: any): Promise<number | null> {
+    const payload = e.tmdb_id
+      ? { tmdb_id: e.tmdb_id, type: e.collection_type === 'Serie' ? 'tv' : 'movie' }
+      : { title: e.title, year: e.year, genre: e.genre, director: e.director, runtime: e.runtime, rating: e.rating, rating_age: e.rating_age, overview: e.overview, collection_type: e.collection_type, trailer_url: e.trailer_url }
+    const res = await apiPost('/external-movies', payload)
+    const newId = res?.data?.id ?? null
+    if (newId) {
+      await window.electron.db.external.markSynced({ id: e.id, remote_id: newId, synced_at: new Date().toISOString() })
+      e.remote_id = newId
+    }
+    return newId
+  }
+
+  /** Server-Listen → lokal: holt fehlende Items (Sammlung + extern), verknüpft sie.
+   *  Verändert den Server nicht und entfernt lokal nichts. */
+  async function pullLists(): Promise<number> {
+    setPhase('lists', 'Listen laden', '', 0)
+    let listErrors = 0
     try {
-      const localLists  = await window.electron.db.lists.syncState()
+      const localLists  = await window.electron.db.lists.syncState() as any[]
       const serverData  = await apiGet('/lists')
-      const serverLists: Array<{ id: number; name: string; movie_remote_ids: number[] }> = serverData.lists ?? []
+      const serverLists: Array<{ id: number; name: string }> = serverData.lists ?? []
+      const localByRemote = new Map<number, number>(
+        localLists.filter((l: any) => l.remote_id != null).map((l: any) => [l.remote_id as number, l.id as number])
+      )
 
-      const preKnownRemoteIds = new Set(localLists.map((l: any) => l.remote_id).filter(Boolean))
-      const pushedRemoteIds   = new Set<number>()
+      for (const serverList of serverLists) {
+        phaseDetail.value = serverList.name
+        try {
+          let localListId = localByRemote.get(serverList.id)
+          if (localListId == null) {
+            const created = await window.electron.db.lists.create(serverList.name)
+            await window.electron.db.lists.setRemoteId(created.id, serverList.id)
+            localListId = created.id
+            localByRemote.set(serverList.id, created.id)
+          }
+          // GET /lists/{id} liefert gemischte Items (Sammlung + extern). Fehlende lokal anlegen.
+          const detail = await apiGet(`/lists/${serverList.id}`) as { items?: any[] }
+          for (const it of detail.items ?? []) {
+            if (it.item_type === 'external') {
+              let local = await window.electron.db.external.getByRemoteId(it.id) as { id: number } | null
+              if (!local?.id) local = await createLocalExternal(it)
+              if (local?.id) await window.electron.db.lists.addItem(localListId, 'external', local.id)
+            } else {
+              let local = await window.electron.db.movies.getByRemoteId(it.id) as { id: number } | null
+              if (!local?.id) local = await createLocalFromServerMovie(it)
+              if (local?.id) await window.electron.db.lists.addItem(localListId, 'movie', local.id)
+            }
+          }
+        } catch (e: any) {
+          errors.value.push(`List pull "${serverList.name}": ${e.message}`)
+          listErrors++
+        }
+      }
+    } catch (e: any) {
+      errors.value.push(`Listen laden: ${e.message}`)
+      listErrors++
+    }
+    return listErrors
+  }
+
+  /** Lokale Listen → Server: legt fehlende/verwaiste Items an und schreibt die
+   *  Mitgliedschaft als UNION mit dem Server-Stand (kein Überschreiben). */
+  async function pushLists(): Promise<number> {
+    setPhase('lists', 'Listen hochladen', '', 0)
+    let listErrors = 0
+    try {
+      const localLists = await window.electron.db.lists.syncState() as any[]
 
       for (const list of localLists) {
         phaseDetail.value = list.name
         try {
-          if (!list.remote_id) {
-            const res = await apiPost('/lists', { name: list.name, movie_remote_ids: list.movie_remote_ids })
-            await window.electron.db.lists.setRemoteId(list.id, res.id)
-            pushedRemoteIds.add(res.id)
-          } else {
-            await apiPut(`/lists/${list.remote_id}`, { name: list.name, movie_remote_ids: list.movie_remote_ids })
-            await window.electron.db.lists.markSynced(list.id)
-            pushedRemoteIds.add(list.remote_id)
+          const full = await window.electron.db.lists.get(list.id) as { items: any[] } | null
+          const items = full?.items ?? []
+
+          // Items ohne remote_id zuerst auf dem Server anlegen.
+          for (const it of items) {
+            if (it.remote_id == null) {
+              try {
+                if (it.item_type === 'external') await createExternalOnServer(it)
+                else await createMovieOnServer(it)
+              } catch (e: any) { errors.value.push(`„${it.title}" anlegen: ${e.message}`); listErrors++ }
+            }
           }
-          listsSynced++
+
+          const localItems = () => items
+            .filter((it: any) => it.remote_id != null)
+            .map((it: any) => ({ type: it.item_type as 'movie' | 'external', id: it.remote_id as number }))
+
+          // Liste anlegen, falls auf dem Server noch nicht vorhanden.
+          let listRemoteId: number | null = list.remote_id
+          if (!listRemoteId) {
+            const res = await apiPost('/lists', { name: list.name, items: localItems() })
+            listRemoteId = res.id
+            await window.electron.db.lists.setRemoteId(list.id, listRemoteId as number)
+          }
+
+          if (listRemoteId != null) {
+            // Aktuellen Server-Stand holen
+            const serverList = await apiGet(`/lists/${listRemoteId}`) as { items?: Array<{ id: number; item_type: string }> }
+            const serverItems = (serverList.items ?? []).map(i => ({ type: i.item_type as 'movie' | 'external', id: i.id }))
+            const serverKeys = new Set(serverItems.map(i => `${i.type}:${i.id}`))
+
+            // Verwaiste lokale Items (remote_id existiert serverseitig nicht mehr) neu anlegen.
+            const orphans = items.filter((it: any) =>
+              it.remote_id != null && !serverKeys.has(`${it.item_type}:${it.remote_id}`))
+            for (const it of orphans) {
+              try {
+                if (it.item_type === 'external') await createExternalOnServer(it)
+                else await createMovieOnServer(it)
+              } catch (e: any) { errors.value.push(`„${it.title}" neu anlegen: ${e.message}`); listErrors++ }
+            }
+
+            // UNION aus lokalen (inkl. frisch angelegter) + Server-Items → nichts überschreiben.
+            const byKey = new Map<string, { type: 'movie' | 'external'; id: number }>()
+            for (const i of [...localItems(), ...serverItems]) byKey.set(`${i.type}:${i.id}`, i)
+            await apiPut(`/lists/${listRemoteId}`, { name: list.name, items: Array.from(byKey.values()) })
+            await window.electron.db.lists.markSynced(list.id)
+          }
         } catch (e: any) {
           errors.value.push(`List push "${list.name}": ${e.message}`)
           listErrors++
         }
       }
-
-      for (const serverList of serverLists) {
-        if (!preKnownRemoteIds.has(serverList.id)) {
-          try {
-            const created = await window.electron.db.lists.create(serverList.name)
-            await window.electron.db.lists.setRemoteId(created.id, serverList.id)
-            for (const remoteId of serverList.movie_remote_ids) {
-              const movie = await window.electron.db.movies.getByRemoteId(remoteId) as any
-              if (movie?.id) await window.electron.db.lists.addMovie(created.id, movie.id)
-            }
-            listsSynced++
-          } catch (e: any) {
-            errors.value.push(`List pull "${serverList.name}": ${e.message}`)
-            listErrors++
-          }
-        }
-      }
-
-      for (const serverList of serverLists) {
-        if (preKnownRemoteIds.has(serverList.id) && !pushedRemoteIds.has(serverList.id)) {
-          try { await apiDelete(`/lists/${serverList.id}`) } catch { listErrors++ }
-        }
-      }
     } catch (e: any) {
-      errors.value.push(`Listen-Sync: ${e.message}`)
+      errors.value.push(`Listen hochladen: ${e.message}`)
       listErrors++
     }
-
-    return { listsSynced, listErrors }
+    return listErrors
   }
 
   async function saveSyncTime(serverTime: string | null) {
@@ -425,7 +556,8 @@ export function useSyncEngine() {
     const start = Date.now()
     try {
       const { pulled, skipped, deleted, media, pullErrors, exportedAt } = await pull()
-      const { listErrors } = await syncLists()
+      // „Shelf → Desktop": nur Listen LADEN (Server nicht überschreiben).
+      const listErrors = await pullLists()
       result.value = { pulled, skipped, deleted, pushed: 0, media, errors: pullErrors + listErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
       await saveSyncTime(exportedAt)
     } catch (e: any) {
@@ -442,7 +574,8 @@ export function useSyncEngine() {
     const start = Date.now()
     try {
       const { pushed, pushErrors, deleted } = await push()
-      const { listErrors } = await syncLists()
+      // „Desktop → Shelf": Listen hochladen (UNION mit Server-Stand, kein Überschreiben).
+      const listErrors = await pushLists()
       result.value = { pulled: 0, skipped: 0, deleted, pushed, media: 0, errors: pushErrors + listErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
       // Push-only: kein frischer Server-Pull -> Wasserzeichen NICHT vorrücken.
       await saveSyncTime(null)
@@ -468,7 +601,9 @@ export function useSyncEngine() {
       const sr = await push()
       pushed = sr.pushed; deleted += sr.deleted; totalErrors += sr.pushErrors
 
-      const { listErrors } = await syncLists()
+      // Voll-Sync: erst Listen laden (Server-Ergänzungen holen), dann hochladen (UNION).
+      let listErrors = await pullLists()
+      listErrors += await pushLists()
       totalErrors += listErrors
 
       result.value = { pulled, skipped, deleted, pushed, media, errors: totalErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }
@@ -495,7 +630,9 @@ export function useSyncEngine() {
       const sr = await push()
       pushed = sr.pushed; deleted += sr.deleted; totalErrors += sr.pushErrors
 
-      const { listErrors } = await syncLists()
+      // Voll-Sync: erst Listen laden (Server-Ergänzungen holen), dann hochladen (UNION).
+      let listErrors = await pullLists()
+      listErrors += await pushLists()
       totalErrors += listErrors
 
       result.value = { pulled, skipped, deleted, pushed, media, errors: totalErrors, duration: ((Date.now() - start) / 1000).toFixed(1) }

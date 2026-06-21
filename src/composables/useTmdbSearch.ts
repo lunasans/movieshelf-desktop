@@ -334,10 +334,20 @@ export function useTmdbSearch() {
   async function addToList(result: TmdbResult, listId: number) {
     listPickerFor.value = null
     try {
-      const existing = await window.electron.db.movies.getByRemoteId(result.id) as any
-      const localId: number = existing?.id ?? (await importLocally(result.id, 0) as any)?.id
-      if (localId) {
-        await listStore.addMovie(listId, localId)
+      const isTv = result.media_type === 'tv' || searchMode.value === 'tv'
+      // Als EXTERNEN Film (nicht in der Sammlung) anlegen bzw. vorhandenen wiederverwenden.
+      let ext = await window.electron.db.external.getByTmdbId(result.id) as any
+      if (!ext?.id) {
+        ext = await window.electron.db.external.create({
+          title: result.title,
+          year: result.release_date ? parseInt(result.release_date.slice(0, 4)) : null,
+          tmdb_id: result.id,
+          collection_type: isTv ? 'Serie' : 'Film',
+          cover_path: result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null,
+        })
+      }
+      if (ext?.id) {
+        await listStore.addItem(listId, 'external', ext.id)
         const listName = listStore.lists.find(l => l.id === listId)?.name ?? 'Liste'
         showToast(`„${result.title}" zu „${listName}" hinzugefügt.`)
       }

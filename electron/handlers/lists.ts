@@ -4,24 +4,37 @@ import type Database from 'better-sqlite3'
 
 export function getLists(db: Database.Database) {
   return db.prepare(`
-    SELECT l.*, COUNT(lm.movie_id) as movie_count
+    SELECT l.*,
+      (SELECT COUNT(*) FROM list_items li WHERE li.list_id = l.id) AS movie_count
     FROM lists l
-    LEFT JOIN list_movies lm ON l.id = lm.list_id
-    GROUP BY l.id
     ORDER BY l.name ASC
   `).all()
 }
 
+/** Liste inkl. gemischter Items (Sammlungs- + externe Filme), je mit item_type. */
 export function getList(db: Database.Database, id: number) {
   const list = db.prepare('SELECT * FROM lists WHERE id = ?').get(id)
   if (!list) return null
+
   const movies = db.prepare(`
-    SELECT m.* FROM movies m
-    JOIN list_movies lm ON m.id = lm.movie_id
-    WHERE lm.list_id = ? AND m.is_deleted = 0
-    ORDER BY m.title ASC
-  `).all(id)
-  return { ...(list as object), movies }
+    SELECT m.*, 'movie' AS item_type, li.added_at AS list_added_at
+    FROM movies m
+    JOIN list_items li ON li.item_id = m.id AND li.item_type = 'movie'
+    WHERE li.list_id = ? AND m.is_deleted = 0
+  `).all(id) as any[]
+
+  const external = db.prepare(`
+    SELECT e.*, 'external' AS item_type, li.added_at AS list_added_at
+    FROM external_movies e
+    JOIN list_items li ON li.item_id = e.id AND li.item_type = 'external'
+    WHERE li.list_id = ?
+  `).all(id) as any[]
+
+  const items = [...movies, ...external].sort(
+    (a, b) => String(a.list_added_at ?? '').localeCompare(String(b.list_added_at ?? ''))
+  )
+
+  return { ...(list as object), items }
 }
 
 export function createList(db: Database.Database, name: string) {
@@ -39,25 +52,36 @@ export function updateList(db: Database.Database, id: number, name: string) {
 }
 
 export function deleteList(db: Database.Database, id: number) {
-  db.prepare('DELETE FROM lists WHERE id = ?').run(id)
+  db.prepare('DELETE FROM lists WHERE id = ?').run(id) // list_items cascaden via FK
   return { success: true }
 }
 
+/** Sync-Zustand: pro Liste die Items als {type, remote_id} (nur Items mit remote_id). */
 export function getListSyncState(db: Database.Database) {
   const lists = db.prepare('SELECT * FROM lists').all() as any[]
   return lists.map(list => {
-    const movies = db.prepare(`
+    const movieItems = db.prepare(`
       SELECT m.remote_id FROM movies m
-      JOIN list_movies lm ON m.id = lm.movie_id
-      WHERE lm.list_id = ? AND m.remote_id IS NOT NULL
+      JOIN list_items li ON li.item_id = m.id AND li.item_type = 'movie'
+      WHERE li.list_id = ? AND m.remote_id IS NOT NULL
     `).all(list.id) as { remote_id: number }[]
+
+    const extItems = db.prepare(`
+      SELECT e.remote_id FROM external_movies e
+      JOIN list_items li ON li.item_id = e.id AND li.item_type = 'external'
+      WHERE li.list_id = ? AND e.remote_id IS NOT NULL
+    `).all(list.id) as { remote_id: number }[]
+
     return {
       id: list.id,
       name: list.name,
       remote_id: list.remote_id ?? null,
       synced_at: list.synced_at ?? null,
       updated_at: list.updated_at,
-      movie_remote_ids: movies.map(m => m.remote_id),
+      items: [
+        ...movieItems.map(m => ({ type: 'movie', remote_id: m.remote_id })),
+        ...extItems.map(e => ({ type: 'external', remote_id: e.remote_id })),
+      ],
     }
   })
 }
@@ -81,40 +105,35 @@ export function deleteListByRemoteId(db: Database.Database, remoteId: number) {
   return { success: true }
 }
 
-export function addMovieToList(db: Database.Database, listId: number, movieId: number) {
+export function addItemToList(db: Database.Database, listId: number, itemType: 'movie' | 'external', itemId: number) {
   const now = new Date().toISOString()
   db.prepare(
-    'INSERT OR IGNORE INTO list_movies (list_id, movie_id, added_at) VALUES (?, ?, ?)'
-  ).run(listId, movieId, now)
+    'INSERT OR IGNORE INTO list_items (list_id, item_type, item_id, added_at) VALUES (?, ?, ?, ?)'
+  ).run(listId, itemType, itemId, now)
   db.prepare('UPDATE lists SET updated_at = ? WHERE id = ?').run(now, listId)
   return { success: true }
 }
 
-export function removeMovieFromList(db: Database.Database, listId: number, movieId: number) {
-  db.prepare('DELETE FROM list_movies WHERE list_id = ? AND movie_id = ?').run(listId, movieId)
+export function removeItemFromList(db: Database.Database, listId: number, itemType: 'movie' | 'external', itemId: number) {
+  db.prepare('DELETE FROM list_items WHERE list_id = ? AND item_type = ? AND item_id = ?')
+    .run(listId, itemType, itemId)
 
-  // Film mit in_collection=0 der nirgendwo mehr in einer Liste ist → löschen
-  const movie = db.prepare(
-    'SELECT in_collection FROM movies WHERE id = ?'
-  ).get(movieId) as { in_collection: number } | undefined
-
-  if (movie?.in_collection === 0) {
+  // Externen Film löschen, wenn er in keiner Liste mehr ist.
+  if (itemType === 'external') {
     const remaining = (db.prepare(
-      'SELECT COUNT(*) as count FROM list_movies WHERE movie_id = ?'
-    ).get(movieId) as { count: number }).count
-
+      "SELECT COUNT(*) AS count FROM list_items WHERE item_type = 'external' AND item_id = ?"
+    ).get(itemId) as { count: number }).count
     if (remaining === 0) {
-      db.prepare('DELETE FROM movies WHERE id = ?').run(movieId)
+      db.prepare('DELETE FROM external_movies WHERE id = ?').run(itemId)
     }
   }
-
   return { success: true }
 }
 
-export function getListsForMovie(db: Database.Database, movieId: number) {
+export function getListsForItem(db: Database.Database, itemType: 'movie' | 'external', itemId: number) {
   const rows = db.prepare(
-    'SELECT list_id FROM list_movies WHERE movie_id = ?'
-  ).all(movieId) as { list_id: number }[]
+    'SELECT list_id FROM list_items WHERE item_type = ? AND item_id = ?'
+  ).all(itemType, itemId) as { list_id: number }[]
   return rows.map(r => r.list_id)
 }
 
@@ -130,7 +149,7 @@ export function registerListHandlers(): void {
   ipcMain.handle('db:lists:set-remote-id', (_event, id: number, remoteId: number) => setListRemoteId(db(), id, remoteId))
   ipcMain.handle('db:lists:mark-synced', (_event, id: number) => markListSynced(db(), id))
   ipcMain.handle('db:lists:delete-by-remote-id', (_event, remoteId: number) => deleteListByRemoteId(db(), remoteId))
-  ipcMain.handle('db:lists:add-movie', (_event, listId: number, movieId: number) => addMovieToList(db(), listId, movieId))
-  ipcMain.handle('db:lists:remove-movie', (_event, listId: number, movieId: number) => removeMovieFromList(db(), listId, movieId))
-  ipcMain.handle('db:lists:for-movie', (_event, movieId: number) => getListsForMovie(db(), movieId))
+  ipcMain.handle('db:lists:add-item', (_event, listId: number, itemType: 'movie' | 'external', itemId: number) => addItemToList(db(), listId, itemType, itemId))
+  ipcMain.handle('db:lists:remove-item', (_event, listId: number, itemType: 'movie' | 'external', itemId: number) => removeItemFromList(db(), listId, itemType, itemId))
+  ipcMain.handle('db:lists:for-item', (_event, itemType: 'movie' | 'external', itemId: number) => getListsForItem(db(), itemType, itemId))
 }

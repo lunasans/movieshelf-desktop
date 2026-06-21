@@ -70,6 +70,10 @@
           </h1>
           
           <div class="flex items-center gap-6 text-sm font-bold text-[var(--text-muted)] transition-all duration-500" :class="{ 'opacity-0 scale-95 translate-y-[-10px]': isSticky }">
+            <div v-if="movie.collection_no" class="flex items-center gap-2">
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">Nr.</span>
+              <span class="text-[var(--text-main)] opacity-70">{{ movie.collection_no }}</span>
+            </div>
             <div class="flex items-center gap-2">
               <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">Jahr</span>
               <span class="text-[var(--text-main)] opacity-70">{{ movie.year }}</span>
@@ -422,10 +426,10 @@ async function toggleList(listId: number) {
   const movieId = await ensureLocalMovie()
   if (movieId === null) return
   if (movieListIds.value.has(listId)) {
-    await listStore.removeMovie(listId, movieId)
+    await listStore.removeItem(listId, 'movie', movieId)
     movieListIds.value.delete(listId)
   } else {
-    await listStore.addMovie(listId, movieId)
+    await listStore.addItem(listId, 'movie', movieId)
     movieListIds.value.add(listId)
   }
   // Force reactivity update
@@ -500,7 +504,7 @@ async function loadMovie(id: number) {
   }
 
   await listStore.fetchLists()
-  const ids = await window.electron.db.lists.forMovie(id)
+  const ids = await window.electron.db.lists.forItem('movie', id)
   movieListIds.value = new Set(ids)
 }
 

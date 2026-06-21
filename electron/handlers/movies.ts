@@ -148,13 +148,18 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     }
   }
 
+  // Lückenlose Sammlungsnummer: Server-Wert bevorzugen, sonst lokal fortschreiben.
+  const nextCollectionNo = (db.prepare(
+    'SELECT COALESCE(MAX(collection_no), 0) + 1 AS n FROM movies'
+  ).get() as { n: number }).n
+
   const result = db.prepare(`
     INSERT INTO movies (title, year, genre, director, runtime, rating, rating_age, overview,
       cover_path, backdrop_path, actors_names, trailer_url, collection_type, tag, tmdb_id, remote_id,
-      is_boxset, boxset_parent_id, view_count, is_watched, in_collection, created_at, updated_at)
+      is_boxset, boxset_parent_id, view_count, is_watched, in_collection, collection_no, created_at, updated_at)
     VALUES (@title, @year, @genre, @director, @runtime, @rating, @rating_age, @overview,
       @cover_path, @backdrop_path, @actors_names, @trailer_url, @collection_type, @tag, @tmdb_id, @remote_id,
-      @is_boxset, @boxset_parent_id, @view_count, @is_watched, @in_collection, @created_at, @updated_at)
+      @is_boxset, @boxset_parent_id, @view_count, @is_watched, @in_collection, @collection_no, @created_at, @updated_at)
     ON CONFLICT(remote_id) DO UPDATE SET
       title = EXCLUDED.title, year = EXCLUDED.year, genre = EXCLUDED.genre,
       director = EXCLUDED.director, runtime = EXCLUDED.runtime, rating = EXCLUDED.rating,
@@ -164,7 +169,9 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
       collection_type = EXCLUDED.collection_type, tag = EXCLUDED.tag, tmdb_id = EXCLUDED.tmdb_id,
       is_boxset = EXCLUDED.is_boxset, boxset_parent_id = EXCLUDED.boxset_parent_id,
       view_count = EXCLUDED.view_count, is_watched = EXCLUDED.is_watched,
-      in_collection = EXCLUDED.in_collection, updated_at = EXCLUDED.updated_at
+      in_collection = EXCLUDED.in_collection,
+      collection_no = COALESCE(EXCLUDED.collection_no, movies.collection_no),
+      updated_at = EXCLUDED.updated_at
     WHERE EXCLUDED.updated_at >= movies.updated_at
   `).run({
     title: null, year: null,
@@ -172,6 +179,7 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     overview: null, cover_path: null, backdrop_path: null, actors_names: null,
     trailer_url: null, collection_type: 'Film', tag: null, tmdb_id: null, remote_id: null,
     is_boxset: 0, boxset_parent_id: null, view_count: 0, is_watched: 0, in_collection: 1,
+    collection_no: nextCollectionNo,
     ...data,
     created_at: data.created_at || now, updated_at: data.updated_at || now,
   })

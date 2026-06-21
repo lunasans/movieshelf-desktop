@@ -10,8 +10,10 @@ export interface MovieList {
   updated_at: string
 }
 
+export type ListItem = Movie & { item_type: 'movie' | 'external' }
+
 export interface MovieListDetail extends MovieList {
-  movies: Movie[]
+  items: ListItem[]
 }
 
 export const useListStore = defineStore('lists', () => {
@@ -49,17 +51,17 @@ export const useListStore = defineStore('lists', () => {
     lists.value = lists.value.filter(l => l.id !== id)
   }
 
-  async function addMovie(listId: number, movieId: number): Promise<void> {
-    await window.electron.db.lists.addMovie(listId, movieId)
+  async function addItem(listId: number, itemType: 'movie' | 'external', itemId: number): Promise<void> {
+    await window.electron.db.lists.addItem(listId, itemType, itemId)
     const entry = lists.value.find(l => l.id === listId)
     if (entry) entry.movie_count++
   }
 
-  async function removeMovie(listId: number, movieId: number): Promise<void> {
-    await window.electron.db.lists.removeMovie(listId, movieId)
+  async function removeItem(listId: number, itemType: 'movie' | 'external', itemId: number): Promise<void> {
+    await window.electron.db.lists.removeItem(listId, itemType, itemId)
     const entry = lists.value.find(l => l.id === listId)
     if (entry && entry.movie_count > 0) entry.movie_count--
   }
 
-  return { lists, loading, fetchLists, createList, renameList, deleteList, addMovie, removeMovie }
+  return { lists, loading, fetchLists, createList, renameList, deleteList, addItem, removeItem }
 })

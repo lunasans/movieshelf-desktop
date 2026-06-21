@@ -9,7 +9,7 @@ import type Database from 'better-sqlite3'
 
 const COVERS_DIR = join(app.getPath('userData'), 'covers')
 
-const TABLES = ['movies', 'actors', 'film_actor', 'lists', 'list_movies', 'settings'] as const
+const TABLES = ['movies', 'actors', 'film_actor', 'lists', 'external_movies', 'list_items', 'settings'] as const
 
 export function createBackupZip(db: Database.Database, zipPath: string, coversDir: string): { movies: number } {
   const zip = new AdmZip()
@@ -77,17 +77,19 @@ export function restoreFromZip(db: Database.Database, zipPath: string, coversDir
 
     try {
       const restore = db.transaction(() => {
+        db.exec('DELETE FROM list_items')
         db.exec('DELETE FROM film_actor')
-        db.exec('DELETE FROM list_movies')
+        db.exec('DELETE FROM external_movies')
         db.exec('DELETE FROM movies')
         db.exec('DELETE FROM actors')
         db.exec('DELETE FROM lists')
 
         insertRows(db, 'actors',     database['actors']     ?? [], ['id','remote_id','name','bio','birthday','place_of_birth','image_path','tmdb_id','created_at','updated_at'])
-        insertRows(db, 'movies',     database['movies']     ?? [], ['id','title','year','genre','director','runtime','rating','rating_age','overview','cover_path','backdrop_path','actors_names','trailer_url','collection_type','tag','tmdb_id','remote_id','synced_at','is_deleted','is_boxset','boxset_parent_id','view_count','is_watched','in_collection','created_at','updated_at'])
+        insertRows(db, 'movies',     database['movies']     ?? [], ['id','title','year','genre','director','runtime','rating','rating_age','overview','cover_path','backdrop_path','actors_names','trailer_url','collection_type','tag','tmdb_id','remote_id','synced_at','is_deleted','is_boxset','boxset_parent_id','view_count','is_watched','in_collection','collection_no','created_at','updated_at'])
         insertRows(db, 'film_actor', database['film_actor'] ?? [], ['film_id','actor_id','role','is_main_role'])
         insertRows(db, 'lists',      database['lists']      ?? [], ['id','name','remote_id','created_at','updated_at','synced_at'])
-        insertRows(db, 'list_movies',database['list_movies'] ?? [], ['list_id','movie_id','added_at'])
+        insertRows(db, 'external_movies', database['external_movies'] ?? [], ['id','remote_id','title','year','genre','director','runtime','rating','rating_age','overview','collection_type','cover_path','backdrop_path','trailer_url','tmdb_id','synced_at','created_at','updated_at'])
+        insertRows(db, 'list_items', database['list_items'] ?? [], ['list_id','item_type','item_id','added_at'])
 
         const SKIP_KEYS = new Set(['shelf_token', 'shelf_url'])
         for (const row of database['settings'] ?? []) {

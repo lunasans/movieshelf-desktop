@@ -8,7 +8,7 @@
         </router-link>
         <div>
           <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight">{{ list.name }}</h1>
-          <p class="text-sm text-[var(--text-muted)] opacity-60">{{ list.movies.length }} {{ list.movies.length === 1 ? 'Film' : 'Filme' }}</p>
+          <p class="text-sm text-[var(--text-muted)] opacity-60">{{ list.items.length }} {{ list.items.length === 1 ? 'Film' : 'Filme' }}</p>
         </div>
       </div>
       <button
@@ -25,12 +25,12 @@
     </div>
 
     <!-- Grid -->
-    <div v-else-if="list.movies.length > 0" class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-6">
+    <div v-else-if="list.items.length > 0" class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-6">
       <div
-        v-for="movie in list.movies"
-        :key="movie.id"
+        v-for="movie in list.items"
+        :key="movie.item_type + '-' + movie.id"
         class="group cursor-pointer"
-        @click="router.push(`/movies/${movie.id}`)"
+        @click="openItem(movie)"
       >
         <div class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] group-hover:border-red-500/50 group-hover:scale-105 transition-all duration-300 shadow-[var(--shadow-main)]">
           <img
@@ -44,10 +44,16 @@
             <span class="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-tight leading-snug line-clamp-4">{{ movie.title }}</span>
           </div>
 
+          <!-- Typ-Badge -->
+          <div class="absolute top-2 right-2">
+            <span v-if="movie.item_type === 'external'" class="px-2 py-0.5 bg-sky-500/80 backdrop-blur-sm rounded-full text-[8px] font-black text-white uppercase tracking-widest">Extern</span>
+            <span v-else class="px-2 py-0.5 bg-emerald-500/80 backdrop-blur-sm rounded-full text-[8px] font-black text-white uppercase tracking-widest">Sammlung</span>
+          </div>
+
           <!-- Hover overlay -->
           <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
             <button
-              @click.stop="removeFromList(movie.id)"
+              @click.stop="removeFromList(movie)"
               class="w-full bg-red-600/80 hover:bg-red-600 text-white text-[10px] font-black uppercase tracking-widest py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
             >
               <i class="bi bi-dash-lg"></i> Entfernen
@@ -137,7 +143,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import type { Movie } from '@/stores/movies'
-import type { MovieListDetail } from '@/stores/lists'
+import type { MovieListDetail, ListItem } from '@/stores/lists'
 
 const route = useRoute()
 const router = useRouter()
@@ -161,7 +167,11 @@ async function load() {
 }
 
 function isInList(movieId: number): boolean {
-  return !!list.value?.movies.some(m => m.id === movieId)
+  return !!list.value?.items.some(m => m.item_type === 'movie' && m.id === movieId)
+}
+
+function openItem(item: ListItem) {
+  if (item.item_type === 'movie') router.push(`/movies/${item.id}`)
 }
 
 function onSearch() {
@@ -178,14 +188,14 @@ async function runSearch() {
 
 async function addMovie(movie: Movie) {
   if (!list.value || isInList(movie.id)) return
-  await window.electron.db.lists.addMovie(list.value.id, movie.id)
-  list.value.movies = [...list.value.movies, movie]
+  await window.electron.db.lists.addItem(list.value.id, 'movie', movie.id)
+  list.value.items = [...list.value.items, { ...movie, item_type: 'movie' }]
 }
 
-async function removeFromList(movieId: number) {
+async function removeFromList(item: ListItem) {
   if (!list.value) return
-  await window.electron.db.lists.removeMovie(list.value.id, movieId)
-  list.value.movies = list.value.movies.filter(m => m.id !== movieId)
+  await window.electron.db.lists.removeItem(list.value.id, item.item_type, item.id)
+  list.value.items = list.value.items.filter(m => !(m.item_type === item.item_type && m.id === item.id))
 }
 
 function closeAddModal() {

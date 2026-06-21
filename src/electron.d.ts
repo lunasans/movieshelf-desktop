@@ -10,7 +10,7 @@ type SyncState = Array<{
   remote_id: number | null
   synced_at: string | null
   updated_at: string
-  movie_remote_ids: number[]
+  items: Array<{ type: 'movie' | 'external'; remote_id: number }>
 }>
 
 type SeasonWithEpisodes = {
@@ -111,13 +111,22 @@ interface Window {
         create:          (name: string) => Promise<{ id: number; name: string; remote_id: number | null }>
         update:          (id: number, name: string) => Promise<unknown>
         delete:          (id: number) => Promise<{ success: boolean }>
-        addMovie:        (listId: number, movieId: number) => Promise<{ success: boolean }>
-        removeMovie:     (listId: number, movieId: number) => Promise<{ success: boolean }>
-        forMovie:        (movieId: number) => Promise<number[]>
+        addItem:         (listId: number, itemType: 'movie' | 'external', itemId: number) => Promise<{ success: boolean }>
+        removeItem:      (listId: number, itemType: 'movie' | 'external', itemId: number) => Promise<{ success: boolean }>
+        forItem:         (itemType: 'movie' | 'external', itemId: number) => Promise<number[]>
         syncState:       () => Promise<SyncState>
         setRemoteId:     (id: number, remoteId: number) => Promise<{ success: boolean }>
         markSynced:      (id: number) => Promise<{ success: boolean }>
         deleteByRemoteId:(remoteId: number) => Promise<{ success: boolean }>
+      }
+      external: {
+        getByRemoteId: (remoteId: number) => Promise<Record<string, unknown> | null>
+        getByTmdbId:   (tmdbId: number) => Promise<Record<string, unknown> | null>
+        get:           (id: number) => Promise<Record<string, unknown> | null>
+        create:        (data: Record<string, unknown>) => Promise<{ id: number } & Record<string, unknown>>
+        update:        (id: number, data: Record<string, unknown>) => Promise<{ success: boolean }>
+        markSynced:    (params: { id: number; remote_id: number; synced_at: string }) => Promise<{ success: boolean }>
+        delete:        (id: number) => Promise<{ success: boolean }>
       }
     }
 

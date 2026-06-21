@@ -18,6 +18,7 @@ import { registerSyncHandlers } from './handlers/sync'
 import { registerSettingsHandlers } from './handlers/settings'
 import { registerMediaHandlers } from './handlers/media'
 import { registerListHandlers } from './handlers/lists'
+import { registerExternalHandlers } from './handlers/external'
 import { registerStatsHandlers } from './handlers/stats'
 import { registerOAuthHandlers } from './handlers/oauth'
 import { registerBackupHandlers } from './handlers/backup'
@@ -181,6 +182,7 @@ app.whenReady().then(() => {
   registerSettingsHandlers()
   registerMediaHandlers()
   registerListHandlers()
+  registerExternalHandlers()
   registerStatsHandlers()
   registerOAuthHandlers()
   registerBackupHandlers()

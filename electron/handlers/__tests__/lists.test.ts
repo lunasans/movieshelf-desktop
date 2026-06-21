@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type Database from 'better-sqlite3'
-import { createTestDb, insertMovie } from './testDb'
+import { createTestDb, insertMovie, insertExternal } from './testDb'
 import { createMovie } from '../movies'
 import {
   getLists, getList, createList, updateList, deleteList,
-  addMovieToList, removeMovieFromList, getListsForMovie,
+  addItemToList, removeItemFromList, getListsForItem,
   getListSyncState, setListRemoteId, markListSynced, deleteListByRemoteId,
 } from '../lists'
 
@@ -25,7 +25,7 @@ describe('getLists', () => {
   it('gibt Listen mit movie_count zurück', () => {
     const list = createList(db, 'Liste A') as any
     const movieId = insertMovie(db)
-    addMovieToList(db, list.id, movieId)
+    addItemToList(db, list.id, 'movie', movieId)
 
     const lists = getLists(db) as any[]
     expect(lists).toHaveLength(1)
@@ -43,28 +43,33 @@ describe('getLists', () => {
 })
 
 describe('getList', () => {
-  it('gibt Liste mit zugehörigen Filmen zurück', () => {
+  it('gibt Liste mit gemischten Items (movie + external) zurück', () => {
     const list = createList(db, 'Meine Liste') as any
     const movieId = insertMovie(db, { title: 'Inception' })
-    addMovieToList(db, list.id, movieId)
+    const extId = insertExternal(db, { title: 'Dune (Wunsch)' })
+    addItemToList(db, list.id, 'movie', movieId)
+    addItemToList(db, list.id, 'external', extId)
 
     const result = getList(db, list.id) as any
     expect(result.name).toBe('Meine Liste')
-    expect(result.movies).toHaveLength(1)
-    expect(result.movies[0].title).toBe('Inception')
+    expect(result.items).toHaveLength(2)
+    const movie = result.items.find((i: any) => i.item_type === 'movie')
+    const external = result.items.find((i: any) => i.item_type === 'external')
+    expect(movie.title).toBe('Inception')
+    expect(external.title).toBe('Dune (Wunsch)')
   })
 
   it('gibt null zurück wenn Liste nicht existiert', () => {
     expect(getList(db, 9999)).toBeNull()
   })
 
-  it('schließt gelöschte Filme aus', () => {
+  it('schließt gelöschte Sammlungsfilme aus', () => {
     const list = createList(db, 'Liste') as any
     const movieId = insertMovie(db, { is_deleted: 1 })
-    addMovieToList(db, list.id, movieId)
+    addItemToList(db, list.id, 'movie', movieId)
 
     const result = getList(db, list.id) as any
-    expect(result.movies).toHaveLength(0)
+    expect(result.items).toHaveLength(0)
   })
 })
 
@@ -87,45 +92,57 @@ describe('deleteList', () => {
   })
 })
 
-describe('addMovieToList / removeMovieFromList', () => {
-  it('verknüpft einen Film mit einer Liste', () => {
+describe('addItemToList / removeItemFromList', () => {
+  it('verknüpft einen Sammlungsfilm mit einer Liste', () => {
     const list = createList(db, 'Liste') as any
     const movieId = insertMovie(db)
-    addMovieToList(db, list.id, movieId)
+    addItemToList(db, list.id, 'movie', movieId)
 
-    expect(getListsForMovie(db, movieId)).toContain(list.id)
+    expect(getListsForItem(db, 'movie', movieId)).toContain(list.id)
   })
 
-  it('entfernt Film aus Liste; Film bleibt wenn in_collection=1', () => {
+  it('Sammlungsfilm bleibt erhalten, wenn er aus der Liste entfernt wird', () => {
     const list = createList(db, 'Liste') as any
-    const movieId = insertMovie(db, { in_collection: 1 })
-    addMovieToList(db, list.id, movieId)
-    removeMovieFromList(db, list.id, movieId)
+    const movieId = insertMovie(db)
+    addItemToList(db, list.id, 'movie', movieId)
+    removeItemFromList(db, list.id, 'movie', movieId)
 
     const still = db.prepare('SELECT id FROM movies WHERE id = ?').get(movieId)
     expect(still).toBeDefined()
   })
 
-  it('löscht Film wenn in_collection=0 und nicht mehr in einer Liste', () => {
+  it('externer Film wird gelöscht, wenn er in keiner Liste mehr ist', () => {
     const list = createList(db, 'Liste') as any
-    const movieId = insertMovie(db, { in_collection: 0 })
-    addMovieToList(db, list.id, movieId)
-    removeMovieFromList(db, list.id, movieId)
+    const extId = insertExternal(db)
+    addItemToList(db, list.id, 'external', extId)
+    removeItemFromList(db, list.id, 'external', extId)
 
-    const gone = db.prepare('SELECT id FROM movies WHERE id = ?').get(movieId)
+    const gone = db.prepare('SELECT id FROM external_movies WHERE id = ?').get(extId)
     expect(gone).toBeUndefined()
+  })
+
+  it('externer Film bleibt, solange er noch in einer anderen Liste ist', () => {
+    const listA = createList(db, 'A') as any
+    const listB = createList(db, 'B') as any
+    const extId = insertExternal(db)
+    addItemToList(db, listA.id, 'external', extId)
+    addItemToList(db, listB.id, 'external', extId)
+    removeItemFromList(db, listA.id, 'external', extId)
+
+    const still = db.prepare('SELECT id FROM external_movies WHERE id = ?').get(extId)
+    expect(still).toBeDefined()
   })
 })
 
-describe('getListsForMovie', () => {
+describe('getListsForItem', () => {
   it('gibt korrekte List-IDs zurück', () => {
     const listA = createList(db, 'A') as any
     const listB = createList(db, 'B') as any
     const movieId = insertMovie(db)
-    addMovieToList(db, listA.id, movieId)
-    addMovieToList(db, listB.id, movieId)
+    addItemToList(db, listA.id, 'movie', movieId)
+    addItemToList(db, listB.id, 'movie', movieId)
 
-    const ids = getListsForMovie(db, movieId)
+    const ids = getListsForItem(db, 'movie', movieId)
     expect(ids).toHaveLength(2)
     expect(ids).toContain(listA.id)
     expect(ids).toContain(listB.id)
@@ -133,24 +150,27 @@ describe('getListsForMovie', () => {
 })
 
 describe('getListSyncState', () => {
-  it('enthält remote_ids der verknüpften Filme', () => {
+  it('enthält Items mit remote_id (movie + external)', () => {
     const list = createList(db, 'Sync-Liste') as any
     const movie = createMovie(db, { title: 'Mit Remote', remote_id: 42, in_collection: 1 }) as any
-    addMovieToList(db, list.id, movie.id)
+    const extId = insertExternal(db, { remote_id: 77 })
+    addItemToList(db, list.id, 'movie', movie.id)
+    addItemToList(db, list.id, 'external', extId)
 
     const state = getListSyncState(db) as any[]
     const entry = state.find(s => s.id === list.id)
-    expect(entry.movie_remote_ids).toContain(42)
+    expect(entry.items).toContainEqual({ type: 'movie', remote_id: 42 })
+    expect(entry.items).toContainEqual({ type: 'external', remote_id: 77 })
   })
 
-  it('schließt Filme ohne remote_id aus', () => {
+  it('schließt Items ohne remote_id aus', () => {
     const list = createList(db, 'Liste') as any
     const movieId = insertMovie(db)
-    addMovieToList(db, list.id, movieId)
+    addItemToList(db, list.id, 'movie', movieId)
 
     const state = getListSyncState(db) as any[]
     const entry = state.find(s => s.id === list.id)
-    expect(entry.movie_remote_ids).toHaveLength(0)
+    expect(entry.items).toHaveLength(0)
   })
 })
 

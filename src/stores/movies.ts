@@ -21,6 +21,7 @@ export interface Movie {
   tag: string | null
   tmdb_id: number | null
   remote_id: number | null
+  collection_no?: number | null
   is_boxset: number | null
   boxset_parent_id: number | null
   is_watched: number

@@ -96,6 +96,7 @@ function runMigrations(instance: Database.Database = db): void {
   try { instance.exec('ALTER TABLE movies ADD COLUMN view_count INTEGER DEFAULT 0') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN is_watched INTEGER DEFAULT 0') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN in_collection INTEGER DEFAULT 1') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN collection_no INTEGER') } catch (e) {}
 
   // Cleanup duplicates before creating unique index
   try {
@@ -113,18 +114,8 @@ function runMigrations(instance: Database.Database = db): void {
     console.error('Migration failed:', e)
   }
 
-  // Final Cleanup: Hide movies that are only on lists but marked as "in collection"
-  try {
-    instance.exec(`
-      UPDATE movies
-      SET in_collection = 0
-      WHERE in_collection = 1
-      AND id IN (SELECT movie_id FROM list_movies)
-      AND remote_id IS NULL
-    `)
-  } catch (e) {}
-
-  // Custom lists
+  // Custom lists (der polymorphe Pivot list_items wird weiter unten erstellt;
+  // ein evtl. noch vorhandenes altes list_movies wird dort migriert und gedroppt).
   instance.exec(`
     CREATE TABLE IF NOT EXISTS lists (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -133,15 +124,6 @@ function runMigrations(instance: Database.Database = db): void {
       created_at TEXT    DEFAULT (datetime('now')),
       updated_at TEXT    DEFAULT (datetime('now')),
       synced_at  TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS list_movies (
-      list_id    INTEGER NOT NULL,
-      movie_id   INTEGER NOT NULL,
-      added_at   TEXT    DEFAULT (datetime('now')),
-      PRIMARY KEY (list_id, movie_id),
-      FOREIGN KEY (list_id)  REFERENCES lists(id)  ON DELETE CASCADE,
-      FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE
     );
   `)
 
@@ -190,5 +172,98 @@ function runMigrations(instance: Database.Database = db): void {
       )
     `)
     instance.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_episodes_season_ep ON episodes(season_id, episode_number)')
+  } catch (e) {}
+
+  // ── Datenmodell-Split: externe Filme (nicht in Sammlung) + polymorpher Listen-Pivot ──
+  instance.exec(`
+    CREATE TABLE IF NOT EXISTS external_movies (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      remote_id     INTEGER,
+      title         TEXT NOT NULL,
+      year          INTEGER,
+      genre         TEXT,
+      director      TEXT,
+      runtime       INTEGER,
+      rating        REAL,
+      rating_age    INTEGER,
+      overview      TEXT,
+      collection_type TEXT,
+      cover_path    TEXT,
+      backdrop_path TEXT,
+      trailer_url   TEXT,
+      tmdb_id       INTEGER,
+      synced_at     TEXT,
+      created_at    TEXT DEFAULT (datetime('now')),
+      updated_at    TEXT DEFAULT (datetime('now'))
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_external_remote_id ON external_movies(remote_id) WHERE remote_id IS NOT NULL;
+
+    CREATE TABLE IF NOT EXISTS list_items (
+      list_id   INTEGER NOT NULL,
+      item_type TEXT NOT NULL,
+      item_id   INTEGER NOT NULL,
+      added_at  TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (list_id, item_type, item_id),
+      FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE
+    );
+  `)
+
+  // Einmalige Migration: solange list_movies existiert, in list_items überführen und
+  // lokale in_collection=0-Filme nach external_movies auslagern. Danach list_movies droppen.
+  const hasListMovies = instance.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='list_movies'"
+  ).get()
+  if (hasListMovies) {
+    try {
+      const migrate = instance.transaction(() => {
+        const externals = instance.prepare('SELECT * FROM movies WHERE in_collection = 0').all() as any[]
+        const insExt = instance.prepare(`
+          INSERT INTO external_movies
+            (remote_id, title, year, genre, director, runtime, rating, rating_age, overview,
+             collection_type, cover_path, backdrop_path, trailer_url, tmdb_id, synced_at, created_at, updated_at)
+          VALUES
+            (@remote_id, @title, @year, @genre, @director, @runtime, @rating, @rating_age, @overview,
+             @collection_type, @cover_path, @backdrop_path, @trailer_url, @tmdb_id, @synced_at, @created_at, @updated_at)
+        `)
+        const map = new Map<number, number>()
+        for (const m of externals) {
+          const r = insExt.run({
+            remote_id: m.remote_id ?? null, title: m.title, year: m.year ?? null, genre: m.genre ?? null,
+            director: m.director ?? null, runtime: m.runtime ?? null, rating: m.rating ?? null,
+            rating_age: m.rating_age ?? null, overview: m.overview ?? null, collection_type: m.collection_type ?? null,
+            cover_path: m.cover_path ?? null, backdrop_path: m.backdrop_path ?? null, trailer_url: m.trailer_url ?? null,
+            tmdb_id: m.tmdb_id ?? null, synced_at: m.synced_at ?? null,
+            created_at: m.created_at ?? null, updated_at: m.updated_at ?? null,
+          })
+          map.set(m.id, Number(r.lastInsertRowid))
+        }
+
+        const insItem = instance.prepare(
+          'INSERT OR IGNORE INTO list_items (list_id, item_type, item_id, added_at) VALUES (?, ?, ?, ?)'
+        )
+        for (const row of instance.prepare('SELECT * FROM list_movies').all() as any[]) {
+          if (map.has(row.movie_id)) insItem.run(row.list_id, 'external', map.get(row.movie_id), row.added_at ?? null)
+          else insItem.run(row.list_id, 'movie', row.movie_id, row.added_at ?? null)
+        }
+
+        instance.exec('DELETE FROM movies WHERE in_collection = 0')
+        instance.exec('DROP TABLE list_movies')
+      })
+      migrate()
+    } catch (e) {
+      console.error('List-split migration failed:', e)
+    }
+  }
+
+  // collection_no lückenlos vergeben (NULL-Zeilen nach aktueller Höchstnummer fortschreiben).
+  try {
+    const nullRows = instance.prepare('SELECT id FROM movies WHERE collection_no IS NULL ORDER BY id').all() as { id: number }[]
+    if (nullRows.length) {
+      const maxRow = instance.prepare('SELECT COALESCE(MAX(collection_no), 0) AS m FROM movies').get() as { m: number }
+      let n = maxRow.m
+      const upd = instance.prepare('UPDATE movies SET collection_no = ? WHERE id = ?')
+      const tx = instance.transaction(() => { for (const r of nullRows) { n++; upd.run(n, r.id) } })
+      tx()
+    }
   } catch (e) {}
 }
