@@ -1,3 +1,13 @@
+## [0.13.1] - 2026-06-21
+
+### Behoben
+
+- **Auto-Update brach mit „not signed by the application owner" / UntrustedRoot ab.** Der Installer ist mit einem selbstsignierten Zertifikat signiert, dessen Stammzertifikat Windows nicht kennt; electron-updater verweigerte daraufhin den Auto-Install. Die Signaturprüfung des Updaters ist jetzt deaktiviert (`win.verifyUpdateCodeSignature: false`) – passend für die selbstgehostete Installation, Downloads bleiben auf den Master-Server beschränkt.
+
+> Hinweis: Die Einstellung steckt im Build. Die Aktualisierung **auf** 0.13.1 muss daher einmalig **manuell** installiert werden (Setup von der Release-Seite); ab 0.13.1 funktionieren Auto-Updates wieder.
+
+---
+
 ## [0.13.0] - 2026-06-21
 
 ### Geändert
