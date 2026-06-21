@@ -1,3 +1,24 @@
+## [0.13.0] - 2026-06-21
+
+### Geändert
+
+- **Datenmodell-Split: externe Listen-Filme von der Sammlung getrennt.** Filme, die nur in einer Liste liegen (nicht besessen), sind jetzt eigene Datensätze (`external_movies`) statt Sammlungsfilme mit `in_collection=0`. Listen referenzieren Sammlungs- **und** externe Filme gemischt (polymorpher `list_items`-Pivot). Folgen:
+  - Externe Filme ziehen **keine Sammlungsnummern** mehr.
+  - Die Sammlung erhält eine **lückenlose `collection_no`** (in der Detailansicht als „Nr." sichtbar).
+  - Listen können Sammlungs- und externe Filme zugleich enthalten (Badge „Sammlung"/„Extern").
+- **Sync** auf den neuen Items-Vertrag umgestellt (Sammlung + extern), UNION-Logik bleibt – Listen werden in keine Richtung überschrieben.
+
+### Behoben
+
+- Medien-Download akzeptiert jetzt die eigene Medien-Subdomain des Master-Servers (z. B. `medien.<domain>`), blockiert weiter Fremdhosts.
+
+### Migration
+
+- Beim ersten Start verschiebt eine einmalige lokale Migration `in_collection=0`-Filme nach `external_movies` und `list_movies` → `list_items` (destruktiv – vorher `movieshelf.db` sichern).
+- **Setzt einen MovieShelf-Server ≥ passendem Datenmodell-Split voraus**; bitte Server zuerst migrieren, dann einmalig Voll-Sync.
+
+---
+
 ## [0.12.0] - 2026-06-20
 
 ### Behoben
