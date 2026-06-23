@@ -59,21 +59,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Release Flow
 
-Releases werden vollautomatisch durch semantic-release ausgelöst.
+Releases werden **manuell** ausgelöst (kein semantic-release mehr).
 
-**Auslöser:** PR `dev → main` mergen. Das ist das einzige Release-Signal — kein manueller Tag, kein Version-Bump.
+**Auslöser:** Git-Tag `v*` pushen **oder** ein GitHub-Release veröffentlichen. Das Mergen eines PR nach `main` löst **kein** Release aus.
 
-**Was dann automatisch passiert:**
-1. `semantic-release.yml` analysiert alle Commits seit dem letzten Tag
-2. Versionsnummer wird aus Commit-Typen berechnet: `fix` → Patch, `feat` → Minor, `BREAKING CHANGE` → Major
-3. `CHANGELOG.md` wird aktualisiert, `package.json` gebumpt, beides committet (`[skip ci]`)
-4. Git-Tag wird gesetzt, GitHub Release wird erstellt
-5. `build.yml` (tag-getriggert) baut Linux + Windows Installer und lädt sie hoch
+**Vor dem Release manuell erledigen:**
+1. Version in `package.json` bumpen
+2. Passenden Abschnitt `## [x.y.z]` in `CHANGELOG.md` ergänzen (wird vom Workflow für die Release-Notes ausgelesen)
+3. Committen, dann Tag `vx.y.z` setzen und pushen
 
-**Commit-Konvention (entscheidet über Versionsnummer):**
-- `fix(scope): …` → Patch-Bump
-- `feat(scope): …` → Minor-Bump
-- `BREAKING CHANGE:` im Commit-Footer → Major-Bump
+**Was `.github/workflows/release.yml` dann automatisch macht:**
+1. `test` → Unit-Tests (vitest)
+2. `build-linux` (.deb) + `build-windows` (signierter .exe-Installer), Artefakte hochladen
+3. `notify` → GitHub-Release mit Assets erstellen, Changelog-Abschnitt anhängen, SHA256 berechnen und Website-Webhook benachrichtigen
+
+**Commit-Konvention** (`fix`/`feat`/`BREAKING CHANGE`) ist nur noch Konvention für den Changelog — sie beeinflusst die Versionsnummer nicht mehr automatisch.
 
 ---
 
