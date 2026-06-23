@@ -1,3 +1,13 @@
+## [0.14.0] - 2026-06-23
+
+### Neu
+
+- **Installationsverzeichnis wählbar & Desktop-Icon optional.** Der Windows-Installer ist jetzt ein geführter Assistent (statt One-Click): der Zielordner lässt sich frei wählen und die Desktop-Verknüpfung per Checkbox an-/abwählen.
+- **Autostart beim Systemstart.** Neuer Schalter „Beim Systemstart öffnen" in den Einstellungen (Erscheinungsbild). Beim Login startet MovieShelf leise ins Tray.
+- **Tray-Icon.** MovieShelf läuft jetzt mit Symbol im Infobereich. Schließen (X) minimiert ins Tray statt zu beenden; tatsächliches Beenden erfolgt über das Tray-Menü (inkl. der bestehenden Sync-Abfrage bei nicht synchronisierten Änderungen).
+
+---
+
 ## [0.13.1] - 2026-06-21
 
 ### Behoben
