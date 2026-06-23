@@ -3,6 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('electron', {
   getIsDev: () => ipcRenderer.invoke('get-is-dev'),
   getVersion: () => ipcRenderer.invoke('app:get-version'),
+  getAutostart: () => ipcRenderer.invoke('app:get-autostart'),
+  setAutostart: (enabled: boolean) => ipcRenderer.invoke('app:set-autostart', enabled),
   // Window controls
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),

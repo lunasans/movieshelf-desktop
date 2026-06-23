@@ -29,6 +29,21 @@
         <SettingsRow label="Design" hint="Hell, Dunkel oder Systemeinstellung">
           <ThemeSwitcher />
         </SettingsRow>
+
+        <SettingsRow label="Beim Systemstart öffnen" hint="MovieShelf automatisch nach der Anmeldung starten">
+          <button
+            @click="toggleAutostart"
+            role="switch"
+            :aria-checked="autostart"
+            class="relative w-11 h-6 rounded-full transition-colors"
+            :class="autostart ? 'bg-[var(--status-green)]' : 'bg-[var(--border-ui)]'"
+          >
+            <span
+              class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform"
+              :class="autostart ? 'translate-x-5' : 'translate-x-0'"
+            ></span>
+          </button>
+        </SettingsRow>
       </template>
 
       <!-- ── Verbindung ── -->
@@ -399,6 +414,7 @@ const { checkForUpdates } = useUpdateService()
 
 const isDev            = ref(false)
 const active           = ref('appearance')
+const autostart        = ref(false)
 
 const loginEmail       = ref('')
 const loginPassword    = ref('')
@@ -450,6 +466,7 @@ const visibleSections = computed(() =>
 
 onMounted(async () => {
   isDev.value = await window.electron.getIsDev()
+  autostart.value = await window.electron.getAutostart()
   await settings.load()
 
   window.electron.update.onProgress((percent: number) => {
@@ -566,6 +583,10 @@ async function installUpdate() {
 
 async function save() {
   await settings.save()
+}
+
+async function toggleAutostart() {
+  autostart.value = await window.electron.setAutostart(!autostart.value)
 }
 
 async function clearDatabase() {

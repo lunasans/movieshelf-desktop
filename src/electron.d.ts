@@ -46,8 +46,10 @@ type StatsResult = {
 
 interface Window {
   electron: {
-    getIsDev:   () => Promise<boolean>
-    getVersion: () => Promise<string>
+    getIsDev:      () => Promise<boolean>
+    getVersion:    () => Promise<string>
+    getAutostart:  () => Promise<boolean>
+    setAutostart:  (enabled: boolean) => Promise<boolean>
 
     window: {
       minimize: () => void
