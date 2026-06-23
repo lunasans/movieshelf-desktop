@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, protocol, net, session } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, protocol, net, session, Tray, Menu, nativeImage } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { globalAgent } from 'https'
 globalAgent.setMaxListeners(30)
@@ -27,6 +27,11 @@ import { registerSeasonHandlers } from './handlers/seasons'
 const isDev = !app.isPackaged || process.env.NODE_ENV === 'development'
 
 let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+
+// Beim Autostart über das Login-Item wird die App mit `--hidden` gestartet
+// (siehe app:set-autostart). Dann nur ins Tray, ohne Fenster anzuzeigen.
+const startHidden = process.argv.includes('--hidden')
 
 // ── OAuth Deep-Link Handler ───────────────────────────────────────────────────
 
@@ -76,7 +81,9 @@ function createWindow() {
     icon: join(__dirname, '../public/icon.png'),
   })
 
-  mainWindow.once('ready-to-show', () => mainWindow?.show())
+  mainWindow.once('ready-to-show', () => {
+    if (!startHidden) mainWindow?.show()
+  })
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
@@ -103,47 +110,75 @@ function createWindow() {
     }
   })
 
-  // Prompt for sync before closing
+  // Schließen (X) beendet die App nicht, sondern minimiert sie ins Tray.
+  // Tatsächlich beendet wird nur über das Tray-Menü „Beenden" (→ quitApp).
   mainWindow.on('close', (e) => {
     if ((app as any).isQuitting) return
-
     e.preventDefault()
-
-    const db = getDb()
-    
-    // Check for dirty records
-    const result = db.prepare(`
-      SELECT COUNT(*) as count FROM movies 
-      WHERE remote_id IS NULL 
-         OR updated_at > synced_at 
-         OR is_deleted = 1
-    `).get() as { count: number }
-
-    const dirtyCount = result ? result.count : 0
-
-    if (dirtyCount > 0) {
-      const { dialog } = require('electron')
-      dialog.showMessageBox(mainWindow!, {
-        type: 'question',
-        buttons: ['Jetzt Synchronisieren', 'Trotzdem Beenden', 'Abbrechen'],
-        defaultId: 0,
-        cancelId: 2,
-        title: 'Nicht synchronisierte Änderungen',
-        message: `Du hast ${dirtyCount} Filme noch nicht synchronisiert.`,
-        detail: 'Möchtest du jetzt synchronisieren, bevor du das Programm schließt?'
-      }).then((result: { response: number }) => {
-        if (result.response === 0) {
-          mainWindow!.webContents.send('navigate-to', '/sync')
-        } else if (result.response === 1) {
-          (app as any).isQuitting = true
-          app.quit()
-        }
-      })
-    } else {
-      (app as any).isQuitting = true
-      app.quit()
-    }
+    mainWindow?.hide()
   })
+}
+
+// ── Tray ───────────────────────────────────────────────────────────────────────
+
+function showMainWindow() {
+  if (!mainWindow) { createWindow(); return }
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function createTray() {
+  if (tray) return
+  const icon = nativeImage.createFromPath(join(__dirname, '../public/icon.png'))
+  tray = new Tray(icon.resize({ width: 16, height: 16 }))
+  tray.setToolTip('MovieShelf')
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'MovieShelf öffnen', click: () => showMainWindow() },
+    { type: 'separator' },
+    { label: 'Beenden', click: () => quitApp() },
+  ]))
+  tray.on('click', () => showMainWindow())
+  tray.on('double-click', () => showMainWindow())
+}
+
+// Echtes Beenden inkl. Abfrage nicht synchronisierter Änderungen.
+function quitApp() {
+  if ((app as any).isQuitting) return
+
+  const db = getDb()
+  const result = db.prepare(`
+    SELECT COUNT(*) as count FROM movies
+    WHERE remote_id IS NULL
+       OR updated_at > synced_at
+       OR is_deleted = 1
+  `).get() as { count: number }
+
+  const dirtyCount = result ? result.count : 0
+
+  if (dirtyCount > 0) {
+    const { dialog } = require('electron')
+    showMainWindow()
+    dialog.showMessageBox(mainWindow!, {
+      type: 'question',
+      buttons: ['Jetzt Synchronisieren', 'Trotzdem Beenden', 'Abbrechen'],
+      defaultId: 0,
+      cancelId: 2,
+      title: 'Nicht synchronisierte Änderungen',
+      message: `Du hast ${dirtyCount} Filme noch nicht synchronisiert.`,
+      detail: 'Möchtest du jetzt synchronisieren, bevor du das Programm schließt?'
+    }).then((res: { response: number }) => {
+      if (res.response === 0) {
+        mainWindow!.webContents.send('navigate-to', '/sync')
+      } else if (res.response === 1) {
+        (app as any).isQuitting = true
+        app.quit()
+      }
+    })
+  } else {
+    (app as any).isQuitting = true
+    app.quit()
+  }
 }
 
 app.whenReady().then(() => {
@@ -208,6 +243,7 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+  createTray()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -271,6 +307,24 @@ ipcMain.handle('trailer:open', (_event, url: string) => {
 
 ipcMain.handle('get-is-dev', () => isDev)
 ipcMain.handle('app:get-version', () => app.getVersion())
+
+// ── Autostart (Login Item) ───────────────────────────────────────────────────
+// Nutzt das Betriebssystem (Windows-Registry/macOS Login Items), nicht NSIS.
+// Im Dev-Modus ist das wirkungslos und wird daher übersprungen.
+ipcMain.handle('app:get-autostart', () => {
+  if (isDev) return false
+  return app.getLoginItemSettings().openAtLogin
+})
+
+ipcMain.handle('app:set-autostart', (_event, enabled: boolean) => {
+  if (isDev) return false
+  app.setLoginItemSettings({
+    openAtLogin: enabled,
+    // Beim Login leise ins Tray starten (von createWindow/ready-to-show ausgewertet).
+    args: enabled ? ['--hidden'] : [],
+  })
+  return app.getLoginItemSettings().openAtLogin
+})
 
 // ── Auto-Updater (electron-updater) ──────────────────────────────────────────
 
