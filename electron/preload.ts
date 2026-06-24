@@ -137,4 +137,11 @@ contextBridge.exposeInMainWorld('electron', {
     create:  () => ipcRenderer.invoke('backup:create'),
     restore: () => ipcRenderer.invoke('backup:restore'),
   },
+
+  // Protokolle (Entwickler)
+  logs: {
+    get:        () => ipcRenderer.invoke('logs:get'),
+    clear:      () => ipcRenderer.invoke('logs:clear'),
+    openFolder: () => ipcRenderer.invoke('logs:open-folder'),
+  },
 })

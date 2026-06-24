@@ -29,8 +29,13 @@
         <SettingsRow label="Design" hint="Hell, Dunkel oder Systemeinstellung">
           <ThemeSwitcher />
         </SettingsRow>
+      </template>
 
-        <SettingsRow label="Beim Systemstart öffnen" hint="MovieShelf automatisch nach der Anmeldung starten">
+      <!-- ── Allgemein ── -->
+      <template v-if="active === 'general'">
+        <SectionHeader icon="gear" title="Allgemein" />
+
+        <SettingsRow label="Beim Systemstart öffnen" hint="MovieShelf startet beim Login automatisch ins Tray">
           <button
             @click="toggleAutostart"
             role="switch"
@@ -305,6 +310,39 @@
       <template v-if="active === 'dev'">
         <SectionHeader icon="bug" title="Entwickler-Werkzeuge" />
 
+        <!-- Protokolle -->
+        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <p class="text-sm font-bold text-[var(--text-main)]">Protokolle</p>
+              <p class="text-xs text-[var(--text-muted)] opacity-60 mt-0.5">Letzte Meldungen des Hauptprozesses</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                @click="refreshLogs"
+                class="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-ui)] rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5"
+              >
+                <i class="bi bi-arrow-repeat" :class="{ 'animate-spin': logsLoading }"></i> Aktualisieren
+              </button>
+              <button
+                @click="openLogFolder"
+                class="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-ui)] rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5"
+              >
+                <i class="bi bi-folder2-open"></i> Ordner
+              </button>
+              <button
+                @click="clearLogs"
+                class="text-xs font-bold text-[var(--status-red)] hover:bg-[var(--status-red)]/10 border border-[var(--status-red)]/20 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5"
+              >
+                <i class="bi bi-trash3"></i> Leeren
+              </button>
+            </div>
+          </div>
+          <pre
+            class="bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl p-3 text-[11px] leading-relaxed text-[var(--text-main)] opacity-80 font-mono overflow-auto max-h-80 whitespace-pre-wrap break-all"
+          >{{ logs || 'Keine Einträge.' }}</pre>
+        </div>
+
         <div class="bg-[var(--status-red-bg)] border border-[var(--status-red)]/20 rounded-2xl p-5">
           <p class="text-xs text-[var(--status-red)] opacity-60 font-bold uppercase tracking-widest mb-4">Destruktive Aktionen</p>
           <button
@@ -321,7 +359,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, defineComponent, h } from 'vue'
+import { ref, computed, onMounted, watch, defineComponent, h } from 'vue'
 import axios from 'axios'
 import { useSettingsStore } from '@/stores/settings'
 import { useApi } from '@/composables/useApi'
@@ -415,6 +453,8 @@ const { checkForUpdates } = useUpdateService()
 const isDev            = ref(false)
 const active           = ref('appearance')
 const autostart        = ref(false)
+const logs             = ref('')
+const logsLoading      = ref(false)
 
 const loginEmail       = ref('')
 const loginPassword    = ref('')
@@ -450,17 +490,22 @@ const importLoading    = ref(false)
 const importResult     = ref<{ imported: number; skipped: number; error?: string } | null>(null)
 
 const sections = [
-  { id: 'appearance', icon: 'palette',      label: 'Erscheinungsbild' },
-  { id: 'connection', icon: 'cloud',         label: 'Verbindung'       },
-  { id: 'tmdb',       icon: 'film',          label: 'TMDb'             },
-  { id: 'updates',    icon: 'arrow-repeat',  label: 'Updates'          },
+  { id: 'general',    icon: 'gear',          label: 'Allgemein'        },
   { id: 'backup',     icon: 'archive',       label: 'Backup'           },
   { id: 'dev',        icon: 'bug',           label: 'Entwickler',  dev: true },
+  { id: 'appearance', icon: 'palette',      label: 'Erscheinungsbild' },
+  { id: 'tmdb',       icon: 'film',          label: 'TMDb'             },
+  { id: 'updates',    icon: 'arrow-repeat',  label: 'Updates'          },
+  { id: 'connection', icon: 'cloud',         label: 'Verbindung'       },
 ]
 
 const visibleSections = computed(() =>
   sections.filter(s => !s.dev || isDev.value)
 )
+
+watch(active, (id) => {
+  if (id === 'dev') refreshLogs()
+})
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -587,6 +632,21 @@ async function save() {
 
 async function toggleAutostart() {
   autostart.value = await window.electron.setAutostart(!autostart.value)
+}
+
+async function refreshLogs() {
+  logsLoading.value = true
+  try { logs.value = await window.electron.logs.get() }
+  finally { logsLoading.value = false }
+}
+
+async function clearLogs() {
+  await window.electron.logs.clear()
+  logs.value = ''
+}
+
+function openLogFolder() {
+  window.electron.logs.openFolder()
 }
 
 async function clearDatabase() {

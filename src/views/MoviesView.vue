@@ -7,6 +7,23 @@
         <p class="text-sm text-[var(--text-muted)] opacity-60">{{ store.total }} {{ isSeries ? 'Serien' : 'Filme' }} in der Sammlung</p>
       </div>
       <div class="flex items-center gap-2">
+        <!-- Ansicht umschalten -->
+        <div class="flex items-center bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl p-0.5">
+          <button
+            v-for="v in viewOptions"
+            :key="v.mode"
+            @click="setViewMode(v.mode)"
+            :title="v.label"
+            :class="[
+              'p-1.5 rounded-lg transition-colors',
+              viewMode === v.mode
+                ? 'bg-[var(--status-red)] text-white'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-main)]',
+            ]"
+          >
+            <i :class="`bi bi-${v.icon}`"></i>
+          </button>
+        </div>
         <button
           @click="showRandom = true"
           class="p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-ui)] hover:border-purple-500/50 text-[var(--text-muted)] hover:text-purple-400 transition-colors"
@@ -86,6 +103,19 @@
     <!-- Width measurer (invisible sentinel) -->
     <div ref="measureEl" class="w-full h-0"></div>
 
+    <!-- Tabellen-Kopf -->
+    <div
+      v-if="viewMode === 'table' && !store.loading && store.movies.length > 0"
+      class="grid items-center gap-3 px-3 py-2 grid-cols-[40px_1fr_56px_56px_72px_minmax(0,90px)] text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-50 border-b border-[var(--border-ui)] mb-1"
+    >
+      <span></span>
+      <span>Titel</span>
+      <span class="text-center">Jahr</span>
+      <span class="text-center">Note</span>
+      <span class="text-center">Laufzeit</span>
+      <span class="text-right">Typ</span>
+    </div>
+
     <!-- Loading (Initial) -->
     <div v-if="store.loading && !store.loadingMore" class="flex items-center justify-center py-20">
       <div class="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
@@ -122,7 +152,8 @@
           transform: 'translateY(' + (row.start - scrollMarginV) + 'px)',
         }"
       >
-        <div class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-6 pb-6">
+        <!-- Raster -->
+        <div v-if="viewMode === 'grid'" class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-6 pb-6">
           <MovieCard
             v-for="movie in getRowMovies(row.index)"
             :key="movie.id"
@@ -131,6 +162,30 @@
             :selected="store.selectedIds.includes(movie.id)"
             @delete="store.deleteMovie(movie.id)"
             @toggle-watched="store.toggleMovieWatched(movie.id)"
+            @toggle-select="store.toggleSelect(movie.id)"
+          />
+        </div>
+
+        <!-- Liste -->
+        <div v-else-if="viewMode === 'list'" :style="{ height: rowHeight + 'px' }" class="overflow-hidden">
+          <MovieListRow
+            v-for="movie in getRowMovies(row.index)"
+            :key="movie.id"
+            :movie="movie"
+            :bulk-mode="store.bulkMode"
+            :selected="store.selectedIds.includes(movie.id)"
+            @toggle-select="store.toggleSelect(movie.id)"
+          />
+        </div>
+
+        <!-- Tabelle -->
+        <div v-else :style="{ height: rowHeight + 'px' }" class="overflow-hidden">
+          <MovieTableRow
+            v-for="movie in getRowMovies(row.index)"
+            :key="movie.id"
+            :movie="movie"
+            :bulk-mode="store.bulkMode"
+            :selected="store.selectedIds.includes(movie.id)"
             @toggle-select="store.toggleSelect(movie.id)"
           />
         </div>
@@ -168,6 +223,8 @@ import { useMovieStore } from '@/stores/movies'
 import { useSettingsStore } from '@/stores/settings'
 import type { Movie } from '@/stores/movies'
 import MovieCard from '@/components/movies/MovieCard.vue'
+import MovieListRow from '@/components/movies/MovieListRow.vue'
+import MovieTableRow from '@/components/movies/MovieTableRow.vue'
 import RandomPickerModal from '@/components/RandomPickerModal.vue'
 import BulkActionBar from '@/components/BulkActionBar.vue'
 
@@ -183,6 +240,23 @@ const sortDirLocal = ref<'ASC' | 'DESC'>('ASC')
 const showRandom   = ref(false)
 const availableGenres = ref<string[]>([])
 
+// ── Ansicht (Raster / Liste / Tabelle), dauerhaft gemerkt ──────────────────────
+type ViewMode = 'grid' | 'list' | 'table'
+const VIEW_KEY = 'movieshelf:moviesViewMode'
+const viewMode = ref<ViewMode>((localStorage.getItem(VIEW_KEY) as ViewMode) || 'grid')
+
+function setViewMode(mode: ViewMode) {
+  if (viewMode.value === mode) return
+  viewMode.value = mode
+  localStorage.setItem(VIEW_KEY, mode)
+}
+
+const viewOptions: { mode: ViewMode; icon: string; label: string }[] = [
+  { mode: 'grid',  icon: 'grid-3x3-gap-fill', label: 'Raster' },
+  { mode: 'list',  icon: 'list-ul',           label: 'Liste'  },
+  { mode: 'table', icon: 'table',             label: 'Tabelle' },
+]
+
 const measureEl = ref<HTMLElement | null>(null)
 const gridEl    = ref<HTMLElement | null>(null)
 const searchEl  = ref<HTMLInputElement | null>(null)
@@ -192,22 +266,32 @@ const listKey  = computed(() => isSeries.value ? 'Serie' : '!Serie')
 
 // ── Virtual scrolling ─────────────────────────────────────────────────────────
 
-const ROW_HEIGHT = 290
+const ROW_HEIGHTS = { grid: 290, list: 72, table: 48 } as const
 const ITEM_MIN   = 160
 const GAP        = 24
 
 const containerWidth = ref(1200)
 const scrollMarginV  = ref(0)
 
-const cols     = computed(() => Math.max(1, Math.floor((containerWidth.value + GAP) / (ITEM_MIN + GAP))))
-const rowCount = computed(() => Math.max(0, Math.ceil(store.movies.length / cols.value)))
+const rowHeight = computed(() => ROW_HEIGHTS[viewMode.value])
+const cols      = computed(() => viewMode.value === 'grid'
+  ? Math.max(1, Math.floor((containerWidth.value + GAP) / (ITEM_MIN + GAP)))
+  : 1)
+const rowCount  = computed(() => Math.max(0, Math.ceil(store.movies.length / cols.value)))
 
 const virtualizer = useVirtualizer({
   get count() { return rowCount.value },
   getScrollElement: () => document.querySelector('main') as HTMLElement,
-  estimateSize: () => ROW_HEIGHT,
+  estimateSize: () => rowHeight.value,
   overscan: 2,
   get scrollMargin() { return scrollMarginV.value },
+})
+
+// Beim Ansichtswechsel Zeilenhöhen/Spalten neu vermessen.
+watch(viewMode, async () => {
+  await nextTick()
+  virtualizer.value.measure()
+  updateMeasurements()
 })
 
 function getRowMovies(rowIdx: number): Movie[] {

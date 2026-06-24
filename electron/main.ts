@@ -11,6 +11,7 @@ process.on('unhandledRejection', (reason) => {
 process.on('uncaughtException', (err) => {
   console.error('[main] Uncaught exception:', err)
 })
+import { initLogger, getLogs, clearLogs, getLogFilePath } from './logger'
 import { setupDatabase, getDb } from './database'
 import { registerMovieHandlers } from './handlers/movies'
 import { registerActorHandlers } from './handlers/actors'
@@ -210,6 +211,7 @@ app.whenReady().then(() => {
     })
   })
 
+  initLogger()
   setupDatabase()
   registerMovieHandlers()
   registerActorHandlers()
@@ -308,16 +310,19 @@ ipcMain.handle('trailer:open', (_event, url: string) => {
 ipcMain.handle('get-is-dev', () => isDev)
 ipcMain.handle('app:get-version', () => app.getVersion())
 
-// ── Autostart (Login Item) ───────────────────────────────────────────────────
-// Nutzt das Betriebssystem (Windows-Registry/macOS Login Items), nicht NSIS.
-// Im Dev-Modus ist das wirkungslos und wird daher übersprungen.
-ipcMain.handle('app:get-autostart', () => {
-  if (isDev) return false
-  return app.getLoginItemSettings().openAtLogin
+// ── Protokolle ────────────────────────────────────────────────────────────────
+ipcMain.handle('logs:get', () => getLogs())
+ipcMain.handle('logs:clear', () => { clearLogs(); return true })
+ipcMain.handle('logs:open-folder', () => {
+  const path = getLogFilePath()
+  if (path) shell.showItemInFolder(path)
 })
 
+// ── Autostart (Login Item) ───────────────────────────────────────────────────
+// Nutzt das Betriebssystem (Windows-Registry/macOS Login Items), nicht NSIS.
+ipcMain.handle('app:get-autostart', () => app.getLoginItemSettings().openAtLogin)
+
 ipcMain.handle('app:set-autostart', (_event, enabled: boolean) => {
-  if (isDev) return false
   app.setLoginItemSettings({
     openAtLogin: enabled,
     // Beim Login leise ins Tray starten (von createWindow/ready-to-show ausgewertet).

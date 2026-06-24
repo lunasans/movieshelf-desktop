@@ -63,6 +63,7 @@ interface CollectionPart {
 
 const props = defineProps<{
   tmdbId: number
+  movieId?: number
 }>()
 
 const emit = defineEmits<{
@@ -83,6 +84,16 @@ async function load() {
   missingParts.value = []
   collectionName.value = ''
   if (!settings.tmdbApiKey || !props.tmdbId) return
+
+  // Defensiv: Hat der Datensatz lokal Staffeln, ist er faktisch eine Serie –
+  // dann gibt es keine Film-Reihe, und der /movie/-Aufruf (der bei TV-IDs mit
+  // 404 quittiert wird) entfällt von vornherein.
+  if (props.movieId) {
+    try {
+      const seasons = await window.electron.db.seasons.forMovie(props.movieId)
+      if (seasons.length > 0) return
+    } catch { /* Staffel-Lookup optional */ }
+  }
 
   try {
     const { data: movie } = await axios.get(`${TMDB_BASE}/movie/${props.tmdbId}`, {

@@ -1,3 +1,31 @@
+## [0.15.0] - 2026-06-24
+
+### Neu
+
+- **Drei Ansichten im Filme-/Serien-Reiter.** Umschaltbar zwischen Raster (Poster), Liste und Tabelle; die Wahl wird dauerhaft gemerkt. Liste und Tabelle zeigen u. a. Bewertung, Laufzeit und Gesehen-Status und unterstützen die Mehrfachauswahl.
+- **Protokolle.** Neuer Bereich unter Einstellungen → Entwickler: zeigt die letzten Meldungen des Hauptprozesses, mit Aktualisieren, Logordner öffnen und Leeren. Logs werden zusätzlich in `userData/logs/main.log` geschrieben.
+
+### Geändert
+
+- **Einstellungen aufgeräumt:** neuer Abschnitt „Allgemein" (Autostart liegt jetzt dort), Menüpunkte alphabetisch sortiert.
+
+### Behoben
+
+- Autostart-Schalter funktioniert nun zuverlässig (fälschlicher Dev-Kurzschluss entfernt).
+- Defensiver Schutz gegen TMDb-404-Meldungen bei Datensätzen, die faktisch Serien sind (lokale Staffeln werden vorab geprüft).
+
+---
+
+## [0.14.0] - 2026-06-23
+
+### Neu
+
+- **Installationsverzeichnis wählbar & Desktop-Icon optional.** Der Windows-Installer ist jetzt ein geführter Assistent (statt One-Click): der Zielordner lässt sich frei wählen und die Desktop-Verknüpfung per Checkbox an-/abwählen.
+- **Autostart beim Systemstart.** Neuer Schalter „Beim Systemstart öffnen" in den Einstellungen (Erscheinungsbild). Beim Login startet MovieShelf leise ins Tray.
+- **Tray-Icon.** MovieShelf läuft jetzt mit Symbol im Infobereich. Schließen (X) minimiert ins Tray statt zu beenden; tatsächliches Beenden erfolgt über das Tray-Menü (inkl. der bestehenden Sync-Abfrage bei nicht synchronisierten Änderungen).
+
+---
+
 ## [0.13.1] - 2026-06-21
 
 ### Behoben

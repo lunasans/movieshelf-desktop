@@ -168,6 +168,7 @@
           <CollectionPartsSection
             v-if="movie.tmdb_id && !movie.is_boxset && movie.collection_type !== 'Serie'"
             :tmdbId="movie.tmdb_id"
+            :movieId="movie.id"
           />
 
           <!-- Boxset Children -->

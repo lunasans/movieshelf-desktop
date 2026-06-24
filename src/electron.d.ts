@@ -167,5 +167,11 @@ interface Window {
       create:  () => Promise<{ success: boolean; canceled?: boolean; path?: string; movies?: number; error?: string }>
       restore: () => Promise<{ success: boolean; canceled?: boolean; movies?: number; actors?: number; error?: string }>
     }
+
+    logs: {
+      get:        () => Promise<string>
+      clear:      () => Promise<boolean>
+      openFolder: () => Promise<void>
+    }
   }
 }
