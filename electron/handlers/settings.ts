@@ -2,9 +2,9 @@ import { ipcMain, safeStorage } from 'electron'
 import { getDb } from '../database'
 import type Database from 'better-sqlite3'
 
-const ALLOWED_SETTINGS_KEYS = new Set(['mode', 'theme', 'shelf_url', 'shelf_token', 'tmdb_api_key', 'last_sync_at'])
+export const ALLOWED_SETTINGS_KEYS = new Set(['mode', 'theme', 'shelf_url', 'shelf_token', 'tmdb_api_key', 'last_sync_at'])
 
-const SENSITIVE_KEYS = new Set(['shelf_token', 'tmdb_api_key'])
+export const SENSITIVE_KEYS = new Set(['shelf_token', 'tmdb_api_key'])
 const ENC_PREFIX = 'enc:v1:'
 
 function decryptIfNeeded(raw: string | null): string | null {

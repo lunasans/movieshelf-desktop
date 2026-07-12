@@ -5,6 +5,7 @@ import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
 import AdmZip from 'adm-zip'
 import { getDb } from '../database'
+import { ALLOWED_SETTINGS_KEYS, SENSITIVE_KEYS } from './settings'
 import type Database from 'better-sqlite3'
 
 const COVERS_DIR = join(app.getPath('userData'), 'covers')
@@ -22,6 +23,13 @@ export function createBackupZip(db: Database.Database, zipPath: string, coversDi
       database[table] = []
     }
   }
+
+  // Secrets (Token, API-Keys) gehören nicht in eine Backup-Datei, die Nutzer
+  // weitergeben oder in Cloud-Speicher legen – ohne safeStorage lägen sie dort
+  // sogar im Klartext.
+  database['settings'] = (database['settings'] as { key: string }[])
+    .filter(row => !SENSITIVE_KEYS.has(row.key))
+
   zip.addFile('database.json', Buffer.from(JSON.stringify(database, null, 2), 'utf-8'))
 
   const movieCount = (database['movies'] as unknown[]).length
@@ -91,10 +99,13 @@ export function restoreFromZip(db: Database.Database, zipPath: string, coversDir
         insertRows(db, 'external_movies', database['external_movies'] ?? [], ['id','remote_id','title','year','genre','director','runtime','rating','rating_age','overview','collection_type','cover_path','backdrop_path','trailer_url','tmdb_id','synced_at','created_at','updated_at'])
         insertRows(db, 'list_items', database['list_items'] ?? [], ['list_id','item_type','item_id','added_at'])
 
+        // Nur bekannte Settings-Keys übernehmen (Allowlist wie im Settings-Handler);
+        // Server-Verbindung (Token/URL) der laufenden Installation nie überschreiben.
         const SKIP_KEYS = new Set(['shelf_token', 'shelf_url'])
         for (const row of database['settings'] ?? []) {
-          if (SKIP_KEYS.has(row['key'] as string)) continue
-          db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(row['key'], row['value'])
+          const key = row['key'] as string
+          if (SKIP_KEYS.has(key) || !ALLOWED_SETTINGS_KEYS.has(key)) continue
+          db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, row['value'])
         }
       })
 
