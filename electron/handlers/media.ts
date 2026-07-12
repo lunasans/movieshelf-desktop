@@ -1,6 +1,6 @@
 import { ipcMain, app } from 'electron'
 import { join } from 'path'
-import { existsSync, mkdirSync, createWriteStream, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, createWriteStream, writeFileSync, unlinkSync } from 'fs'
 import axios from 'axios'
 import { getDb } from '../database'
 import { getSetting } from './settings'
@@ -21,11 +21,20 @@ function getShelfUrl(): URL | null {
   }
 }
 
-/** Registrierbare Domain (vereinfachte Näherung: letzte zwei Labels; IPv4 bleibt unverändert). */
-function baseDomain(host: string): string {
+// Übliche Second-Level-Labels unter Länder-TLDs (co.uk, com.au, …) – dort sind
+// zwei Labels keine registrierbare Domain, sondern öffentlicher Namensraum.
+const PUBLIC_SECOND_LEVEL = new Set(['co', 'com', 'net', 'org', 'gov', 'edu', 'ac'])
+
+/** Registrierbare Domain (vereinfachte Näherung: letzte zwei Labels, bei
+ *  öffentlichen Second-Level-TLDs wie co.uk die letzten drei; IPv4 bleibt unverändert). */
+export function baseDomain(host: string): string {
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return host
   const labels = host.split('.')
-  return labels.length <= 2 ? host : labels.slice(-2).join('.')
+  if (labels.length <= 2) return host
+  const tld = labels[labels.length - 1]
+  const second = labels[labels.length - 2]
+  const take = tld.length === 2 && PUBLIC_SECOND_LEVEL.has(second) ? 3 : 2
+  return labels.slice(-take).join('.')
 }
 
 /**
@@ -33,10 +42,22 @@ function baseDomain(host: string): string {
  * registrierbaren Domain – die Shelf liefert Bilder oft von einer eigenen Medien-Domain
  * (z. B. `medien.<domain>`). Fremde Hosts wie image.tmdb.org bleiben blockiert.
  */
-function isAllowedMediaHost(parsed: URL, shelf: URL): boolean {
+export function isAllowedMediaHost(parsed: URL, shelf: URL): boolean {
   if (parsed.origin === shelf.origin) return true
   if (parsed.protocol !== shelf.protocol) return false
   return baseDomain(parsed.hostname) === baseDomain(shelf.hostname)
+}
+
+/**
+ * Dateiname für ein Medium – erzwingt eine numerische ID und verhindert damit
+ * Pfad-Traversal über manipulierte IPC-Argumente. Gibt null bei ungültiger ID zurück.
+ */
+export function mediaFileName(id: unknown, type: 'cover' | 'backdrop' | 'actor'): string | null {
+  const safeId = Number(id)
+  if (!Number.isInteger(safeId) || safeId < 0) return null
+  if (type === 'backdrop') return `${safeId}_backdrop.jpg`
+  if (type === 'actor')    return `actor_${safeId}.jpg`
+  return `${safeId}.jpg`
 }
 
 export function registerMediaHandlers(): void {
@@ -66,15 +87,10 @@ export function registerMediaHandlers(): void {
       return { success: false, error: 'Download nur vom Master-Server (oder dessen Medien-Domain) erlaubt.' }
     }
 
-    // ID strikt numerisch erzwingen (verhindert Pfad-Traversal im Dateinamen)
-    const safeId = Number(id)
-    if (!Number.isInteger(safeId) || safeId < 0) {
+    const fileName = mediaFileName(id, type)
+    if (!fileName) {
       return { success: false, error: 'Ungültige ID.' }
     }
-
-    let fileName = `${safeId}.jpg`
-    if (type === 'backdrop') fileName = `${safeId}_backdrop.jpg`
-    if (type === 'actor')    fileName = `actor_${safeId}.jpg`
 
     const filePath = join(COVERS_DIR, fileName)
     console.log(`[media:download] Ziel: ${filePath}`)
@@ -91,8 +107,26 @@ export function registerMediaHandlers(): void {
       response.data.pipe(writer)
 
       return new Promise((resolve) => {
-        writer.on('finish', () => { console.log(`[media:download] ✓ gespeichert: ${filePath}`); resolve({ success: true, path: filePath }) })
-        writer.on('error',  (err) => { console.error(`[media:download] ✗ Schreibfehler: ${err.message}`); resolve({ success: false, error: err.message }) })
+        let settled = false
+        // Bei Abbruch (Schreibfehler ODER abgerissener Download-Stream) keine
+        // halbfertige Datei liegen lassen.
+        const fail = (err: Error) => {
+          if (settled) return
+          settled = true
+          console.error(`[media:download] ✗ Fehler: ${err.message}`)
+          writer.close(() => {
+            try { unlinkSync(filePath) } catch { /* Datei existiert ggf. nicht */ }
+            resolve({ success: false, error: err.message })
+          })
+        }
+        writer.on('finish', () => {
+          if (settled) return
+          settled = true
+          console.log(`[media:download] ✓ gespeichert: ${filePath}`)
+          resolve({ success: true, path: filePath })
+        })
+        writer.on('error', fail)
+        response.data.on('error', fail)
       })
     } catch (error) {
       console.error(`[media:download] ✗ HTTP-Fehler: ${(error as Error).message}`)
@@ -101,17 +135,15 @@ export function registerMediaHandlers(): void {
   })
 
   ipcMain.handle('media:exists', (_event, { id, type }: { id: number; type: 'cover' | 'backdrop' | 'actor' }) => {
-    let fileName = `${id}.jpg`
-    if (type === 'backdrop') fileName = `${id}_backdrop.jpg`
-    if (type === 'actor') fileName = `actor_${id}.jpg`
-
-    const filePath = join(COVERS_DIR, fileName)
-    return existsSync(filePath)
+    const fileName = mediaFileName(id, type)
+    if (!fileName) return false
+    return existsSync(join(COVERS_DIR, fileName))
   })
 
   ipcMain.handle('media:upload', (_event, { data, id, type }: { data: ArrayBuffer; id: number; type: 'cover' | 'backdrop' }) => {
     try {
-      const fileName = type === 'backdrop' ? `${id}_backdrop.jpg` : `${id}.jpg`
+      const fileName = mediaFileName(id, type)
+      if (!fileName) return { success: false, error: 'Ungültige ID.' }
       const filePath = join(COVERS_DIR, fileName)
       writeFileSync(filePath, Buffer.from(data))
       return { success: true }
