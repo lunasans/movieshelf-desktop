@@ -75,13 +75,18 @@ export function upsertEpisode(db: Database.Database, data: Record<string, unknow
   const now = new Date().toISOString()
 
   if (data.remote_id != null) {
-    // Sync path: if a local-only episode (no remote_id) already exists for the same
-    // (season_id, episode_number), merge into it to avoid a unique-constraint conflict.
+    // Sync path: if an episode already exists for the same (season_id, episode_number)
+    // – local-only OR re-keyed on the server (different remote_id) – merge into it.
+    // Otherwise the INSERT below violates the unique index on (season_id, episode_number)
+    // and the episode is silently dropped.
     if (data.season_id != null && data.episode_number != null) {
       const local = db.prepare(
-        'SELECT id FROM episodes WHERE season_id = ? AND episode_number = ? AND remote_id IS NULL'
-      ).get(data.season_id, data.episode_number) as { id: number } | undefined
-      if (local) {
+        'SELECT id, remote_id FROM episodes WHERE season_id = ? AND episode_number = ?'
+      ).get(data.season_id, data.episode_number) as { id: number; remote_id: number | null } | undefined
+      if (local && local.remote_id !== data.remote_id) {
+        // Falls der Server Episoden umnummeriert hat, kann die remote_id noch an
+        // einer anderen Zeile hängen – lösen, damit der Unique-Index nicht verletzt wird.
+        db.prepare('UPDATE episodes SET remote_id = NULL WHERE remote_id = ?').run(data.remote_id)
         db.prepare(`
           UPDATE episodes
           SET remote_id = @remote_id,

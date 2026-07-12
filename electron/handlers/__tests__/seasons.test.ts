@@ -72,6 +72,32 @@ describe('upsertEpisode', () => {
     expect(rows[0].remote_id).toBe(30)
     expect(rows[0].title).toBe('Remote')
   })
+
+  it('übernimmt Episode mit gleicher Position aber anderer remote_id (Server-Rekey)', () => {
+    const movieId = insertMovie(db)
+    const seasonId = upsertSeason(db, { remote_id: 1, movie_id: movieId, season_number: 1 })
+    upsertEpisode(db, { remote_id: 40, season_id: seasonId, episode_number: 1, title: 'Alte ID' })
+    // Server liefert dieselbe Episode jetzt unter neuer remote_id
+    upsertEpisode(db, { remote_id: 41, season_id: seasonId, episode_number: 1, title: 'Neue ID' })
+
+    const rows = db.prepare('SELECT * FROM episodes WHERE season_id = ? AND episode_number = 1').all(seasonId) as any[]
+    expect(rows).toHaveLength(1)
+    expect(rows[0].remote_id).toBe(41)
+    expect(rows[0].title).toBe('Neue ID')
+  })
+
+  it('überlebt vertauschte Episodennummern (remote_id hängt an anderer Zeile)', () => {
+    const movieId = insertMovie(db)
+    const seasonId = upsertSeason(db, { remote_id: 1, movie_id: movieId, season_number: 1 })
+    upsertEpisode(db, { remote_id: 50, season_id: seasonId, episode_number: 1, title: 'E1' })
+    upsertEpisode(db, { remote_id: 51, season_id: seasonId, episode_number: 2, title: 'E2' })
+    // Server hat die Nummern getauscht: remote 51 ist jetzt Episode 1
+    upsertEpisode(db, { remote_id: 51, season_id: seasonId, episode_number: 1, title: 'E2 (getauscht)' })
+
+    const ep1 = db.prepare('SELECT * FROM episodes WHERE season_id = ? AND episode_number = 1').get(seasonId) as any
+    expect(ep1.remote_id).toBe(51)
+    expect(ep1.title).toBe('E2 (getauscht)')
+  })
 })
 
 describe('getSeasonsForMovie', () => {
