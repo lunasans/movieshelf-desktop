@@ -206,6 +206,20 @@ function runMigrations(instance: Database.Database = db): void {
       PRIMARY KEY (list_id, item_type, item_id),
       FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE
     );
+
+    -- Tombstones für lokal aus Listen entfernte Items: der Listen-Sync arbeitet
+    -- als UNION und kann ohne diese Merker nicht unterscheiden, ob ein Item lokal
+    -- entfernt oder serverseitig neu hinzugefügt wurde. Nach erfolgreichem Push
+    -- werden die Merker der Liste gelöscht. Referenziert die Server-remote_id des
+    -- Items (nur synchronisierte Items brauchen einen Tombstone).
+    CREATE TABLE IF NOT EXISTS list_item_tombstones (
+      list_id    INTEGER NOT NULL,
+      item_type  TEXT NOT NULL,
+      remote_id  INTEGER NOT NULL,
+      removed_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (list_id, item_type, remote_id),
+      FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE
+    );
   `)
 
   // Einmalige Migration: solange list_movies existiert, in list_items überführen und

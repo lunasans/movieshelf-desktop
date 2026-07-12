@@ -70,6 +70,7 @@ contextBridge.exposeInMainWorld('electron', {
       syncState:         ()                                => ipcRenderer.invoke('db:lists:sync-state'),
       setRemoteId:       (id: number, remoteId: number)   => ipcRenderer.invoke('db:lists:set-remote-id', id, remoteId),
       markSynced:        (id: number)                      => ipcRenderer.invoke('db:lists:mark-synced', id),
+      clearTombstones:   (id: number)                      => ipcRenderer.invoke('db:lists:clear-tombstones', id),
       deleteByRemoteId:  (remoteId: number)                => ipcRenderer.invoke('db:lists:delete-by-remote-id', remoteId),
     },
     external: {

@@ -11,6 +11,7 @@ type SyncState = Array<{
   synced_at: string | null
   updated_at: string
   items: Array<{ type: 'movie' | 'external'; remote_id: number }>
+  tombstones: Array<{ type: 'movie' | 'external'; remote_id: number }>
 }>
 
 type SeasonWithEpisodes = {
@@ -119,6 +120,7 @@ interface Window {
         syncState:       () => Promise<SyncState>
         setRemoteId:     (id: number, remoteId: number) => Promise<{ success: boolean }>
         markSynced:      (id: number) => Promise<{ success: boolean }>
+        clearTombstones: (id: number) => Promise<{ success: boolean }>
         deleteByRemoteId:(remoteId: number) => Promise<{ success: boolean }>
       }
       external: {

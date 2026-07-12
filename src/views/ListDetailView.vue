@@ -19,12 +19,6 @@
       </button>
     </div>
 
-    <!-- Hinweis: Listen-Sync vereinigt lokal + Server (Entfernungen werden nicht übertragen) -->
-    <div v-if="isOnline" class="mb-6 flex items-start gap-2 text-[11px] text-[var(--text-muted)] opacity-60 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-2.5">
-      <i class="bi bi-info-circle mt-0.5"></i>
-      <span>Listen werden mit dem Server <strong>vereinigt</strong>: Hier entfernte Filme können beim nächsten Sync wieder erscheinen, wenn sie auf dem Server noch in der Liste stehen.</span>
-    </div>
-
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-20">
       <div class="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
@@ -153,7 +147,7 @@ import type { MovieListDetail, ListItem } from '@/stores/lists'
 
 const route = useRoute()
 const router = useRouter()
-const { resolveMediaUrl, isOnline } = useApi()
+const { resolveMediaUrl } = useApi()
 
 const list = ref<MovieListDetail | null>(null)
 const loading = ref(true)
