@@ -93,6 +93,21 @@ describe('getStats', () => {
     expect(byRuntime[4].count).toBe(1)
   })
 
+  it('byRuntime — Grenzwerte fallen in genau einen Bucket (keine Lücke/Überlappung)', () => {
+    insertMovie(db, { runtime: 60 })
+    insertMovie(db, { runtime: 90 })
+    insertMovie(db, { runtime: 120 })
+    insertMovie(db, { runtime: 150 })
+
+    const { byRuntime } = getStats(db)
+    const total = byRuntime.reduce((sum: number, b: any) => sum + b.count, 0)
+    expect(total).toBe(4)
+    expect(byRuntime[1].count).toBe(1) // 60 → 60–90
+    expect(byRuntime[2].count).toBe(1) // 90 → 90–120
+    expect(byRuntime[3].count).toBe(1) // 120 → 120–150
+    expect(byRuntime[4].count).toBe(1) // 150 → > 150
+  })
+
   it('watchedMovies — zählt nur is_watched=1', () => {
     insertMovie(db, { is_watched: 1 })
     insertMovie(db, { is_watched: 1 })

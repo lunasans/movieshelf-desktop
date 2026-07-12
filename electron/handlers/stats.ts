@@ -77,18 +77,20 @@ export function getStats(db: Database.Database) {
     films: filmsByTypeMap[t.collection_type] ?? [],
   }))
 
+  // Halboffene Intervalle [min, max): lückenlos und überlappungsfrei –
+  // vorher fiel z. B. runtime 90.5 zwischen die Buckets 60–90 und 91–120.
   const runtimeBuckets = [
-    { label: '< 60 min',    min: 0,   max: 59    },
-    { label: '60–90 min',   min: 60,  max: 90    },
-    { label: '90–120 min',  min: 91,  max: 120   },
-    { label: '120–150 min', min: 121, max: 150   },
-    { label: '> 150 min',   min: 151, max: 99999 },
+    { label: '< 60 min',    min: 0,   max: 60       },
+    { label: '60–90 min',   min: 60,  max: 90       },
+    { label: '90–120 min',  min: 90,  max: 120      },
+    { label: '120–150 min', min: 120, max: 150      },
+    { label: '> 150 min',   min: 150, max: Infinity },
   ]
   const byRuntime = runtimeBuckets.map(b => ({
     label: b.label,
     count: (db.prepare(
-      `SELECT COUNT(*) as count FROM movies WHERE ${BASE} AND runtime >= ? AND runtime <= ?`
-    ).get(b.min, b.max) as { count: number }).count,
+      `SELECT COUNT(*) as count FROM movies WHERE ${BASE} AND runtime >= ? AND (? IS NULL OR runtime < ?)`
+    ).get(b.min, Number.isFinite(b.max) ? b.max : null, Number.isFinite(b.max) ? b.max : null) as { count: number }).count,
   }))
 
   const watchedMovies = (db.prepare(
