@@ -228,10 +228,19 @@ app.whenReady().then(() => {
   // Register local resource protocol
   protocol.handle('movie-resource', (request) => {
     const coversDir = join(app.getPath('userData'), 'covers')
-    const raw = request.url.slice('movie-resource://'.length)
-    // Strip any path separators to prevent directory traversal
-    const fileName = raw.replace(/[/\\]/g, '')
-    const filePath = join(coversDir, fileName)
+    let raw = request.url.slice('movie-resource://'.length).replace(/\/+$/, '')
+    // Prozent-Kodierung zuerst auflösen – sonst schlüpfen %2F/%5C an der
+    // Separator-Prüfung vorbei und werden später beim file://-Fetch dekodiert.
+    try {
+      raw = decodeURIComponent(raw)
+    } catch {
+      return new Response('Bad Request', { status: 400 })
+    }
+    // Nur einfache Dateinamen zulassen (kein Pfad, keine Traversal-Sequenzen)
+    if (!/^[\w.\- ]+$/.test(raw) || raw.includes('..')) {
+      return new Response('Forbidden', { status: 403 })
+    }
+    const filePath = join(coversDir, raw)
     // Ensure the resolved path stays inside the covers directory
     if (!filePath.startsWith(coversDir + sep)) {
       return new Response('Forbidden', { status: 403 })
