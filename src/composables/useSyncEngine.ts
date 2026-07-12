@@ -502,7 +502,10 @@ export function useSyncEngine() {
           let listRemoteId: number | null = list.remote_id
           if (!listRemoteId) {
             const res = await apiPost('/lists', { name: list.name, items: localItems() })
-            listRemoteId = res.id
+            // Beide Antwortformen abdecken ({id} und {data:{id}}) – sonst bleibt die
+            // remote_id leer und jeder Push legt die Liste erneut auf dem Server an.
+            listRemoteId = res?.id ?? res?.data?.id ?? null
+            if (listRemoteId == null) throw new Error(`Server lieferte keine ID für Liste "${list.name}"`)
             await window.electron.db.lists.setRemoteId(list.id, listRemoteId as number)
           }
 

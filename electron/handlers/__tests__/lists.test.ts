@@ -90,6 +90,38 @@ describe('deleteList', () => {
 
     expect(getList(db, list.id)).toBeNull()
   })
+
+  it('räumt externe Filme auf, die nur in dieser Liste waren', () => {
+    const list = createList(db, 'Einzige Liste') as any
+    const extId = insertExternal(db)
+    addItemToList(db, list.id, 'external', extId)
+    deleteList(db, list.id)
+
+    const gone = db.prepare('SELECT id FROM external_movies WHERE id = ?').get(extId)
+    expect(gone).toBeUndefined()
+  })
+
+  it('lässt externe Filme bestehen, die noch in anderen Listen sind', () => {
+    const listA = createList(db, 'A') as any
+    const listB = createList(db, 'B') as any
+    const extId = insertExternal(db)
+    addItemToList(db, listA.id, 'external', extId)
+    addItemToList(db, listB.id, 'external', extId)
+    deleteList(db, listA.id)
+
+    const still = db.prepare('SELECT id FROM external_movies WHERE id = ?').get(extId)
+    expect(still).toBeDefined()
+  })
+
+  it('lässt Sammlungsfilme unangetastet', () => {
+    const list = createList(db, 'Liste') as any
+    const movieId = insertMovie(db)
+    addItemToList(db, list.id, 'movie', movieId)
+    deleteList(db, list.id)
+
+    const still = db.prepare('SELECT id FROM movies WHERE id = ?').get(movieId)
+    expect(still).toBeDefined()
+  })
 })
 
 describe('addItemToList / removeItemFromList', () => {
@@ -119,6 +151,18 @@ describe('addItemToList / removeItemFromList', () => {
 
     const gone = db.prepare('SELECT id FROM external_movies WHERE id = ?').get(extId)
     expect(gone).toBeUndefined()
+  })
+
+  it('Entfernen aktualisiert updated_at der Liste (wie Hinzufügen)', () => {
+    const list = createList(db, 'Liste') as any
+    const movieId = insertMovie(db)
+    addItemToList(db, list.id, 'movie', movieId)
+    db.prepare("UPDATE lists SET updated_at = '2020-01-01T00:00:00.000Z' WHERE id = ?").run(list.id)
+
+    removeItemFromList(db, list.id, 'movie', movieId)
+
+    const row = db.prepare('SELECT updated_at FROM lists WHERE id = ?').get(list.id) as any
+    expect(row.updated_at > '2020-01-01T00:00:00.000Z').toBe(true)
   })
 
   it('externer Film bleibt, solange er noch in einer anderen Liste ist', () => {

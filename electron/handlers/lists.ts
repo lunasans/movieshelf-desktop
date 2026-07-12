@@ -52,7 +52,23 @@ export function updateList(db: Database.Database, id: number, name: string) {
 }
 
 export function deleteList(db: Database.Database, id: number) {
+  // Externe Filme dieser Liste merken, bevor der FK-Cascade die list_items löscht.
+  const externalIds = (db.prepare(
+    "SELECT item_id FROM list_items WHERE list_id = ? AND item_type = 'external'"
+  ).all(id) as { item_id: number }[]).map(r => r.item_id)
+
   db.prepare('DELETE FROM lists WHERE id = ?').run(id) // list_items cascaden via FK
+
+  // Externe Filme existieren nur über Listen – ohne verbleibende Referenz aufräumen
+  // (gleiche Logik wie in removeItemFromList).
+  for (const extId of externalIds) {
+    const remaining = (db.prepare(
+      "SELECT COUNT(*) AS count FROM list_items WHERE item_type = 'external' AND item_id = ?"
+    ).get(extId) as { count: number }).count
+    if (remaining === 0) {
+      db.prepare('DELETE FROM external_movies WHERE id = ?').run(extId)
+    }
+  }
   return { success: true }
 }
 
@@ -117,6 +133,8 @@ export function addItemToList(db: Database.Database, listId: number, itemType: '
 export function removeItemFromList(db: Database.Database, listId: number, itemType: 'movie' | 'external', itemId: number) {
   db.prepare('DELETE FROM list_items WHERE list_id = ? AND item_type = ? AND item_id = ?')
     .run(listId, itemType, itemId)
+  // Wie beim Hinzufügen: Änderung an der Mitgliedschaft zählt als Listen-Änderung.
+  db.prepare('UPDATE lists SET updated_at = ? WHERE id = ?').run(new Date().toISOString(), listId)
 
   // Externen Film löschen, wenn er in keiner Liste mehr ist.
   if (itemType === 'external') {
