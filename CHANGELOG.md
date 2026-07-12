@@ -1,3 +1,26 @@
+## [0.16.0] - 2026-07-12
+
+Sync-Korrektheit-Release nach der zweiten Runde des Projekt-Scans: lokale Änderungen können nicht mehr still verloren gehen, und Listen-Entfernungen erreichen jetzt den Server.
+
+### Neu
+
+- **Aus Listen entfernte Filme bleiben entfernt.** Der Listen-Sync merkt sich lokale Entfernungen (Tombstones) und überträgt sie beim nächsten Sync auf den Server – bisher kamen entfernte Filme durch die Vereinigungs-Logik wieder zurück (#49).
+
+### Behoben
+
+- **Lokale Bearbeitungen überleben den Sync.** Der Pull hatte lokal geänderte, noch nicht hochgeladene Filme als synchronisiert gestempelt – sie wurden dann nie mehr gepusht und Desktop und Server liefen still auseinander. Auch der lokal gesetzte Gesehen-Status wird vom Pull nicht mehr zurückgesetzt (#42).
+- **Keine Sync-Nachfrage mehr beim Beenden im Standalone-Modus.** Ohne konfigurierten Server erschien beim Beenden über das Tray fälschlich „Du hast N Filme noch nicht synchronisiert" (#43).
+- **Listen:** Löschen einer Liste räumt jetzt auch externe Filme auf, die nur dort lagen; das Entfernen von Items aktualisiert den Änderungszeitstempel; neue Listen erhalten ihre Server-ID zuverlässig (verhinderte sonst Listen-Duplikate auf dem Server) (#44).
+- **Statistik:** Laufzeit-Verteilung ohne Lücken und Überlappungen an den Bucket-Grenzen (#45).
+- **Serien-Sync:** Episoden gehen nicht mehr verloren, wenn der Server sie neu angelegt oder umnummeriert hat (#46).
+- **Trailer-Fenster:** Navigation ist auf YouTube begrenzt; andere Links öffnen im Standardbrowser (#47).
+
+### Migration
+
+- Beim ersten Start wird automatisch die neue Tabelle `list_item_tombstones` angelegt (additiv, kein Eingriff in bestehende Daten).
+
+---
+
 ## [0.15.1] - 2026-07-12
 
 Sicherheits- und Wartungsrelease nach einem vollständigen Projekt-Scan (Bugs & Sicherheitslücken).
