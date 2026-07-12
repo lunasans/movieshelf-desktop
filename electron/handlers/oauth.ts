@@ -3,11 +3,15 @@ import { ipcMain, BrowserWindow, shell } from 'electron'
 export function registerOAuthHandlers() {
   let oauthWindow: BrowserWindow | null = null
 
-  ipcMain.handle('oauth:open-browser', async (_event, url: string) => {
+  ipcMain.handle('oauth:open-browser', async (event, url: string) => {
     try {
       const parsed = new URL(url)
       if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return
     } catch { return }
+
+    // Fenster merken, das den Login angestoßen hat – der Callback muss dorthin
+    // zurück, nicht in ein beliebiges anderes Fenster (Trailer-/Stats-Popup).
+    const requester = BrowserWindow.fromWebContents(event.sender)
 
     if (oauthWindow && !oauthWindow.isDestroyed()) {
       oauthWindow.close()
@@ -43,9 +47,11 @@ export function registerOAuthHandlers() {
         const cb      = new URL(redirectUrl)
         const code    = cb.searchParams.get('code')
         const state   = cb.searchParams.get('state')
-        const mainWin = BrowserWindow.getAllWindows().find(w => w !== oauthWindow)
-        if (code && mainWin) {
-          mainWin.webContents.send('oauth:callback', { code, state })
+        const target  = requester && !requester.isDestroyed()
+          ? requester
+          : BrowserWindow.getAllWindows().find(w => w !== oauthWindow)
+        if (code && target) {
+          target.webContents.send('oauth:callback', { code, state })
         }
       } catch { /* ignore */ }
       oauthWindow?.close()
