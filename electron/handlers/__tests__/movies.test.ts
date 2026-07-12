@@ -89,6 +89,27 @@ describe('createMovie', () => {
     expect(all[0].title).toBe('Update')
   })
 
+  it('überschreibt lokal neuere Änderungen nicht (Guard, auch für is_watched)', () => {
+    createMovie(db, { title: 'Original', remote_id: 42, is_watched: 1, view_count: 5, updated_at: '2024-06-01T00:00:00.000Z' })
+    // Server liefert älteren Stand (is_watched: 0) – darf lokal nichts zurücksetzen
+    createMovie(db, { title: 'Server-Alt', remote_id: 42, is_watched: 0, view_count: 0, updated_at: '2024-01-01T00:00:00.000Z' })
+
+    const row = db.prepare('SELECT * FROM movies WHERE remote_id = 42').get() as any
+    expect(row.title).toBe('Original')
+    expect(row.is_watched).toBe(1)
+    expect(row.view_count).toBe(5)
+  })
+
+  it('übernimmt is_watched/view_count vom Server, wenn dieser neuer ist', () => {
+    createMovie(db, { title: 'Alt', remote_id: 43, is_watched: 0, view_count: 0, updated_at: '2024-01-01T00:00:00.000Z' })
+    createMovie(db, { title: 'Server-Neu', remote_id: 43, is_watched: 1, view_count: 3, updated_at: '2024-06-01T00:00:00.000Z' })
+
+    const row = db.prepare('SELECT * FROM movies WHERE remote_id = 43').get() as any
+    expect(row.title).toBe('Server-Neu')
+    expect(row.is_watched).toBe(1)
+    expect(row.view_count).toBe(3)
+  })
+
   it('merged lokalen Film mit gleichem tmdb_id beim ersten Sync', () => {
     const local = createMovie(db, { title: 'Lokal', tmdb_id: 99 }) as any
     createMovie(db, { title: 'Vom Server', tmdb_id: 99, remote_id: 10 })

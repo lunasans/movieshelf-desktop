@@ -185,9 +185,11 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
   })
 
   if (data.remote_id != null) {
+    // Gleicher „lokal neuer gewinnt"-Guard wie im Upsert: sonst überschreibt der
+    // Pull hier is_watched/view_count am Konflikt-Guard vorbei mit Server-Werten.
     db.prepare(
-      'UPDATE movies SET is_boxset = ?, boxset_parent_id = ?, view_count = ?, is_watched = ?, created_at = COALESCE(?, created_at) WHERE remote_id = ?'
-    ).run(data.is_boxset ?? 0, data.boxset_parent_id ?? null, data.view_count ?? 0, data.is_watched ?? 0, data.created_at ?? null, data.remote_id)
+      'UPDATE movies SET is_boxset = ?, boxset_parent_id = ?, view_count = ?, is_watched = ?, created_at = COALESCE(?, created_at) WHERE remote_id = ? AND updated_at <= ?'
+    ).run(data.is_boxset ?? 0, data.boxset_parent_id ?? null, data.view_count ?? 0, data.is_watched ?? 0, data.created_at ?? null, data.remote_id, data.updated_at || now)
     return db.prepare('SELECT * FROM movies WHERE remote_id = ?').get(data.remote_id)
   }
   return db.prepare('SELECT * FROM movies WHERE id = ?').get(result.lastInsertRowid)

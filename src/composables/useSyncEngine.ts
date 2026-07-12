@@ -195,6 +195,10 @@ export function useSyncEngine() {
 
         const existing = await window.electron.db.movies.getByRemoteId(movie.id) as any
         const needsUpdate = !existing || (existing.updated_at ?? '') < (movie.updated_at ?? '')
+        // Lokal bearbeitete, noch nicht gepushte Filme dürfen durch den Pull nicht
+        // als synchronisiert gestempelt werden – sonst fallen sie aus der Dirty-Liste
+        // und der Push lädt sie nie hoch (stille Divergenz zum Server).
+        const locallyDirty = !!existing && (existing.synced_at == null || existing.updated_at > existing.synced_at)
 
         const local = await window.electron.db.movies.create({
           title: movie.title, year: movie.year, genre: movie.genre, director: movie.director,
@@ -211,7 +215,9 @@ export function useSyncEngine() {
 
         if (local) {
           remoteToLocalId.set(movie.id, local.id)
-          await window.electron.db.movies.sync.markSynced({ id: local.id, remote_id: movie.id, synced_at: new Date().toISOString() })
+          if (!locallyDirty) {
+            await window.electron.db.movies.sync.markSynced({ id: local.id, remote_id: movie.id, synced_at: new Date().toISOString() })
+          }
           if (Array.isArray(movie.actors)) {
             for (const a of movie.actors) {
               const aid = await window.electron.db.movies.actors.upsert({ remote_id: a.id, name: a.name, bio: a.bio, birthday: a.birthday, place_of_birth: a.place_of_birth, tmdb_id: a.tmdb_id, image_path: a.image_url })
