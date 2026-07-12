@@ -16,7 +16,7 @@ import { setupDatabase, getDb } from './database'
 import { registerMovieHandlers } from './handlers/movies'
 import { registerActorHandlers } from './handlers/actors'
 import { registerSyncHandlers } from './handlers/sync'
-import { registerSettingsHandlers } from './handlers/settings'
+import { registerSettingsHandlers, getSetting } from './handlers/settings'
 import { registerMediaHandlers } from './handlers/media'
 import { registerListHandlers } from './handlers/lists'
 import { registerExternalHandlers } from './handlers/external'
@@ -148,6 +148,17 @@ function quitApp() {
   if ((app as any).isQuitting) return
 
   const db = getDb()
+
+  // Nur im Online-Modus fragen: im Standalone-Betrieb hat kein Film eine
+  // remote_id – die Abfrage würde sonst bei jedem Beenden erscheinen,
+  // obwohl es gar keinen Server gibt, mit dem man synchronisieren könnte.
+  const mode = getSetting(db, 'mode')
+  if (mode !== 'online') {
+    (app as any).isQuitting = true
+    app.quit()
+    return
+  }
+
   const result = db.prepare(`
     SELECT COUNT(*) as count FROM movies
     WHERE remote_id IS NULL
