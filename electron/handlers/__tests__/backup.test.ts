@@ -49,6 +49,20 @@ describe('createBackupZip', () => {
     expect(manifest.version).toBe('1.0')
   })
 
+  it('exportiert keine Secrets (shelf_token, tmdb_api_key)', () => {
+    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('shelf_token', 'geheim')").run()
+    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('tmdb_api_key', 'api-geheim')").run()
+    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('theme', 'dark')").run()
+    createBackupZip(db, tempZip, noCovers)
+
+    const zip = new AdmZip(tempZip)
+    const database = JSON.parse(zip.readAsText('database.json'))
+    const keys = (database.settings as { key: string }[]).map(r => r.key)
+    expect(keys).not.toContain('shelf_token')
+    expect(keys).not.toContain('tmdb_api_key')
+    expect(keys).toContain('theme')
+  })
+
   it('database.json enthält die Filmdaten', () => {
     insertMovie(db, { title: 'Inception' })
     createBackupZip(db, tempZip, noCovers)
@@ -95,6 +109,27 @@ describe('restoreFromZip', () => {
     const url   = freshDb.prepare("SELECT value FROM settings WHERE key = 'shelf_url'").get() as any
     expect(token.value).toBe('live_token')
     expect(url.value).toBe('https://live.example.com')
+  })
+
+  it('ignoriert unbekannte Settings-Keys aus dem Backup (Allowlist)', () => {
+    insertMovie(db, { title: 'Dummy' })
+    createBackupZip(db, tempZip, noCovers)
+
+    // database.json im Archiv um einen fremden Settings-Key erweitern
+    const zip = new AdmZip(tempZip)
+    const database = JSON.parse(zip.readAsText('database.json'))
+    database.settings.push({ key: 'boese_einstellung', value: 'x' })
+    database.settings.push({ key: 'theme', value: 'dark' })
+    zip.updateFile('database.json', Buffer.from(JSON.stringify(database)))
+    zip.writeZip(tempZip)
+
+    const freshDb = createTestDb()
+    restoreFromZip(freshDb, tempZip, noCovers)
+
+    const evil  = freshDb.prepare("SELECT value FROM settings WHERE key = 'boese_einstellung'").get()
+    const theme = freshDb.prepare("SELECT value FROM settings WHERE key = 'theme'").get() as any
+    expect(evil).toBeUndefined()
+    expect(theme.value).toBe('dark')
   })
 
   it('nach Restore sind keine alten Daten mehr vorhanden', () => {
