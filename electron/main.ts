@@ -320,6 +320,18 @@ ipcMain.handle('trailer:open', (_event, url: string) => {
     return { action: 'deny' }
   })
 
+  // Navigation im Trailer-Fenster auf YouTube (inkl. Consent-Seiten) begrenzen –
+  // alles andere im Standardbrowser öffnen, wie im Hauptfenster.
+  win.webContents.on('will-navigate', (e, navUrl) => {
+    let parsed: URL
+    try { parsed = new URL(navUrl) } catch { e.preventDefault(); return }
+    const allowed = parsed.protocol === 'https:' && /(^|\.)(youtube\.com|google\.com)$/.test(parsed.hostname)
+    if (!allowed) {
+      e.preventDefault()
+      if (navUrl.startsWith('https://') || navUrl.startsWith('http://')) shell.openExternal(navUrl)
+    }
+  })
+
   win.loadURL(url)
 
   win.webContents.on('before-input-event', (_e, input) => {
