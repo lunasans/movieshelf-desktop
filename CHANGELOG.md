@@ -1,3 +1,23 @@
+## [0.15.1] - 2026-07-12
+
+Sicherheits- und Wartungsrelease nach einem vollständigen Projekt-Scan (Bugs & Sicherheitslücken).
+
+### Sicherheit
+
+- **Pfad-Traversal über die IPC-Brücke geschlossen.** `media:upload` und `media:exists` erzwingen jetzt – wie `media:download` – eine numerische ID; manipulierte IPC-Argumente können damit nicht mehr aus dem Covers-Ordner ausbrechen (#36).
+- **`movie-resource://` gegen kodierte Traversal gehärtet.** Prozent-kodierte Pfad-Separatoren (`%2F`, `%5C`) werden jetzt vor der Prüfung aufgelöst; erlaubt sind nur noch einfache Dateinamen (#38).
+- **Keine Secrets mehr im Backup.** `shelf_token` und `tmdb_api_key` werden nicht mehr in `.ms`-Backups exportiert; beim Wiederherstellen werden nur noch bekannte Settings-Keys übernommen (#37).
+- **Medien-Downloads:** Die Domain-Prüfung kennt jetzt öffentliche Second-Level-TLDs (z. B. `co.uk`) und lässt dort keine fremden Domains mehr durch (#36).
+- **Abhängigkeiten aktualisiert:** `npm audit` meldet 0 Schwachstellen (vorher 10, davon 2 kritisch in der Dev-Toolchain) (#41).
+
+### Behoben
+
+- Abgebrochene Cover-Downloads lassen keine halbfertigen Dateien mehr zurück und hängen nicht mehr (#36).
+- Update-Fortschritt/-Fehler feuerten nach erneutem Öffnen der Einstellungen mehrfach (Listener-Leck im Preload) (#39).
+- OAuth-Login: Der Callback ging bei geöffnetem Trailer-/Statistik-Fenster an das falsche Fenster und verpuffte (#40).
+
+---
+
 ## [0.15.0] - 2026-06-24
 
 ### Neu
