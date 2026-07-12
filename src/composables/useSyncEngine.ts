@@ -440,6 +440,14 @@ export function useSyncEngine() {
       const localByRemote = new Map<number, number>(
         localLists.filter((l: any) => l.remote_id != null).map((l: any) => [l.remote_id as number, l.id as number])
       )
+      // Lokal entfernte Items (Tombstones) dürfen beim Pull nicht wieder
+      // hinzugefügt werden – die Entfernung wird erst vom Push propagiert.
+      const tombstonesByListId = new Map<number, Set<string>>(
+        localLists.map((l: any) => [
+          l.id as number,
+          new Set<string>((l.tombstones ?? []).map((t: any) => `${t.type}:${t.remote_id}`)),
+        ])
+      )
 
       for (const serverList of serverLists) {
         phaseDetail.value = serverList.name
@@ -453,7 +461,10 @@ export function useSyncEngine() {
           }
           // GET /lists/{id} liefert gemischte Items (Sammlung + extern). Fehlende lokal anlegen.
           const detail = await apiGet(`/lists/${serverList.id}`) as { items?: any[] }
+          const tombstoned = tombstonesByListId.get(localListId) ?? new Set<string>()
           for (const it of detail.items ?? []) {
+            const itemKey = `${it.item_type === 'external' ? 'external' : 'movie'}:${it.id}`
+            if (tombstoned.has(itemKey)) continue
             if (it.item_type === 'external') {
               let local = await window.electron.db.external.getByRemoteId(it.id) as { id: number } | null
               if (!local?.id) local = await createLocalExternal(it)
@@ -531,11 +542,18 @@ export function useSyncEngine() {
               } catch (e: any) { errors.value.push(`„${it.title}" neu anlegen: ${e.message}`); listErrors++ }
             }
 
-            // UNION aus lokalen (inkl. frisch angelegter) + Server-Items → nichts überschreiben.
+            // UNION aus lokalen (inkl. frisch angelegter) + Server-Items, abzüglich
+            // lokal entfernter Items (Tombstones) → Entfernungen werden propagiert,
+            // serverseitige Ergänzungen bleiben erhalten.
             const byKey = new Map<string, { type: 'movie' | 'external'; id: number }>()
             for (const i of [...localItems(), ...serverItems]) byKey.set(`${i.type}:${i.id}`, i)
+            for (const t of (list.tombstones ?? []) as Array<{ type: string; remote_id: number }>) {
+              byKey.delete(`${t.type}:${t.remote_id}`)
+            }
             await apiPut(`/lists/${listRemoteId}`, { name: list.name, items: Array.from(byKey.values()) })
             await window.electron.db.lists.markSynced(list.id)
+            // Entfernungen sind jetzt auf dem Server angekommen – Merker löschen.
+            await window.electron.db.lists.clearTombstones(list.id)
           }
         } catch (e: any) {
           errors.value.push(`List push "${list.name}": ${e.message}`)

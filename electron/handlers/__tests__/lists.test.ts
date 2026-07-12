@@ -6,6 +6,7 @@ import {
   getLists, getList, createList, updateList, deleteList,
   addItemToList, removeItemFromList, getListsForItem,
   getListSyncState, setListRemoteId, markListSynced, deleteListByRemoteId,
+  clearListTombstones,
 } from '../lists'
 
 let db: Database.Database
@@ -175,6 +176,73 @@ describe('addItemToList / removeItemFromList', () => {
 
     const still = db.prepare('SELECT id FROM external_movies WHERE id = ?').get(extId)
     expect(still).toBeDefined()
+  })
+})
+
+describe('Tombstones (lokale Listen-Entfernungen für den Sync merken)', () => {
+  it('Entfernen eines synchronisierten Items legt einen Tombstone an', () => {
+    const list = createList(db, 'Liste') as any
+    const movie = createMovie(db, { title: 'Sync-Film', remote_id: 42, in_collection: 1 }) as any
+    addItemToList(db, list.id, 'movie', movie.id)
+    removeItemFromList(db, list.id, 'movie', movie.id)
+
+    const state = getListSyncState(db) as any[]
+    const entry = state.find(s => s.id === list.id)
+    expect(entry.tombstones).toContainEqual({ type: 'movie', remote_id: 42 })
+  })
+
+  it('Items ohne remote_id erzeugen keinen Tombstone', () => {
+    const list = createList(db, 'Liste') as any
+    const movieId = insertMovie(db)
+    addItemToList(db, list.id, 'movie', movieId)
+    removeItemFromList(db, list.id, 'movie', movieId)
+
+    const state = getListSyncState(db) as any[]
+    expect(state.find(s => s.id === list.id).tombstones).toHaveLength(0)
+  })
+
+  it('externe Filme: Tombstone überlebt den Orphan-Cleanup', () => {
+    const list = createList(db, 'Liste') as any
+    const extId = insertExternal(db, { remote_id: 77 })
+    addItemToList(db, list.id, 'external', extId)
+    removeItemFromList(db, list.id, 'external', extId) // löscht auch external_movies-Zeile
+
+    const state = getListSyncState(db) as any[]
+    expect(state.find(s => s.id === list.id).tombstones).toContainEqual({ type: 'external', remote_id: 77 })
+  })
+
+  it('erneutes Hinzufügen hebt den Tombstone auf', () => {
+    const list = createList(db, 'Liste') as any
+    const movie = createMovie(db, { title: 'Film', remote_id: 42, in_collection: 1 }) as any
+    addItemToList(db, list.id, 'movie', movie.id)
+    removeItemFromList(db, list.id, 'movie', movie.id)
+    addItemToList(db, list.id, 'movie', movie.id)
+
+    const state = getListSyncState(db) as any[]
+    expect(state.find(s => s.id === list.id).tombstones).toHaveLength(0)
+  })
+
+  it('clearListTombstones löscht die Merker der Liste (nach Push)', () => {
+    const list = createList(db, 'Liste') as any
+    const movie = createMovie(db, { title: 'Film', remote_id: 42, in_collection: 1 }) as any
+    addItemToList(db, list.id, 'movie', movie.id)
+    removeItemFromList(db, list.id, 'movie', movie.id)
+
+    clearListTombstones(db, list.id)
+
+    const state = getListSyncState(db) as any[]
+    expect(state.find(s => s.id === list.id).tombstones).toHaveLength(0)
+  })
+
+  it('Löschen der Liste räumt ihre Tombstones mit ab (FK-Cascade)', () => {
+    const list = createList(db, 'Liste') as any
+    const movie = createMovie(db, { title: 'Film', remote_id: 42, in_collection: 1 }) as any
+    addItemToList(db, list.id, 'movie', movie.id)
+    removeItemFromList(db, list.id, 'movie', movie.id)
+    deleteList(db, list.id)
+
+    const rows = db.prepare('SELECT * FROM list_item_tombstones').all()
+    expect(rows).toHaveLength(0)
   })
 })
 

@@ -88,6 +88,10 @@ export function getListSyncState(db: Database.Database) {
       WHERE li.list_id = ? AND e.remote_id IS NOT NULL
     `).all(list.id) as { remote_id: number }[]
 
+    const tombstones = db.prepare(
+      'SELECT item_type, remote_id FROM list_item_tombstones WHERE list_id = ?'
+    ).all(list.id) as { item_type: 'movie' | 'external'; remote_id: number }[]
+
     return {
       id: list.id,
       name: list.name,
@@ -98,8 +102,15 @@ export function getListSyncState(db: Database.Database) {
         ...movieItems.map(m => ({ type: 'movie', remote_id: m.remote_id })),
         ...extItems.map(e => ({ type: 'external', remote_id: e.remote_id })),
       ],
+      tombstones: tombstones.map(t => ({ type: t.item_type, remote_id: t.remote_id })),
     }
   })
+}
+
+/** Tombstones einer Liste löschen – nach erfolgreichem Push der Mitgliedschaft. */
+export function clearListTombstones(db: Database.Database, listId: number) {
+  db.prepare('DELETE FROM list_item_tombstones WHERE list_id = ?').run(listId)
+  return { success: true }
 }
 
 export function setListRemoteId(db: Database.Database, id: number, remoteId: number) {
@@ -121,16 +132,39 @@ export function deleteListByRemoteId(db: Database.Database, remoteId: number) {
   return { success: true }
 }
 
+/** Server-remote_id eines Listen-Items (null, wenn das Item nie synchronisiert wurde). */
+function itemRemoteId(db: Database.Database, itemType: 'movie' | 'external', itemId: number): number | null {
+  const table = itemType === 'external' ? 'external_movies' : 'movies'
+  const row = db.prepare(`SELECT remote_id FROM ${table} WHERE id = ?`).get(itemId) as { remote_id: number | null } | undefined
+  return row?.remote_id ?? null
+}
+
 export function addItemToList(db: Database.Database, listId: number, itemType: 'movie' | 'external', itemId: number) {
   const now = new Date().toISOString()
   db.prepare(
     'INSERT OR IGNORE INTO list_items (list_id, item_type, item_id, added_at) VALUES (?, ?, ?, ?)'
   ).run(listId, itemType, itemId, now)
+  // Erneutes Hinzufügen hebt eine frühere lokale Entfernung auf.
+  const remoteId = itemRemoteId(db, itemType, itemId)
+  if (remoteId != null) {
+    db.prepare('DELETE FROM list_item_tombstones WHERE list_id = ? AND item_type = ? AND remote_id = ?')
+      .run(listId, itemType, remoteId)
+  }
   db.prepare('UPDATE lists SET updated_at = ? WHERE id = ?').run(now, listId)
   return { success: true }
 }
 
 export function removeItemFromList(db: Database.Database, listId: number, itemType: 'movie' | 'external', itemId: number) {
+  // Tombstone VOR dem Löschen anlegen (der Orphan-Cleanup unten entfernt bei
+  // externen Filmen ggf. die Zeile samt remote_id). Nur für synchronisierte
+  // Items nötig – was der Server nicht kennt, muss er auch nicht vergessen.
+  const remoteId = itemRemoteId(db, itemType, itemId)
+  if (remoteId != null) {
+    db.prepare(
+      'INSERT OR REPLACE INTO list_item_tombstones (list_id, item_type, remote_id, removed_at) VALUES (?, ?, ?, ?)'
+    ).run(listId, itemType, remoteId, new Date().toISOString())
+  }
+
   db.prepare('DELETE FROM list_items WHERE list_id = ? AND item_type = ? AND item_id = ?')
     .run(listId, itemType, itemId)
   // Wie beim Hinzufügen: Änderung an der Mitgliedschaft zählt als Listen-Änderung.
@@ -166,6 +200,7 @@ export function registerListHandlers(): void {
   ipcMain.handle('db:lists:sync-state', () => getListSyncState(db()))
   ipcMain.handle('db:lists:set-remote-id', (_event, id: number, remoteId: number) => setListRemoteId(db(), id, remoteId))
   ipcMain.handle('db:lists:mark-synced', (_event, id: number) => markListSynced(db(), id))
+  ipcMain.handle('db:lists:clear-tombstones', (_event, id: number) => clearListTombstones(db(), id))
   ipcMain.handle('db:lists:delete-by-remote-id', (_event, remoteId: number) => deleteListByRemoteId(db(), remoteId))
   ipcMain.handle('db:lists:add-item', (_event, listId: number, itemType: 'movie' | 'external', itemId: number) => addItemToList(db(), listId, itemType, itemId))
   ipcMain.handle('db:lists:remove-item', (_event, listId: number, itemType: 'movie' | 'external', itemId: number) => removeItemFromList(db(), listId, itemType, itemId))
