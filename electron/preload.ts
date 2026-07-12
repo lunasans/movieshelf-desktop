@@ -94,13 +94,18 @@ contextBridge.exposeInMainWorld('electron', {
     check:      () => ipcRenderer.invoke('update:check'),
     download:   () => ipcRenderer.invoke('update:download'),
     install:    () => ipcRenderer.invoke('update:install'),
+    // removeAllListeners: sonst stapeln sich bei jedem View-Remount neue
+    // Listener und die Callbacks feuern mehrfach (wie bei onNavigate/onCallback).
     onProgress: (callback: (percent: number) => void) => {
+      ipcRenderer.removeAllListeners('update:progress')
       ipcRenderer.on('update:progress', (_event, percent) => callback(percent))
     },
     onReady: (callback: () => void) => {
+      ipcRenderer.removeAllListeners('update:ready')
       ipcRenderer.on('update:ready', () => callback())
     },
     onError: (callback: (message: string) => void) => {
+      ipcRenderer.removeAllListeners('update:error')
       ipcRenderer.on('update:error', (_event, message) => callback(message))
     },
   },
