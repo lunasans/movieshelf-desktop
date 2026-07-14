@@ -1,5 +1,7 @@
 import { ref } from 'vue'
+import { t } from '@/i18n'
 import { useApi } from '@/composables/useApi'
+import { useSettingsStore } from '@/stores/settings'
 
 export type Phase = 'idle' | 'connecting' | 'metadata' | 'media' | 'push' | 'lists'
 
@@ -36,15 +38,17 @@ export type SyncResult = {
 
 const PREVIEW_LIMIT = 100
 
+// Werte sind i18n-Keys — beim Befüllen der Preview via t() aufgelöst.
 const FIELD_LABELS: Record<string, string> = {
-  title: 'Titel', year: 'Jahr', genre: 'Genre', director: 'Regisseur',
-  runtime: 'Laufzeit', rating: 'Bewertung', rating_age: 'FSK',
-  overview: 'Beschreibung', collection_type: 'Typ', tag: 'Format',
-  trailer_url: 'Trailer',
+  title: 'sync.fields.title', year: 'sync.fields.year', genre: 'sync.fields.genre', director: 'sync.fields.director',
+  runtime: 'sync.fields.runtime', rating: 'sync.fields.rating', rating_age: 'sync.fields.ratingAge',
+  overview: 'sync.fields.overview', collection_type: 'sync.fields.collectionType', tag: 'sync.fields.tag',
+  trailer_url: 'sync.fields.trailer',
 }
 
 export function useSyncEngine() {
   const { apiGet, apiPost, apiPut, apiDelete, resolveMediaUrl } = useApi()
+  const settings = useSettingsStore()
 
   const phase        = ref<Phase>('idle')
   const phaseLabel   = ref('')
@@ -68,8 +72,8 @@ export function useSyncEngine() {
     if (ts) {
       const d = new Date(ts)
       lastSyncLabel.value =
-        d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: '2-digit' }) +
-        ' ' + d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
+        d.toLocaleDateString(settings.dateLocale, { day: '2-digit', month: '2-digit', year: '2-digit' }) +
+        ' ' + d.toLocaleTimeString(settings.dateLocale, { hour: '2-digit', minute: '2-digit' })
     }
   }
 
@@ -121,7 +125,7 @@ export function useSyncEngine() {
         } else {
           const changed: string[] = []
           for (const [field, label] of Object.entries(FIELD_LABELS)) {
-            if (String(movie[field] ?? null) !== String((local as any)[field] ?? null)) changed.push(label)
+            if (String(movie[field] ?? null) !== String((local as any)[field] ?? null)) changed.push(t(label))
           }
           if (changed.length > 0) {
             updatedCount++
@@ -168,7 +172,7 @@ export function useSyncEngine() {
   }
 
   async function pull(full = false): Promise<{ pulled: number; skipped: number; deleted: number; media: number; pullErrors: number; exportedAt: string | null }> {
-    setPhase('connecting', 'Verbinde mit Shelf…', '', 0)
+    setPhase('connecting', t('sync.phases.connecting'), '', 0)
 
     const since  = full ? null : await window.electron.settings.get('last_sync_at') as string | null
     const data   = await apiGet('/admin/export', since ? { since } : {})
@@ -178,7 +182,7 @@ export function useSyncEngine() {
     let pulled = 0, skipped = 0, deleted = 0, pullErrors = 0
     const remoteToLocalId = new Map<number, number>()
 
-    setPhase('metadata', data.is_delta ? 'Delta laden' : 'Metadaten laden', '', 0)
+    setPhase('metadata', data.is_delta ? t('sync.phases.delta') : t('sync.phases.metadata'), '', 0)
     const exportedRemoteIds = full ? new Set(movies.map((m: any) => m.id)) : null
 
     for (let i = 0; i < movies.length; i++) {
@@ -256,7 +260,7 @@ export function useSyncEngine() {
     }
 
     let media = 0
-    setPhase('media', 'Bilder herunterladen', '', 50)
+    setPhase('media', t('sync.phases.media'), '', 50)
     const processedActors = new Set<number>()
     let mediaTotal = 0
     for (const movie of movies) {
@@ -312,7 +316,7 @@ export function useSyncEngine() {
   }
 
   async function push(): Promise<{ pushed: number; pushErrors: number; deleted: number }> {
-    setPhase('push', 'Änderungen hochladen', '', 0)
+    setPhase('push', t('sync.phases.push'), '', 0)
     const dirty = await window.electron.db.movies.sync.dirty() as any[]
     let pushed = 0, pushErrors = 0, deleted = 0
 
@@ -431,7 +435,7 @@ export function useSyncEngine() {
   /** Server-Listen → lokal: holt fehlende Items (Sammlung + extern), verknüpft sie.
    *  Verändert den Server nicht und entfernt lokal nichts. */
   async function pullLists(): Promise<number> {
-    setPhase('lists', 'Listen laden', '', 0)
+    setPhase('lists', t('sync.phases.listsPull'), '', 0)
     let listErrors = 0
     try {
       const localLists  = await window.electron.db.lists.syncState() as any[]
@@ -490,7 +494,7 @@ export function useSyncEngine() {
   /** Lokale Listen → Server: legt fehlende/verwaiste Items an und schreibt die
    *  Mitgliedschaft als UNION mit dem Server-Stand (kein Überschreiben). */
   async function pushLists(): Promise<number> {
-    setPhase('lists', 'Listen hochladen', '', 0)
+    setPhase('lists', t('sync.phases.listsPush'), '', 0)
     let listErrors = 0
     try {
       const localLists = await window.electron.db.lists.syncState() as any[]

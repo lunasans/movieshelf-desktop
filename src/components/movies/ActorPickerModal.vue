@@ -7,7 +7,7 @@
 
           <!-- Header -->
           <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--border-ui)] flex-shrink-0">
-            <h2 class="text-base font-black text-[var(--text-main)] uppercase tracking-tight">Schauspieler hinzufügen</h2>
+            <h2 class="text-base font-black text-[var(--text-main)] uppercase tracking-tight">{{ $t('actorPicker.title') }}</h2>
             <button @click="emit('close')" class="text-[var(--text-muted)] opacity-50 hover:opacity-100 transition-opacity">
               <i class="bi bi-x-lg text-lg"></i>
             </button>
@@ -22,7 +22,7 @@
                 ? 'bg-[var(--status-red)] text-white'
                 : 'bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/40'"
             >
-              <i class="bi bi-database mr-1.5"></i>Lokal
+              <i class="bi bi-database mr-1.5"></i>{{ $t('actorPicker.local') }}
             </button>
             <button
               @click="mode = 'tmdb'"
@@ -41,7 +41,7 @@
               v-model="query"
               @input="onQueryInput"
               type="text"
-              :placeholder="mode === 'tmdb' ? 'Person auf TMDb suchen...' : 'Name suchen...'"
+              :placeholder="mode === 'tmdb' ? $t('actorPicker.searchTmdbPlaceholder') : $t('actorPicker.searchLocalPlaceholder')"
               class="w-full bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors"
             />
           </div>
@@ -54,7 +54,7 @@
 
             <div v-else-if="results.length === 0 && query.trim().length >= 2"
               class="text-center py-8 text-sm text-[var(--text-muted)] opacity-50">
-              Keine Ergebnisse
+              {{ $t('actorPicker.noResults') }}
             </div>
 
             <div v-else class="space-y-1 mt-1">
@@ -91,12 +91,12 @@
               </button>
             </div>
             <div>
-              <label class="field-label">Rolle (optional)</label>
-              <input v-model="role" type="text" placeholder="z. B. Neo" class="picker-input" />
+              <label class="field-label">{{ $t('actorPicker.roleLabel') }}</label>
+              <input v-model="role" type="text" :placeholder="$t('actorPicker.rolePlaceholder')" class="picker-input" />
             </div>
             <label class="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" v-model="isMainRole" class="w-4 h-4 accent-red-600 rounded" />
-              <span class="text-sm font-bold text-[var(--text-main)]">Hauptrolle</span>
+              <span class="text-sm font-bold text-[var(--text-main)]">{{ $t('actorPicker.mainRole') }}</span>
             </label>
           </div>
 
@@ -109,13 +109,13 @@
             >
               <span v-if="saving" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               <i v-else class="bi bi-plus-lg"></i>
-              {{ saving ? 'Wird hinzugefügt...' : 'Hinzufügen' }}
+              {{ saving ? $t('actorPicker.adding') : $t('actorPicker.add') }}
             </button>
             <button
               @click="emit('close')"
               class="px-6 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
             >
-              Abbrechen
+              {{ $t('common.cancel') }}
             </button>
           </div>
 
@@ -196,7 +196,7 @@ async function doSearch() {
     } else {
       if (!settings.tmdbApiKey) return
       const { data } = await axios.get(`${TMDB_BASE}/search/person`, {
-        params: { api_key: settings.tmdbApiKey, query: q, language: 'de-DE' }
+        params: { api_key: settings.tmdbApiKey, query: q, language: settings.tmdbLanguage }
       })
       results.value = (data.results ?? []).slice(0, 10).map((p: any) => ({
         id: p.id,

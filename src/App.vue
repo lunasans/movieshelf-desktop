@@ -20,6 +20,7 @@
 import { onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSettingsStore } from '@/stores/settings'
+import { setLocale } from '@/i18n'
 import { useUpdateService } from '@/services/updateService'
 import { useKeyboard } from '@/composables/useKeyboard'
 import TitleBar from '@/components/layout/TitleBar.vue'
@@ -58,6 +59,7 @@ applyTheme('dark')
 onMounted(async () => {
   await settings.load()
   applyTheme(settings.theme)
+  setLocale(settings.language)
   
   // Automatischer Update-Check beim Start
   checkForUpdates()
@@ -73,5 +75,9 @@ onMounted(async () => {
 
 watch(() => settings.theme, (newTheme) => {
   applyTheme(newTheme)
+})
+
+watch(() => settings.language, (newLanguage) => {
+  setLocale(newLanguage)
 })
 </script>

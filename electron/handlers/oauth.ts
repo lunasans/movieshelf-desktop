@@ -1,4 +1,6 @@
 import { ipcMain, BrowserWindow, shell } from 'electron'
+import { getDb } from '../database'
+import { tMain } from '../i18n'
 
 export function registerOAuthHandlers() {
   let oauthWindow: BrowserWindow | null = null
@@ -20,7 +22,7 @@ export function registerOAuthHandlers() {
     oauthWindow = new BrowserWindow({
       width: 520,
       height: 700,
-      title: 'MovieShelf Login',
+      title: tMain(getDb(), 'oauthWindowTitle'),
       autoHideMenuBar: true,
       show: false,
       backgroundColor: '#ffffff',

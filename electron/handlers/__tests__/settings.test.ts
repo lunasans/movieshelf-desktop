@@ -42,6 +42,13 @@ describe('setSetting', () => {
     setSetting(db, 'mode', 'online')
     expect(getSetting(db, 'mode')).toBe('online')
   })
+
+  it('speichert language unverschlüsselt und liest sie zurück', () => {
+    expect(setSetting(db, 'language', 'en')).toBe(true)
+    const row = db.prepare("SELECT value FROM settings WHERE key = 'language'").get() as any
+    expect(row.value).toBe('en')
+    expect(getSetting(db, 'language')).toBe('en')
+  })
 })
 
 describe('getAllSettings', () => {

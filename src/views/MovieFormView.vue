@@ -3,9 +3,9 @@
     <div class="flex items-start justify-between mb-8">
       <div>
         <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">
-          {{ isEdit ? 'Film bearbeiten' : 'Film hinzufügen' }}
+          {{ isEdit ? $t('movieForm.editTitle') : $t('movieForm.addTitle') }}
         </h1>
-        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ isEdit ? form.title : 'Neuen Film zur Sammlung hinzufügen' }}</p>
+        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ isEdit ? form.title : $t('movieForm.addSubtitle') }}</p>
       </div>
     </div>
 
@@ -17,7 +17,7 @@
         <div
           class="relative w-28 rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] aspect-[2/3] cursor-pointer group"
           @click="coverInput?.click()"
-          title="Eigenes Cover hochladen"
+          :title="$t('movieForm.uploadCover')"
         >
           <img v-if="coverDisplayUrl" :src="coverDisplayUrl" class="w-full h-full object-cover" />
           <div v-else class="w-full h-full flex items-center justify-center text-[var(--text-muted)] opacity-20">
@@ -37,7 +37,7 @@
         <div
           class="relative w-full rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] aspect-video cursor-pointer group"
           @click="backdropInput?.click()"
-          title="Eigenes Backdrop hochladen"
+          :title="$t('movieForm.uploadBackdrop')"
         >
           <img v-if="backdropDisplayUrl" :src="backdropDisplayUrl" class="w-full h-full object-cover" />
           <div v-else class="w-full h-full flex items-center justify-center text-[var(--text-muted)] opacity-20">
@@ -53,27 +53,28 @@
     </div>
 
     <form @submit.prevent="save" class="space-y-4">
-      <FormRow label="Titel *">
+      <FormRow :label="$t('movieForm.fieldTitle')">
         <input v-model="form.title" required type="text" class="input" />
       </FormRow>
       <div class="grid grid-cols-2 gap-4">
-        <FormRow label="Jahr">
+        <FormRow :label="$t('movieForm.fieldYear')">
           <input v-model.number="form.year" type="number" min="1900" max="2099" class="input" />
         </FormRow>
-        <FormRow label="Laufzeit (min)">
+        <FormRow :label="$t('movieForm.fieldRuntime')">
           <input v-model.number="form.runtime" type="number" class="input" />
         </FormRow>
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <FormRow label="Typ">
+        <FormRow :label="$t('movieForm.fieldType')">
+          <!-- Option-Values sind DB-Werte und bleiben unübersetzt; nur Labels sind lokalisiert -->
           <select v-model="form.collection_type" class="input">
-            <option>Film</option>
-            <option>Serie</option>
-            <option>Dokumentation</option>
-            <option>Kurzfilm</option>
+            <option value="Film">{{ $t('movieForm.typeMovie') }}</option>
+            <option value="Serie">{{ $t('movieForm.typeSeries') }}</option>
+            <option value="Dokumentation">{{ $t('movieForm.typeDocumentary') }}</option>
+            <option value="Kurzfilm">{{ $t('movieForm.typeShort') }}</option>
           </select>
         </FormRow>
-        <FormRow label="Format-Tag">
+        <FormRow :label="$t('movieForm.fieldTag')">
           <select v-model="form.tag" class="input">
             <option value="">—</option>
             <option>DVD</option>
@@ -86,24 +87,24 @@
           </select>
         </FormRow>
       </div>
-      <FormRow label="Genre">
-        <input v-model="form.genre" type="text" placeholder="Action, Drama, ..." class="input" />
+      <FormRow :label="$t('movieForm.fieldGenre')">
+        <input v-model="form.genre" type="text" :placeholder="$t('movieForm.genrePlaceholder')" class="input" />
       </FormRow>
-      <FormRow label="Regisseur">
+      <FormRow :label="$t('movieForm.fieldDirector')">
         <input v-model="form.director" type="text" class="input" />
       </FormRow>
       <div class="grid grid-cols-2 gap-4">
-        <FormRow label="Bewertung (0–100)">
+        <FormRow :label="$t('movieForm.fieldRating')">
           <input v-model.number="form.rating" type="number" min="0" max="100" step="0.1" class="input" />
         </FormRow>
-        <FormRow label="FSK">
+        <FormRow :label="$t('movieForm.fieldRatingAge')">
           <input v-model.number="form.rating_age" type="number" class="input" />
         </FormRow>
       </div>
-      <FormRow label="Beschreibung">
+      <FormRow :label="$t('movieForm.fieldOverview')">
         <textarea v-model="form.overview" rows="4" class="input resize-none"></textarea>
       </FormRow>
-      <FormRow label="Trailer URL">
+      <FormRow :label="$t('movieForm.fieldTrailerUrl')">
         <div class="flex gap-2">
           <input v-model="form.trailer_url" type="url" class="input flex-1" placeholder="https://www.youtube.com/watch?v=..." />
           <button
@@ -112,11 +113,11 @@
             class="px-4 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-xs font-bold text-[var(--text-main)] transition-colors flex items-center gap-2 whitespace-nowrap"
           >
             <i class="bi bi-youtube text-red-500"></i>
-            YouTube Suche
+            {{ $t('movieForm.youtubeSearch') }}
           </button>
         </div>
       </FormRow>
-      <FormRow label="TMDb ID">
+      <FormRow :label="$t('movieForm.fieldTmdbId')">
         <div class="flex gap-2">
           <input v-model.number="form.tmdb_id" type="number" class="input flex-1" />
           <button
@@ -127,33 +128,33 @@
             class="px-4 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-xs font-bold text-[var(--text-main)] transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
           >
             <i class="bi bi-arrow-repeat" :class="{ 'animate-spin': reloadingTmdb }"></i>
-            {{ reloadingTmdb ? 'Laden...' : 'Von TMDb laden' }}
+            {{ reloadingTmdb ? $t('movieForm.reloading') : $t('movieForm.reloadFromTmdb') }}
           </button>
         </div>
         <p v-if="tmdbReloadError" class="text-xs text-red-500 mt-1.5">{{ tmdbReloadError }}</p>
-        <p v-if="tmdbReloadSuccess" class="text-xs text-green-500 mt-1.5">Daten erfolgreich aktualisiert.</p>
+        <p v-if="tmdbReloadSuccess" class="text-xs text-green-500 mt-1.5">{{ $t('movieForm.reloadSuccess') }}</p>
       </FormRow>
-      <FormRow label="Hinzugefügt am">
+      <FormRow :label="$t('movieForm.fieldAddedAt')">
         <input v-model="form.created_at" type="date" class="input" />
       </FormRow>
 
       <!-- Actors section (edit mode only) -->
       <div v-if="isEdit" class="pt-2">
         <div class="flex items-center justify-between mb-3">
-          <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60">Schauspieler</label>
+          <label class="block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60">{{ $t('movieForm.actorsLabel') }}</label>
           <button
             type="button"
             @click="pickerOpen = true"
             class="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-xs font-bold text-[var(--text-main)] transition-colors"
           >
             <i class="bi bi-plus-lg text-red-500"></i>
-            Hinzufügen
+            {{ $t('movieForm.addActor') }}
           </button>
         </div>
 
         <div v-if="actors.length === 0"
           class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl px-5 py-4 text-center">
-          <p class="text-xs text-[var(--text-muted)] opacity-40">Noch keine Schauspieler zugeordnet.</p>
+          <p class="text-xs text-[var(--text-muted)] opacity-40">{{ $t('movieForm.noActors') }}</p>
         </div>
 
         <div v-else class="space-y-2">
@@ -173,7 +174,7 @@
                 <span
                   v-if="actor.is_main_role"
                   class="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-red-500/10 text-red-500 rounded-md flex-shrink-0"
-                >Hauptrolle</span>
+                >{{ $t('movieForm.mainRole') }}</span>
               </div>
             </div>
             <button
@@ -191,12 +192,12 @@
         <button type="submit" :disabled="saving"
           class="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-red-600/20 flex items-center justify-center gap-2 active:scale-95">
           <i class="bi bi-check-lg"></i>
-          {{ saving ? 'Speichern...' : 'Speichern' }}
+          {{ saving ? $t('movieForm.saving') : $t('common.save') }}
         </button>
         <router-link to="/movies"
           class="flex-1 text-center bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2">
           <i class="bi bi-x-lg"></i>
-          Abbrechen
+          {{ $t('common.cancel') }}
         </router-link>
       </div>
     </form>
@@ -341,7 +342,7 @@ async function reloadFromTmdb() {
   try {
     if (isTv) {
       const { data: m } = await axios.get(`${TMDB_BASE}/tv/${form.value.tmdb_id}`, {
-        params: { api_key: settings.tmdbApiKey, language: 'de-DE', append_to_response: 'credits,videos' }
+        params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits,videos' }
       })
       const creator = (m.created_by ?? [])[0]?.name ?? form.value.director
       const trailer = (m.videos?.results ?? []).find((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'))
@@ -360,10 +361,10 @@ async function reloadFromTmdb() {
     } else {
       const [detailRes, videoRes] = await Promise.all([
         axios.get(`${TMDB_BASE}/movie/${form.value.tmdb_id}`, {
-          params: { api_key: settings.tmdbApiKey, language: 'de-DE', append_to_response: 'credits' }
+          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits' }
         }),
         axios.get(`${TMDB_BASE}/movie/${form.value.tmdb_id}/videos`, {
-          params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
+          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage }
         }).catch(() => ({ data: { results: [] } }))
       ])
       const m        = detailRes.data

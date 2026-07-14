@@ -5,6 +5,7 @@ import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
 import AdmZip from 'adm-zip'
 import { getDb } from '../database'
+import { tMain } from '../i18n'
 import { ALLOWED_SETTINGS_KEYS, SENSITIVE_KEYS } from './settings'
 import type Database from 'better-sqlite3'
 
@@ -134,7 +135,7 @@ export function restoreFromZip(db: Database.Database, zipPath: string, coversDir
 export function registerBackupHandlers(): void {
   ipcMain.handle('backup:create', async () => {
     const { filePath, canceled } = await dialog.showSaveDialog({
-      title: 'Backup speichern',
+      title: tMain(getDb(), 'backupSaveTitle'),
       defaultPath: `movieshelf_backup_${new Date().toISOString().slice(0, 10)}.ms`,
       filters: [{ name: 'MovieShelf Backup', extensions: ['ms'] }],
     })
@@ -151,7 +152,7 @@ export function registerBackupHandlers(): void {
 
   ipcMain.handle('backup:restore', async () => {
     const { filePaths, canceled } = await dialog.showOpenDialog({
-      title: 'Backup wiederherstellen',
+      title: tMain(getDb(), 'backupRestoreOpenTitle'),
       filters: [{ name: 'MovieShelf Backup', extensions: ['ms'] }],
       properties: ['openFile'],
     })
@@ -160,12 +161,12 @@ export function registerBackupHandlers(): void {
 
     const { response } = await dialog.showMessageBox({
       type: 'warning',
-      buttons: ['Wiederherstellen', 'Abbrechen'],
+      buttons: [tMain(getDb(), 'backupRestore'), tMain(getDb(), 'cancel')],
       defaultId: 1,
       cancelId: 1,
-      title: 'Backup wiederherstellen',
-      message: 'Aktuelle Sammlung wird überschrieben',
-      detail: 'Alle lokalen Filme, Schauspieler und Listen werden durch das Backup ersetzt. Fortfahren?',
+      title: tMain(getDb(), 'backupRestoreConfirmTitle'),
+      message: tMain(getDb(), 'backupRestoreMessage'),
+      detail: tMain(getDb(), 'backupRestoreDetail'),
     })
 
     if (response !== 0) return { success: false, canceled: true }

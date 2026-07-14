@@ -3,7 +3,7 @@
     <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl px-4 py-3 shadow-2xl backdrop-blur-md">
       <!-- Count badge -->
       <span class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">
-        {{ count }} ausgewählt
+        {{ $t('movies.selectedCount', { count }) }}
       </span>
 
       <div class="w-px h-5 bg-[var(--border-ui)]"></div>
@@ -31,13 +31,13 @@
         @click="confirmDelete"
         class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-black uppercase tracking-widest transition-colors"
       >
-        <i class="bi bi-trash3-fill"></i> Löschen
+        <i class="bi bi-trash3-fill"></i> {{ $t('common.delete') }}
       </button>
 
       <button
         @click="$emit('close')"
         class="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
-        title="Auswahl beenden"
+        :title="$t('movies.endSelection')"
       >
         <i class="bi bi-x-lg text-sm"></i>
       </button>
@@ -47,8 +47,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 defineProps<{ count: number }>()
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   'bulk-delete': []
@@ -66,7 +69,7 @@ function applyTag(tag: string) {
 }
 
 function confirmDelete() {
-  if (confirm(`Alle ausgewählten Einträge wirklich löschen?`)) {
+  if (confirm(t('movies.bulkDeleteConfirm'))) {
     emit('bulk-delete')
   }
 }

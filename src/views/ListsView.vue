@@ -3,14 +3,14 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight">Listen</h1>
-        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ store.lists.length }} benutzerdefinierte Listen</p>
+        <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight">{{ $t('nav.lists') }}</h1>
+        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ $t('lists.customCount', { count: store.lists.length }) }}</p>
       </div>
       <button
         @click="showCreate = true"
         class="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
       >
-        <i class="bi bi-plus-lg"></i> Neue Liste
+        <i class="bi bi-plus-lg"></i> {{ $t('lists.newList') }}
       </button>
     </div>
 
@@ -36,14 +36,14 @@
             <button
               @click.stop="startRename(list)"
               class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors text-sm"
-              title="Umbenennen"
+              :title="$t('lists.rename')"
             >
               <i class="bi bi-pencil-fill"></i>
             </button>
             <button
               @click.stop="confirmDelete(list)"
               class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-600/10 text-[var(--text-muted)] hover:text-red-500 transition-colors text-sm"
-              title="Löschen"
+              :title="$t('common.delete')"
             >
               <i class="bi bi-trash3-fill"></i>
             </button>
@@ -51,34 +51,34 @@
         </div>
 
         <p class="font-black text-[var(--text-main)] text-sm uppercase tracking-tight truncate">{{ list.name }}</p>
-        <p class="text-[var(--text-muted)] text-xs mt-1 opacity-60">{{ list.movie_count }} {{ list.movie_count === 1 ? 'Film' : 'Filme' }}</p>
+        <p class="text-[var(--text-muted)] text-xs mt-1 opacity-60">{{ $t('lists.movieCount', list.movie_count) }}</p>
       </div>
     </div>
 
     <!-- Empty -->
     <div v-else class="text-center py-20 text-[var(--text-muted)] opacity-40 text-sm">
       <i class="bi bi-collection text-4xl block mb-4 opacity-30"></i>
-      Noch keine Listen vorhanden.
+      {{ $t('movieDetail.noLists') }}
     </div>
 
     <!-- Create Modal -->
     <div v-if="showCreate" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="showCreate = false">
       <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-        <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-4">Neue Liste</h2>
+        <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-4">{{ $t('lists.newList') }}</h2>
         <input
           v-model="newListName"
           @keyup.enter="submitCreate"
           type="text"
-          placeholder="Listenname..."
+          :placeholder="$t('lists.namePlaceholder')"
           class="w-full bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors mb-4"
           autofocus
         />
         <div class="flex gap-2">
           <button @click="submitCreate" :disabled="!newListName.trim()" class="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl transition-colors text-sm">
-            Erstellen
+            {{ $t('lists.create') }}
           </button>
           <button @click="showCreate = false; newListName = ''" class="flex-1 bg-[var(--bg-elevated)] hover:bg-[var(--bg-sidebar)] text-[var(--text-muted)] font-bold py-2.5 rounded-xl transition-colors text-sm">
-            Abbrechen
+            {{ $t('common.cancel') }}
           </button>
         </div>
       </div>
@@ -87,7 +87,7 @@
     <!-- Rename Modal -->
     <div v-if="renameTarget" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="renameTarget = null">
       <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-        <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-4">Liste umbenennen</h2>
+        <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-4">{{ $t('lists.renameTitle') }}</h2>
         <input
           v-model="renameValue"
           @keyup.enter="submitRename"
@@ -97,10 +97,10 @@
         />
         <div class="flex gap-2">
           <button @click="submitRename" :disabled="!renameValue.trim()" class="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl transition-colors text-sm">
-            Speichern
+            {{ $t('common.save') }}
           </button>
           <button @click="renameTarget = null" class="flex-1 bg-[var(--bg-elevated)] hover:bg-[var(--bg-sidebar)] text-[var(--text-muted)] font-bold py-2.5 rounded-xl transition-colors text-sm">
-            Abbrechen
+            {{ $t('common.cancel') }}
           </button>
         </div>
       </div>
@@ -109,14 +109,14 @@
     <!-- Delete Confirm Modal -->
     <div v-if="deleteTarget" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="deleteTarget = null">
       <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-        <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-2">Liste löschen?</h2>
-        <p class="text-sm text-[var(--text-muted)] mb-6">„<span class="text-[var(--text-main)] font-bold">{{ deleteTarget.name }}</span>" wird unwiderruflich gelöscht. Die Filme selbst bleiben erhalten.</p>
+        <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-2">{{ $t('lists.deleteTitle') }}</h2>
+        <p class="text-sm text-[var(--text-muted)] mb-6">„<span class="text-[var(--text-main)] font-bold">{{ deleteTarget.name }}</span>" {{ $t('lists.deleteText') }}</p>
         <div class="flex gap-2">
           <button @click="submitDelete" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl transition-colors text-sm">
-            Löschen
+            {{ $t('common.delete') }}
           </button>
           <button @click="deleteTarget = null" class="flex-1 bg-[var(--bg-elevated)] hover:bg-[var(--bg-sidebar)] text-[var(--text-muted)] font-bold py-2.5 rounded-xl transition-colors text-sm">
-            Abbrechen
+            {{ $t('common.cancel') }}
           </button>
         </div>
       </div>

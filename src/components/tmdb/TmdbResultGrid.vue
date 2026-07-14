@@ -28,20 +28,20 @@
           <span v-if="importing === result.id || (previewLoading && previewSource?.id === result.id)"
             class="text-[10px] font-black text-white uppercase tracking-widest flex items-center justify-center gap-1 py-1">
             <span class="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></span>
-            Lädt...
+            {{ $t('tmdb.loadingShort') }}
           </span>
           <template v-else>
             <button
               @click.stop="emit('openPreview', result)"
               class="w-full bg-red-600 hover:bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-1.5 rounded-lg transition-colors"
             >
-              <i class="bi bi-plus-lg mr-1"></i>Sammlung
+              <i class="bi bi-plus-lg mr-1"></i>{{ $t('tmdb.collection') }}
             </button>
             <button
               @click.stop="emit('setListPicker', listPickerFor === result.id ? null : result.id)"
               class="w-full bg-white/20 hover:bg-white/30 text-white text-[10px] font-black uppercase tracking-widest py-1.5 rounded-lg transition-colors"
             >
-              <i class="bi bi-collection-fill mr-1"></i>Liste
+              <i class="bi bi-collection-fill mr-1"></i>{{ $t('tmdb.list') }}
             </button>
           </template>
         </div>
@@ -52,7 +52,7 @@
         v-if="listPickerFor === result.id"
         class="absolute z-50 top-full mt-1 left-0 right-0 bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl shadow-xl overflow-hidden"
       >
-        <div v-if="lists.length === 0" class="px-3 py-2 text-xs text-[var(--text-muted)] opacity-50">Keine Listen vorhanden</div>
+        <div v-if="lists.length === 0" class="px-3 py-2 text-xs text-[var(--text-muted)] opacity-50">{{ $t('tmdb.noLists') }}</div>
         <button
           v-for="list in lists"
           :key="list.id"

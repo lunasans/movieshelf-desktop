@@ -3,8 +3,8 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight">{{ isSeries ? 'Serien' : 'Filme' }}</h1>
-        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ store.total }} {{ isSeries ? 'Serien' : 'Filme' }} in der Sammlung</p>
+        <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight">{{ isSeries ? $t('nav.series') : $t('nav.movies') }}</h1>
+        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ isSeries ? $t('movies.countSeries', { count: store.total }) : $t('movies.countMovies', { count: store.total }) }}</p>
       </div>
       <div class="flex items-center gap-2">
         <!-- Ansicht umschalten -->
@@ -27,7 +27,7 @@
         <button
           @click="showRandom = true"
           class="p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-ui)] hover:border-purple-500/50 text-[var(--text-muted)] hover:text-purple-400 transition-colors"
-          title="Zufälligen Film wählen"
+          :title="$t('movies.randomPick')"
         >
           <i class="bi bi-dice-6-fill"></i>
         </button>
@@ -39,7 +39,7 @@
               ? 'bg-red-600 border-red-500 text-white'
               : 'bg-[var(--bg-card)] border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/50',
           ]"
-          title="Mehrfachauswahl"
+          :title="$t('movies.bulkSelect')"
         >
           <i class="bi bi-check2-square"></i>
         </button>
@@ -47,7 +47,7 @@
           to="/movies/new"
           class="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
         >
-          <i class="bi bi-plus-lg"></i> Film hinzufügen
+          <i class="bi bi-plus-lg"></i> {{ $t('movieForm.addTitle') }}
         </router-link>
       </div>
     </div>
@@ -60,7 +60,7 @@
         v-model="query"
         @input="onSearch"
         type="text"
-        placeholder="Titel, Regisseur, Genre suchen..."
+        :placeholder="$t('movies.searchPlaceholder')"
         class="w-full bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl pl-12 pr-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors"
       />
     </div>
@@ -72,16 +72,16 @@
         @change="onFiltersChange"
         class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-lg px-3 py-1.5 text-xs font-bold text-[var(--text-main)] focus:outline-none focus:border-red-500/50"
       >
-        <option value="title">Titel</option>
-        <option value="year">Jahr</option>
-        <option value="rating">Bewertung</option>
-        <option value="runtime">Laufzeit</option>
-        <option value="created_at">Hinzugefügt</option>
+        <option value="title">{{ $t('movies.sortTitle') }}</option>
+        <option value="year">{{ $t('movies.sortYear') }}</option>
+        <option value="rating">{{ $t('movies.sortRating') }}</option>
+        <option value="runtime">{{ $t('movies.sortRuntime') }}</option>
+        <option value="created_at">{{ $t('movies.sortAdded') }}</option>
       </select>
       <button
         @click="toggleSortDir"
         class="px-2 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-ui)] text-xs font-black text-[var(--text-muted)] hover:border-red-500/50 transition-colors"
-        :title="sortDirLocal === 'ASC' ? 'Aufsteigend' : 'Absteigend'"
+        :title="sortDirLocal === 'ASC' ? $t('movies.sortAsc') : $t('movies.sortDesc')"
       >
         <i :class="sortDirLocal === 'ASC' ? 'bi bi-sort-up' : 'bi bi-sort-down'"></i>
       </button>
@@ -109,11 +109,11 @@
       class="grid items-center gap-3 px-3 py-2 grid-cols-[40px_1fr_56px_56px_72px_minmax(0,90px)] text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-50 border-b border-[var(--border-ui)] mb-1"
     >
       <span></span>
-      <span>Titel</span>
-      <span class="text-center">Jahr</span>
-      <span class="text-center">Note</span>
-      <span class="text-center">Laufzeit</span>
-      <span class="text-right">Typ</span>
+      <span>{{ $t('movies.colTitle') }}</span>
+      <span class="text-center">{{ $t('movies.colYear') }}</span>
+      <span class="text-center">{{ $t('movies.colGrade') }}</span>
+      <span class="text-center">{{ $t('movies.colRuntime') }}</span>
+      <span class="text-right">{{ $t('movies.colType') }}</span>
     </div>
 
     <!-- Loading (Initial) -->
@@ -125,13 +125,13 @@
     <div v-if="!store.loading && store.movies.length === 0" class="text-center py-20">
       <template v-if="!settings.isOnline && !query">
         <i class="bi bi-cloud-slash text-3xl text-[var(--text-muted)] opacity-30 block mb-3"></i>
-        <p class="text-[var(--text-muted)] opacity-60 text-sm mb-4">Lokale Datenbank ist leer.</p>
+        <p class="text-[var(--text-muted)] opacity-60 text-sm mb-4">{{ $t('movies.emptyLocal') }}</p>
         <router-link to="/sync" class="text-[var(--status-red)] text-sm font-bold hover:underline">
-          Jetzt mit Shelf synchronisieren →
+          {{ $t('movies.syncNow') }}
         </router-link>
       </template>
       <template v-else>
-        <p class="text-[var(--text-muted)] opacity-40 text-sm">Keine Filme gefunden.</p>
+        <p class="text-[var(--text-muted)] opacity-40 text-sm">{{ $t('movies.noneFound') }}</p>
       </template>
     </div>
 
@@ -217,6 +217,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, onBeforeRouteLeave } from 'vue-router'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useMovieStore } from '@/stores/movies'
@@ -231,6 +232,7 @@ import BulkActionBar from '@/components/BulkActionBar.vue'
 const route    = useRoute()
 const store    = useMovieStore()
 const settings = useSettingsStore()
+const { t }    = useI18n()
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -251,11 +253,11 @@ function setViewMode(mode: ViewMode) {
   localStorage.setItem(VIEW_KEY, mode)
 }
 
-const viewOptions: { mode: ViewMode; icon: string; label: string }[] = [
-  { mode: 'grid',  icon: 'grid-3x3-gap-fill', label: 'Raster' },
-  { mode: 'list',  icon: 'list-ul',           label: 'Liste'  },
-  { mode: 'table', icon: 'table',             label: 'Tabelle' },
-]
+const viewOptions = computed<{ mode: ViewMode; icon: string; label: string }[]>(() => [
+  { mode: 'grid',  icon: 'grid-3x3-gap-fill', label: t('movies.viewGrid') },
+  { mode: 'list',  icon: 'list-ul',           label: t('movies.viewList') },
+  { mode: 'table', icon: 'table',             label: t('movies.viewTable') },
+])
 
 const measureEl = ref<HTMLElement | null>(null)
 const gridEl    = ref<HTMLElement | null>(null)
