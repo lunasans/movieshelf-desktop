@@ -108,6 +108,13 @@
             </button>
             <p v-if="loginError"   class="text-[var(--status-red)]   text-xs text-center font-bold">{{ loginError }}</p>
             <p v-if="loginSuccess" class="text-[var(--status-green)] text-xs text-center font-bold">{{ $t('settings.connection.loginSuccess') }}</p>
+
+            <p class="text-center text-xs text-[var(--text-muted)] opacity-70">
+              {{ $t('settings.connection.noAccount') }}
+              <a href="https://movieshelf.info" target="_blank" class="text-[var(--status-red)] font-bold hover:underline">
+                {{ $t('settings.connection.registerLink') }}
+              </a>
+            </p>
           </div>
         </template>
         <p v-else class="text-xs text-[var(--text-muted)] opacity-50">
