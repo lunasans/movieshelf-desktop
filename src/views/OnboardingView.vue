@@ -80,6 +80,13 @@
           <i v-if="selectedMode === 'online'" class="bi bi-check-circle-fill text-red-500 ml-auto flex-shrink-0"></i>
         </button>
 
+        <p class="text-center text-xs text-[var(--text-muted)] opacity-70">
+          {{ $t('onboarding.noAccount') }}
+          <a href="https://movieshelf.info" target="_blank" class="text-red-400 hover:text-red-500 font-bold hover:underline">
+            {{ $t('onboarding.registerLink') }}
+          </a>
+        </p>
+
         <div class="flex gap-3 pt-2">
           <button @click="step--" class="flex-1 bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-2.5 rounded-xl transition-colors hover:border-red-500/30 text-sm">
             {{ $t('common.back') }}
