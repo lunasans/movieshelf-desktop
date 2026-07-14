@@ -1,3 +1,18 @@
+## [0.17.0] - 2026-07-14
+
+MovieShelf spricht jetzt Deutsch und Englisch – und begrüßt neue Nutzer mit einem überarbeiteten Onboarding.
+
+### Neu
+
+- **Zweisprachige Oberfläche (Deutsch/Englisch).** Neue Sprachauswahl unter *Einstellungen → Erscheinungsbild*; der Wechsel wirkt sofort ohne Neustart – inklusive Tray-Menü und System-Dialogen. Die gewählte Sprache steuert auch die TMDb-Metadaten (Suche, Details, Besetzung laden englische bzw. deutsche Inhalte). Die Einstellung gilt pro Gerät (#50).
+- **Überarbeitetes Onboarding.** Willkommensseite mit MovieShelf-Logo und kurzer Feature-Übersicht, neuer Schritt zur Wahl zwischen Standalone und Cloud-Modus (jederzeit in den Einstellungen änderbar) sowie Registrierungs-Link zu movieshelf.info (#51).
+
+### Migration
+
+- Keine – die neue Einstellung `language` wird additiv angelegt, Standard ist Deutsch.
+
+---
+
 ## [0.16.0] - 2026-07-12
 
 Sync-Korrektheit-Release nach der zweiten Runde des Projekt-Scans: lokale Änderungen können nicht mehr still verloren gehen, und Listen-Entfernungen erreichen jetzt den Server.
