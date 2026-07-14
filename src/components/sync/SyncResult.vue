@@ -4,34 +4,34 @@
     <div class="flex items-center gap-3 mb-3">
       <i class="bi text-lg" :class="result.errors > 0 ? 'bi-exclamation-triangle text-[var(--status-yellow)]' : 'bi-check-circle text-[var(--status-green)]'"></i>
       <p class="font-black text-sm text-[var(--text-main)]">
-        {{ result.errors > 0 ? 'Sync abgeschlossen mit Fehlern' : 'Sync erfolgreich' }}
+        {{ result.errors > 0 ? $t('sync.resultWithErrors') : $t('sync.resultSuccess') }}
       </p>
       <span class="ml-auto text-xs text-[var(--text-muted)] opacity-50">{{ result.duration }}s</span>
     </div>
     <div class="grid grid-cols-6 gap-3">
       <div class="text-center">
         <p class="text-xl font-black text-[var(--text-main)]">{{ result.pulled }}</p>
-        <p class="text-xs text-[var(--text-muted)] opacity-50">Aktualisiert</p>
+        <p class="text-xs text-[var(--text-muted)] opacity-50">{{ $t('sync.statUpdated') }}</p>
       </div>
       <div class="text-center">
         <p class="text-xl font-black text-[var(--text-muted)] opacity-40">{{ result.skipped }}</p>
-        <p class="text-xs text-[var(--text-muted)] opacity-50">Übersprungen</p>
+        <p class="text-xs text-[var(--text-muted)] opacity-50">{{ $t('sync.statSkipped') }}</p>
       </div>
       <div class="text-center">
         <p class="text-xl font-black text-[var(--text-main)]">{{ result.pushed }}</p>
-        <p class="text-xs text-[var(--text-muted)] opacity-50">Hochgeladen</p>
+        <p class="text-xs text-[var(--text-muted)] opacity-50">{{ $t('sync.statPushed') }}</p>
       </div>
       <div class="text-center">
         <p class="text-xl font-black text-[var(--text-main)]">{{ result.deleted }}</p>
-        <p class="text-xs text-[var(--text-muted)] opacity-50">Gelöscht</p>
+        <p class="text-xs text-[var(--text-muted)] opacity-50">{{ $t('sync.statDeleted') }}</p>
       </div>
       <div class="text-center">
         <p class="text-xl font-black text-[var(--text-main)]">{{ result.media }}</p>
-        <p class="text-xs text-[var(--text-muted)] opacity-50">Bilder</p>
+        <p class="text-xs text-[var(--text-muted)] opacity-50">{{ $t('sync.statMedia') }}</p>
       </div>
       <div class="text-center">
         <p class="text-xl font-black" :class="result.errors > 0 ? 'text-[var(--status-yellow)]' : 'text-[var(--text-muted)]'">{{ result.errors }}</p>
-        <p class="text-xs text-[var(--text-muted)] opacity-50">Fehler</p>
+        <p class="text-xs text-[var(--text-muted)] opacity-50">{{ $t('sync.statErrors') }}</p>
       </div>
     </div>
   </div>

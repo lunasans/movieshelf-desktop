@@ -4,16 +4,16 @@
     class="flex-shrink-0 bg-[var(--bg-sidebar)] bg-sidebar border-r border-[var(--border-ui)] border-ui flex flex-col py-4 transition-all duration-300 overflow-hidden"
   >
     <nav class="flex-1 px-3 space-y-1">
-      <SidebarItem to="/" icon="speedometer2" label="Dashboard" />
-      <SidebarItem to="/movies" icon="film" label="Filme" :exact="true" />
-      <SidebarItem to="/series" icon="tv" label="Serien" />
-      <SidebarItem to="/lists" icon="collection-fill" label="Listen" />
-      <SidebarItem to="/tmdb" icon="search" label="TMDb Suche" />
+      <SidebarItem to="/" icon="speedometer2" :label="$t('nav.dashboard')" />
+      <SidebarItem to="/movies" icon="film" :label="$t('nav.movies')" :exact="true" />
+      <SidebarItem to="/series" icon="tv" :label="$t('nav.series')" />
+      <SidebarItem to="/lists" icon="collection-fill" :label="$t('nav.lists')" />
+      <SidebarItem to="/tmdb" icon="search" :label="$t('nav.tmdbSearch')" />
     </nav>
 
     <div class="px-3 mt-4 border-t border-[var(--border-ui)] border-ui pt-4 space-y-1">
-      <SidebarItem to="/sync" icon="arrow-left-right" label="Synchronisation" />
-      <SidebarItem to="/settings" icon="gear-fill" label="Einstellungen" :badge="settings.updateAvailable" />
+      <SidebarItem to="/sync" icon="arrow-left-right" :label="$t('nav.sync')" />
+      <SidebarItem to="/settings" icon="gear-fill" :label="$t('nav.settings')" :badge="settings.updateAvailable" />
       
       <!-- Version display -->
       <div v-if="!ui.isSidebarCollapsed" class="px-3 pt-4 opacity-20 hover:opacity-100 transition-opacity">

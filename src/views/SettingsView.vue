@@ -13,7 +13,7 @@
           : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-elevated)] border border-transparent'"
       >
         <i :class="`bi bi-${item.icon} text-base leading-none`"></i>
-        <span>{{ item.label }}</span>
+        <span>{{ $t(item.labelKey) }}</span>
         <span v-if="item.id === 'updates' && settings.updateAvailable"
           class="ml-auto flex h-2 w-2 rounded-full bg-[var(--status-green)]"></span>
       </button>
@@ -24,18 +24,22 @@
 
       <!-- ── Erscheinungsbild ── -->
       <template v-if="active === 'appearance'">
-        <SectionHeader icon="palette" title="Erscheinungsbild" />
+        <SectionHeader icon="palette" :title="$t('settings.appearance.title')" />
 
-        <SettingsRow label="Design" hint="Hell, Dunkel oder Systemeinstellung">
+        <SettingsRow :label="$t('settings.appearance.themeLabel')" :hint="$t('settings.appearance.themeHint')">
           <ThemeSwitcher />
+        </SettingsRow>
+
+        <SettingsRow :label="$t('settings.appearance.languageLabel')" :hint="$t('settings.appearance.languageHint')">
+          <LanguageSwitcher />
         </SettingsRow>
       </template>
 
       <!-- ── Allgemein ── -->
       <template v-if="active === 'general'">
-        <SectionHeader icon="gear" title="Allgemein" />
+        <SectionHeader icon="gear" :title="$t('settings.general.title')" />
 
-        <SettingsRow label="Beim Systemstart öffnen" hint="MovieShelf startet beim Login automatisch ins Tray">
+        <SettingsRow :label="$t('settings.general.autostartLabel')" :hint="$t('settings.general.autostartHint')">
           <button
             @click="toggleAutostart"
             role="switch"
@@ -53,26 +57,26 @@
 
       <!-- ── Verbindung ── -->
       <template v-if="active === 'connection'">
-        <SectionHeader icon="cloud" title="Verbindung" />
+        <SectionHeader icon="cloud" :title="$t('settings.connection.title')" />
 
         <div class="flex gap-3 mb-6">
           <ModeButton
             :active="settings.mode === 'standalone'"
             icon="pc-display"
-            label="Standalone"
+            :label="$t('settings.connection.standalone')"
             @click="settings.mode = 'standalone'"
           />
           <ModeButton
             :active="settings.mode === 'online'"
             icon="cloud-fill"
-            label="Mit MovieShelf verbinden"
+            :label="$t('settings.connection.connectMode')"
             @click="settings.mode = 'online'"
           />
         </div>
 
         <template v-if="settings.mode === 'online'">
           <div class="space-y-4">
-            <SettingsInput label="Shelf URL" type="url" v-model="settings.shelfUrl" placeholder="https://dein-name.movieshelf.info" />
+            <SettingsInput :label="$t('settings.connection.shelfUrl')" type="url" v-model="settings.shelfUrl" :placeholder="$t('settings.connection.shelfUrlPlaceholder')" />
 
             <!-- OAuth Login -->
             <button
@@ -81,18 +85,18 @@
               class="w-full bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] disabled:opacity-40 text-[var(--text-main)] font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2"
             >
               <i class="bi bi-shield-lock"></i>
-              {{ oauthLoading ? 'Warte auf Browser...' : 'Mit Movieshelf anmelden' }}
+              {{ oauthLoading ? $t('settings.connection.oauthWaiting') : $t('settings.connection.oauthLogin') }}
             </button>
 
             <!-- Divider -->
             <div class="flex items-center gap-3">
               <div class="flex-1 h-px bg-[var(--border-ui)]"></div>
-              <span class="text-xs text-[var(--text-muted)] opacity-50">oder manuell</span>
+              <span class="text-xs text-[var(--text-muted)] opacity-50">{{ $t('settings.connection.orManual') }}</span>
               <div class="flex-1 h-px bg-[var(--border-ui)]"></div>
             </div>
 
-            <SettingsInput label="E-Mail" type="email" v-model="loginEmail" placeholder="deine@email.de" />
-            <SettingsInput label="Passwort" type="password" v-model="loginPassword" placeholder="••••••••" />
+            <SettingsInput :label="$t('settings.connection.email')" type="email" v-model="loginEmail" :placeholder="$t('settings.connection.emailPlaceholder')" />
+            <SettingsInput :label="$t('settings.connection.password')" type="password" v-model="loginPassword" placeholder="••••••••" />
 
             <button
               @click="doLogin"
@@ -100,14 +104,14 @@
               class="w-full bg-[var(--status-red)] hover:opacity-90 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-red-600/10"
             >
               <i class="bi bi-box-arrow-in-right"></i>
-              {{ loginLoading ? 'Verbinde...' : 'Anmelden & Verbinden' }}
+              {{ loginLoading ? $t('settings.connection.connecting') : $t('settings.connection.loginConnect') }}
             </button>
             <p v-if="loginError"   class="text-[var(--status-red)]   text-xs text-center font-bold">{{ loginError }}</p>
-            <p v-if="loginSuccess" class="text-[var(--status-green)] text-xs text-center font-bold">✓ Erfolgreich verbunden!</p>
+            <p v-if="loginSuccess" class="text-[var(--status-green)] text-xs text-center font-bold">{{ $t('settings.connection.loginSuccess') }}</p>
           </div>
         </template>
         <p v-else class="text-xs text-[var(--text-muted)] opacity-50">
-          Im Standalone-Modus werden alle Daten lokal gespeichert. Keine Cloud-Verbindung erforderlich.
+          {{ $t('settings.connection.standaloneHint') }}
         </p>
 
         <SaveButton class="mt-6" @click="save" />
@@ -115,18 +119,18 @@
 
       <!-- ── TMDb ── -->
       <template v-if="active === 'tmdb'">
-        <SectionHeader icon="film" title="TMDb Integration" />
+        <SectionHeader icon="film" :title="$t('settings.tmdb.title')" />
 
-        <SettingsRow label="API Key" hint="Ermöglicht die Filmsuche ohne Cloud-Verbindung">
+        <SettingsRow :label="$t('settings.tmdb.apiKeyLabel')" :hint="$t('settings.tmdb.apiKeyHint')">
           <a href="https://www.themoviedb.org/settings/api" target="_blank"
-            class="text-xs text-[var(--status-red)] hover:underline font-bold">Key beantragen →</a>
+            class="text-xs text-[var(--status-red)] hover:underline font-bold">{{ $t('settings.tmdb.requestKey') }}</a>
         </SettingsRow>
 
         <div class="mt-3 mb-6">
           <input
             v-model="settings.tmdbApiKey"
             type="password"
-            placeholder="TMDb API Key eingeben..."
+            :placeholder="$t('settings.tmdb.apiKeyPlaceholder')"
             class="w-full bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] opacity-80 focus:outline-none focus:border-[var(--status-red)]/50 transition-colors font-mono"
           />
         </div>
@@ -136,22 +140,22 @@
 
       <!-- ── Updates ── -->
       <template v-if="active === 'updates'">
-        <SectionHeader icon="arrow-repeat" title="Software Update" />
+        <SectionHeader icon="arrow-repeat" :title="$t('settings.updates.title')" />
 
         <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-bold text-[var(--text-main)]">Installierte Version</p>
+              <p class="text-sm font-bold text-[var(--text-main)]">{{ $t('settings.updates.installedVersion') }}</p>
               <p class="text-2xl font-black text-[var(--text-main)] mt-0.5">v{{ settings.appVersion }}</p>
             </div>
             <div v-if="settings.updateAvailable"
               class="flex items-center gap-2 bg-[var(--status-green)]/10 border border-[var(--status-green)]/20 rounded-xl px-3 py-1.5">
               <span class="flex h-2 w-2 rounded-full bg-[var(--status-green)] animate-pulse"></span>
               <span class="text-xs font-black text-[var(--status-green)] uppercase tracking-widest">
-                {{ settings.newestVersion }} verfügbar
+                {{ $t('settings.updates.available', { version: settings.newestVersion }) }}
               </span>
             </div>
-            <span v-else class="text-xs text-[var(--text-muted)] opacity-50 font-bold uppercase tracking-widest">Aktuell</span>
+            <span v-else class="text-xs text-[var(--text-muted)] opacity-50 font-bold uppercase tracking-widest">{{ $t('settings.updates.upToDate') }}</span>
           </div>
         </div>
 
@@ -159,7 +163,7 @@
         <div v-if="settings.updateAvailable && settings.updateChangelog && !downloading"
           class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
           <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-3">
-            Was ist neu in v{{ settings.newestVersion }}
+            {{ $t('settings.updates.whatsNew', { version: settings.newestVersion }) }}
           </p>
           <div class="space-y-1.5">
             <template v-for="line in changelogLines" :key="line.text">
@@ -178,7 +182,7 @@
         <!-- Download progress -->
         <div v-if="downloading" class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
           <div class="flex items-center justify-between mb-3">
-            <p class="text-sm font-bold text-[var(--text-main)]">Wird heruntergeladen...</p>
+            <p class="text-sm font-bold text-[var(--text-main)]">{{ $t('settings.updates.downloading') }}</p>
             <span class="text-sm font-black text-[var(--text-main)]">{{ downloadProgress }}%</span>
           </div>
           <div class="w-full bg-[var(--bg-app)] rounded-full h-2 overflow-hidden">
@@ -200,7 +204,7 @@
           class="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 mb-3">
           <i class="bi bi-exclamation-triangle-fill text-amber-400 flex-shrink-0 mt-0.5"></i>
           <p class="text-xs text-[var(--text-main)] opacity-80">
-            Dieses Update muss <strong>manuell heruntergeladen</strong> und installiert werden.
+            {{ $t('settings.updates.manualNote') }}
           </p>
         </div>
 
@@ -211,7 +215,7 @@
             @click="installUpdate"
             class="flex-1 bg-[var(--status-green)] hover:opacity-90 text-white font-black py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
           >
-            <i class="bi bi-download"></i> Jetzt installieren
+            <i class="bi bi-download"></i> {{ $t('settings.updates.installNow') }}
           </button>
           <!-- Manual download button -->
           <a
@@ -220,7 +224,7 @@
             target="_blank"
             class="flex-1 bg-[var(--status-green)] hover:opacity-90 text-white font-black py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
           >
-            <i class="bi bi-box-arrow-up-right"></i> Herunterladen
+            <i class="bi bi-box-arrow-up-right"></i> {{ $t('settings.updates.download') }}
           </a>
           <button
             v-if="!downloading"
@@ -229,25 +233,25 @@
             class="flex-1 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-sm font-bold text-[var(--text-main)] py-3 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <i class="bi bi-arrow-repeat" :class="{ 'animate-spin': checkingUpdate }"></i>
-            {{ checkingUpdate ? 'Prüfe...' : 'Nach Updates suchen' }}
+            {{ checkingUpdate ? $t('settings.updates.checking') : $t('settings.updates.checkForUpdates') }}
           </button>
         </div>
       </template>
 
       <!-- ── Backup ── -->
       <template v-if="active === 'backup'">
-        <SectionHeader icon="archive" title="Backup" />
+        <SectionHeader icon="archive" :title="$t('settings.backup.title')" />
 
         <!-- Backup erstellen -->
         <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
-          <p class="text-sm font-bold text-[var(--text-main)] mb-1">Backup erstellen</p>
+          <p class="text-sm font-bold text-[var(--text-main)] mb-1">{{ $t('settings.backup.createTitle') }}</p>
           <p class="text-xs text-[var(--text-muted)] opacity-60 mb-4">
-            Exportiert alle Filme, Schauspieler, Listen und Medien als <span class="font-mono">.ms</span>-Datei.
+            {{ $t('settings.backup.createHint') }}
           </p>
           <div v-if="backupResult" class="mb-3 text-xs font-bold"
             :class="backupResult.success ? 'text-[var(--status-green)]' : 'text-[var(--status-red)]'">
             {{ backupResult.success
-              ? `✓ Backup erstellt — ${backupResult.movies} Filme gesichert`
+              ? $t('settings.backup.createdResult', { count: backupResult.movies })
               : `✗ ${backupResult.error}` }}
           </div>
           <button
@@ -256,21 +260,20 @@
             class="w-full bg-[var(--bg-elevated)] hover:bg-[var(--border-ui)] border border-[var(--border-ui)] text-[var(--text-main)] font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <i class="bi bi-cloud-download" :class="{ 'animate-pulse': backupLoading }"></i>
-            {{ backupLoading ? 'Wird erstellt...' : 'Backup speichern...' }}
+            {{ backupLoading ? $t('settings.backup.creating') : $t('settings.backup.saveBackup') }}
           </button>
         </div>
 
         <!-- Backup wiederherstellen -->
         <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
-          <p class="text-sm font-bold text-[var(--text-main)] mb-1">Backup wiederherstellen</p>
+          <p class="text-sm font-bold text-[var(--text-main)] mb-1">{{ $t('settings.backup.restoreTitle') }}</p>
           <p class="text-xs text-[var(--text-muted)] opacity-60 mb-4">
-            Stellt eine gespeicherte <span class="font-mono">.ms</span>-Datei wieder her.
-            Die aktuelle Sammlung wird dabei überschrieben.
+            {{ $t('settings.backup.restoreHint') }}
           </p>
           <div v-if="restoreResult" class="mb-3 text-xs font-bold"
             :class="restoreResult.success ? 'text-[var(--status-green)]' : 'text-[var(--status-red)]'">
             {{ restoreResult.success
-              ? `✓ Wiederhergestellt — ${restoreResult.movies} Filme, ${restoreResult.actors} Schauspieler`
+              ? $t('settings.backup.restoredResult', { movies: restoreResult.movies, actors: restoreResult.actors })
               : `✗ ${restoreResult.error}` }}
           </div>
           <button
@@ -279,21 +282,21 @@
             class="w-full bg-transparent hover:bg-[var(--status-red)]/5 border border-[var(--status-red)]/30 text-[var(--status-red)] font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <i class="bi bi-arrow-counterclockwise" :class="{ 'animate-spin': restoreLoading }"></i>
-            {{ restoreLoading ? 'Wird wiederhergestellt...' : 'Backup wiederherstellen...' }}
+            {{ restoreLoading ? $t('settings.backup.restoring') : $t('settings.backup.restoreBackup') }}
           </button>
         </div>
 
         <!-- CSV / Letterboxd Import -->
         <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5">
-          <p class="text-sm font-bold text-[var(--text-main)] mb-1">CSV / Letterboxd-Import</p>
+          <p class="text-sm font-bold text-[var(--text-main)] mb-1">{{ $t('settings.backup.csvTitle') }}</p>
           <p class="text-xs text-[var(--text-muted)] opacity-60 mb-4">
-            Importiert eine Letterboxd-CSV-Datei (Spalten: <span class="font-mono">Name, Year, Rating, Tags, Watched Date</span>).
+            {{ $t('settings.backup.csvHint') }}
           </p>
           <div v-if="importResult" class="mb-3 text-xs font-bold"
             :class="importResult.error ? 'text-[var(--status-red)]' : 'text-[var(--status-green)]'">
             {{ importResult.error
               ? `✗ ${importResult.error}`
-              : `✓ ${importResult.imported} importiert, ${importResult.skipped} übersprungen` }}
+              : $t('settings.backup.csvResult', { imported: importResult.imported, skipped: importResult.skipped }) }}
           </div>
           <button
             @click="importCsv"
@@ -301,55 +304,55 @@
             class="w-full bg-[var(--bg-elevated)] hover:bg-[var(--border-ui)] border border-[var(--border-ui)] text-[var(--text-main)] font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <i class="bi bi-file-earmark-spreadsheet" :class="{ 'animate-pulse': importLoading }"></i>
-            {{ importLoading ? 'Wird importiert...' : 'CSV-Datei auswählen...' }}
+            {{ importLoading ? $t('settings.backup.importing') : $t('settings.backup.chooseCsv') }}
           </button>
         </div>
       </template>
 
       <!-- ── Entwickler ── -->
       <template v-if="active === 'dev'">
-        <SectionHeader icon="bug" title="Entwickler-Werkzeuge" />
+        <SectionHeader icon="bug" :title="$t('settings.dev.title')" />
 
         <!-- Protokolle -->
         <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
           <div class="flex items-center justify-between mb-3">
             <div>
-              <p class="text-sm font-bold text-[var(--text-main)]">Protokolle</p>
-              <p class="text-xs text-[var(--text-muted)] opacity-60 mt-0.5">Letzte Meldungen des Hauptprozesses</p>
+              <p class="text-sm font-bold text-[var(--text-main)]">{{ $t('settings.dev.logsTitle') }}</p>
+              <p class="text-xs text-[var(--text-muted)] opacity-60 mt-0.5">{{ $t('settings.dev.logsHint') }}</p>
             </div>
             <div class="flex items-center gap-2">
               <button
                 @click="refreshLogs"
                 class="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-ui)] rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5"
               >
-                <i class="bi bi-arrow-repeat" :class="{ 'animate-spin': logsLoading }"></i> Aktualisieren
+                <i class="bi bi-arrow-repeat" :class="{ 'animate-spin': logsLoading }"></i> {{ $t('settings.dev.refresh') }}
               </button>
               <button
                 @click="openLogFolder"
                 class="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-ui)] rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5"
               >
-                <i class="bi bi-folder2-open"></i> Ordner
+                <i class="bi bi-folder2-open"></i> {{ $t('settings.dev.folder') }}
               </button>
               <button
                 @click="clearLogs"
                 class="text-xs font-bold text-[var(--status-red)] hover:bg-[var(--status-red)]/10 border border-[var(--status-red)]/20 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5"
               >
-                <i class="bi bi-trash3"></i> Leeren
+                <i class="bi bi-trash3"></i> {{ $t('settings.dev.clear') }}
               </button>
             </div>
           </div>
           <pre
             class="bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl p-3 text-[11px] leading-relaxed text-[var(--text-main)] opacity-80 font-mono overflow-auto max-h-80 whitespace-pre-wrap break-all"
-          >{{ logs || 'Keine Einträge.' }}</pre>
+          >{{ logs || $t('settings.dev.noEntries') }}</pre>
         </div>
 
         <div class="bg-[var(--status-red-bg)] border border-[var(--status-red)]/20 rounded-2xl p-5">
-          <p class="text-xs text-[var(--status-red)] opacity-60 font-bold uppercase tracking-widest mb-4">Destruktive Aktionen</p>
+          <p class="text-xs text-[var(--status-red)] opacity-60 font-bold uppercase tracking-widest mb-4">{{ $t('settings.dev.destructive') }}</p>
           <button
             @click="clearDatabase"
             class="w-full bg-transparent hover:bg-[var(--status-red)]/10 border border-[var(--status-red)]/20 text-[var(--status-red)] font-bold py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
           >
-            <i class="bi bi-trash3"></i> Lokale Datenbank leeren
+            <i class="bi bi-trash3"></i> {{ $t('settings.dev.clearDb') }}
           </button>
         </div>
       </template>
@@ -361,10 +364,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, defineComponent, h } from 'vue'
 import axios from 'axios'
+import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
 import { useApi } from '@/composables/useApi'
 import { useUpdateService } from '@/services/updateService'
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher.vue'
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher.vue'
+
+const { t } = useI18n()
 
 // ── Inline sub-components ────────────────────────────────────────────────────
 
@@ -439,7 +446,7 @@ const SaveButton = defineComponent({
       class: `w-full bg-[var(--status-red)] hover:opacity-90 text-white font-black py-3.5 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-red-600/10 ${props.class ?? ''}`,
     }, [
       h('i', { class: 'bi bi-floppy' }),
-      'Einstellungen speichern',
+      t('settings.saveSettings'),
     ])
   }
 })
@@ -490,13 +497,13 @@ const importLoading    = ref(false)
 const importResult     = ref<{ imported: number; skipped: number; error?: string } | null>(null)
 
 const sections = [
-  { id: 'general',    icon: 'gear',          label: 'Allgemein'        },
-  { id: 'backup',     icon: 'archive',       label: 'Backup'           },
-  { id: 'dev',        icon: 'bug',           label: 'Entwickler',  dev: true },
-  { id: 'appearance', icon: 'palette',      label: 'Erscheinungsbild' },
-  { id: 'tmdb',       icon: 'film',          label: 'TMDb'             },
-  { id: 'updates',    icon: 'arrow-repeat',  label: 'Updates'          },
-  { id: 'connection', icon: 'cloud',         label: 'Verbindung'       },
+  { id: 'general',    icon: 'gear',          labelKey: 'settings.sections.general'    },
+  { id: 'backup',     icon: 'archive',       labelKey: 'settings.sections.backup'     },
+  { id: 'dev',        icon: 'bug',           labelKey: 'settings.sections.dev',  dev: true },
+  { id: 'appearance', icon: 'palette',      labelKey: 'settings.sections.appearance' },
+  { id: 'tmdb',       icon: 'film',          labelKey: 'settings.sections.tmdb'       },
+  { id: 'updates',    icon: 'arrow-repeat',  labelKey: 'settings.sections.updates'    },
+  { id: 'connection', icon: 'cloud',         labelKey: 'settings.sections.connection' },
 ]
 
 const visibleSections = computed(() =>
@@ -520,7 +527,7 @@ onMounted(async () => {
   // Fehler aus dem Updater-Prozess (z. B. fehlgeschlagene Signaturprüfung nach
   // dem Download, oder quitAndInstall) sichtbar machen statt sie zu verschlucken.
   window.electron.update.onError((message: string) => {
-    updateError.value = message || 'Update fehlgeschlagen.'
+    updateError.value = message || t('settings.updates.updateFailed')
     downloading.value = false
   })
 
@@ -572,7 +579,7 @@ async function doOAuthLogin() {
   window.electron.oauth.onCallback(async ({ code, state: returnedState }) => {
     oauthLoading.value = false
     if (returnedState !== oauthState.value) {
-      loginError.value = 'OAuth Sicherheitsfehler – bitte erneut versuchen.'
+      loginError.value = t('settings.connection.oauthStateError')
       return
     }
     try {
@@ -587,7 +594,7 @@ async function doOAuthLogin() {
       await settings.save()
       loginSuccess.value = true
     } catch {
-      loginError.value = 'Token-Austausch fehlgeschlagen.'
+      loginError.value = t('settings.connection.tokenExchangeFailed')
     }
   })
 
@@ -607,7 +614,7 @@ async function doLogin() {
     loginSuccess.value  = true
     loginPassword.value = ''
   } catch (e: unknown) {
-    loginError.value = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Anmeldung fehlgeschlagen.'
+    loginError.value = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('settings.connection.loginFailed')
   } finally {
     loginLoading.value = false
   }
@@ -650,9 +657,9 @@ function openLogFolder() {
 }
 
 async function clearDatabase() {
-  if (confirm('Bist du sicher? Alle lokalen Filme und Schauspieler werden gelöscht!')) {
+  if (confirm(t('settings.dev.clearDbConfirm'))) {
     await window.electron.db.movies.clear()
-    alert('Datenbank wurde geleert.')
+    alert(t('settings.dev.dbCleared'))
     window.location.reload()
   }
 }

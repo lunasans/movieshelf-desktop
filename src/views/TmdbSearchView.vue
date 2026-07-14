@@ -1,7 +1,7 @@
 <template>
   <div class="p-8">
-    <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">TMDb Suche</h1>
-    <p class="text-sm text-[var(--text-muted)] opacity-60 mb-6">Film oder Serie in TMDb suchen und zur Sammlung hinzufügen</p>
+    <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">{{ $t('nav.tmdbSearch') }}</h1>
+    <p class="text-sm text-[var(--text-muted)] opacity-60 mb-6">{{ $t('tmdb.subtitle') }}</p>
 
     <!-- Toast -->
     <Transition name="toast">
@@ -14,13 +14,13 @@
     <!-- No API key -->
     <div v-if="!canSearch" class="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-ui)] p-8 text-center">
       <i class="bi bi-key text-4xl text-[var(--text-muted)] opacity-30 block mb-4"></i>
-      <p class="text-sm font-bold text-[var(--text-main)] mb-1">Kein TMDb API Key hinterlegt</p>
+      <p class="text-sm font-bold text-[var(--text-main)] mb-1">{{ $t('tmdb.noApiKeyTitle') }}</p>
       <p class="text-xs text-[var(--text-muted)] opacity-60 max-w-xs mx-auto mb-4">
-        Bitte hinterlege einen TMDb API Key in den Einstellungen oder verbinde dich mit deiner MovieShelf.
+        {{ $t('tmdb.noApiKeyHint') }}
       </p>
       <router-link to="/settings"
         class="inline-block px-5 py-2.5 bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-xs font-black uppercase tracking-widest text-[var(--text-main)] hover:border-red-500/40 transition-all">
-        Zu den Einstellungen →
+        {{ $t('tmdb.toSettings') }}
       </router-link>
     </div>
 
@@ -34,7 +34,7 @@
             ? 'bg-[var(--status-red)] text-white'
             : 'bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/40'"
         >
-          <i class="bi bi-film mr-1.5"></i>Film
+          <i class="bi bi-film mr-1.5"></i>{{ $t('common.movie') }}
         </button>
         <button
           @click="searchMode = 'tv'"
@@ -43,7 +43,7 @@
             ? 'bg-[var(--status-red)] text-white'
             : 'bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/40'"
         >
-          <i class="bi bi-tv mr-1.5"></i>Serie
+          <i class="bi bi-tv mr-1.5"></i>{{ $t('common.series') }}
         </button>
       </div>
 
@@ -53,18 +53,18 @@
           v-model="query"
           @keyup.enter="search"
           type="text"
-          :placeholder="searchMode === 'tv' ? 'Serientitel eingeben...' : 'Filmtitel eingeben...'"
+          :placeholder="searchMode === 'tv' ? $t('tmdb.seriesPlaceholder') : $t('tmdb.moviePlaceholder')"
           class="flex-1 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors"
         />
         <button @click="search" :disabled="loading"
           class="bg-[var(--status-red)] hover:opacity-90 disabled:opacity-50 text-white font-bold px-5 py-3 rounded-xl transition-all text-sm">
-          Suchen
+          {{ $t('common.search') }}
         </button>
       </div>
 
       <!-- In-collection toggle -->
       <div class="flex items-center justify-end gap-3 mb-6 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl px-5 py-3">
-        <span class="text-sm font-bold text-[var(--text-main)] opacity-70">In Sammlung aufnehmen</span>
+        <span class="text-sm font-bold text-[var(--text-main)] opacity-70">{{ $t('tmdb.importToCollection') }}</span>
         <button
           @click="importToCollection = !importToCollection"
           class="relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none"

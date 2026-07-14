@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import axios from 'axios'
+import { t } from '@/i18n'
 import { useApi } from '@/composables/useApi'
 import { useSettingsStore } from '@/stores/settings'
 import { useListStore } from '@/stores/lists'
@@ -64,7 +65,7 @@ export function useTmdbSearch() {
       if (searchMode.value === 'tv') {
         // TV search always goes directly to TMDb (server API only supports movies)
         const { data } = await axios.get(`${TMDB_BASE}/search/tv`, {
-          params: { api_key: settings.tmdbApiKey, query: query.value, language: 'de-DE' }
+          params: { api_key: settings.tmdbApiKey, query: query.value, language: settings.tmdbLanguage }
         })
         results.value = (data.results ?? []).map((r: any) => ({
           id: r.id,
@@ -78,7 +79,7 @@ export function useTmdbSearch() {
         results.value = data.results ?? []
       } else {
         const { data } = await axios.get(`${TMDB_BASE}/search/movie`, {
-          params: { api_key: settings.tmdbApiKey, query: query.value, language: 'de-DE' }
+          params: { api_key: settings.tmdbApiKey, query: query.value, language: settings.tmdbLanguage }
         })
         results.value = data.results ?? []
       }
@@ -87,7 +88,7 @@ export function useTmdbSearch() {
         importedIds.value = new Set(existing)
       }
     } catch (e: any) {
-      error.value = e?.response?.data?.status_message ?? e.message ?? 'Suche fehlgeschlagen.'
+      error.value = e?.response?.data?.status_message ?? e.message ?? t('tmdb.searchFailed')
     } finally {
       loading.value = false
     }
@@ -120,7 +121,7 @@ export function useTmdbSearch() {
     try {
       if (isTv) {
         const detailRes = await axios.get(`${TMDB_BASE}/tv/${result.id}`, {
-          params: { api_key: settings.tmdbApiKey, language: 'de-DE', append_to_response: 'credits,videos,content_ratings' }
+          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits,videos,content_ratings' }
         })
         const m = detailRes.data
         const creator = (m.created_by ?? [])[0]?.name ?? ''
@@ -160,10 +161,10 @@ export function useTmdbSearch() {
       } else {
         const [detailRes, videoRes] = await Promise.all([
           axios.get(`${TMDB_BASE}/movie/${result.id}`, {
-            params: { api_key: settings.tmdbApiKey, language: 'de-DE', append_to_response: 'credits' }
+            params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits' }
           }),
           axios.get(`${TMDB_BASE}/movie/${result.id}/videos`, {
-            params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
+            params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage }
           }).catch(() => ({ data: { results: [] } }))
         ])
         const m        = detailRes.data
@@ -189,7 +190,7 @@ export function useTmdbSearch() {
         }
       }
     } catch (e: any) {
-      error.value = `Fehler beim Laden: ${e?.response?.data?.status_message ?? e.message}`
+      error.value = t('tmdb.loadError', { message: e?.response?.data?.status_message ?? e.message })
       previewSource.value = null
     } finally {
       previewLoading.value = false
@@ -227,7 +228,7 @@ export function useTmdbSearch() {
     if (numsToImport.length === 0) {
       try {
         const { data: show } = await axios.get(`${TMDB_BASE}/tv/${tmdbId}`, {
-          params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
+          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage }
         })
         numsToImport = (show.seasons ?? [])
           .filter((s: any) => s.season_number > 0)
@@ -238,7 +239,7 @@ export function useTmdbSearch() {
     for (const seasonNum of numsToImport) {
       try {
         const { data } = await axios.get(`${TMDB_BASE}/tv/${tmdbId}/season/${seasonNum}`, {
-          params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
+          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage }
         })
         const knownSeason = tmdbSeasons.value.find(s => s.season_number === seasonNum)
         const seasonId = await window.electron.db.seasons.upsert({
@@ -288,13 +289,13 @@ export function useTmdbSearch() {
 
       importedIds.value = new Set(importedIds.value).add(result.id)
       movieStore.clearCache()
-      showToast(`„${previewForm.value.title}" wurde zur Sammlung hinzugefügt.`)
+      showToast(t('tmdb.addedToCollection', { title: previewForm.value.title }))
       previewForm.value   = null
       previewSource.value = null
       tmdbSeasons.value   = []
       selectedSeasons.value = []
     } catch (e: any) {
-      error.value = `Import fehlgeschlagen: ${e?.response?.data?.status_message ?? e.message}`
+      error.value = t('tmdb.importFailed', { message: e?.response?.data?.status_message ?? e.message })
     } finally {
       importing.value = null
     }
@@ -303,10 +304,10 @@ export function useTmdbSearch() {
   async function importLocally(tmdbId: number, inCollection = 1) {
     const [detailRes, videoRes] = await Promise.all([
       axios.get(`${TMDB_BASE}/movie/${tmdbId}`, {
-        params: { api_key: settings.tmdbApiKey, language: 'de-DE', append_to_response: 'credits' }
+        params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits' }
       }),
       axios.get(`${TMDB_BASE}/movie/${tmdbId}/videos`, {
-        params: { api_key: settings.tmdbApiKey, language: 'de-DE' }
+        params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage }
       }).catch(() => ({ data: { results: [] } }))
     ])
     const m        = detailRes.data
@@ -348,11 +349,11 @@ export function useTmdbSearch() {
       }
       if (ext?.id) {
         await listStore.addItem(listId, 'external', ext.id)
-        const listName = listStore.lists.find(l => l.id === listId)?.name ?? 'Liste'
-        showToast(`„${result.title}" zu „${listName}" hinzugefügt.`)
+        const listName = listStore.lists.find(l => l.id === listId)?.name ?? t('tmdb.listFallback')
+        showToast(t('tmdb.addedToList', { title: result.title, list: listName }))
       }
     } catch (e: any) {
-      error.value = `Fehler: ${e.message}`
+      error.value = t('tmdb.genericError', { message: e.message })
     }
   }
 

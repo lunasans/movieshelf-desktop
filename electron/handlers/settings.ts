@@ -2,7 +2,7 @@ import { ipcMain, safeStorage } from 'electron'
 import { getDb } from '../database'
 import type Database from 'better-sqlite3'
 
-export const ALLOWED_SETTINGS_KEYS = new Set(['mode', 'theme', 'shelf_url', 'shelf_token', 'tmdb_api_key', 'last_sync_at'])
+export const ALLOWED_SETTINGS_KEYS = new Set(['mode', 'theme', 'shelf_url', 'shelf_token', 'tmdb_api_key', 'last_sync_at', 'language'])
 
 export const SENSITIVE_KEYS = new Set(['shelf_token', 'tmdb_api_key'])
 const ENC_PREFIX = 'enc:v1:'
@@ -40,10 +40,14 @@ export function getAllSettings(db: Database.Database): Record<string, string> {
   return Object.fromEntries(rows.map(r => [r.key, decryptIfNeeded(r.value) ?? '']))
 }
 
-export function registerSettingsHandlers(): void {
+export function registerSettingsHandlers(onSettingChanged?: (key: string) => void): void {
   const db = () => getDb()
 
   ipcMain.handle('settings:get', (_event, key: string) => getSetting(db(), key))
-  ipcMain.handle('settings:set', (_event, key: string, value: unknown) => setSetting(db(), key, value))
+  ipcMain.handle('settings:set', (_event, key: string, value: unknown) => {
+    const ok = setSetting(db(), key, value)
+    if (ok) onSettingChanged?.(key)
+    return ok
+  })
   ipcMain.handle('settings:getAll', () => getAllSettings(db()))
 }

@@ -7,7 +7,7 @@
       <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl shadow-2xl w-80 overflow-hidden">
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--border-ui)]">
-          <span class="text-sm font-black text-[var(--text-main)] uppercase tracking-widest">Zufälliger Film</span>
+          <span class="text-sm font-black text-[var(--text-main)] uppercase tracking-widest">{{ $t('movies.randomTitle') }}</span>
           <button @click="$emit('close')" class="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
             <i class="bi bi-x-lg"></i>
           </button>
@@ -21,7 +21,7 @@
         <!-- No result -->
         <div v-else-if="!movie" class="text-center py-16 px-5">
           <i class="bi bi-film text-3xl text-[var(--text-muted)] opacity-30 block mb-3"></i>
-          <p class="text-sm text-[var(--text-muted)] opacity-60">Keine Filme gefunden.</p>
+          <p class="text-sm text-[var(--text-muted)] opacity-60">{{ $t('movies.noneFound') }}</p>
         </div>
 
         <!-- Movie result -->
@@ -56,14 +56,14 @@
                 @click="roll"
                 class="flex-1 flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-black uppercase tracking-widest py-2 rounded-xl transition-colors"
               >
-                <i class="bi bi-dice-6-fill"></i> Neu würfeln
+                <i class="bi bi-dice-6-fill"></i> {{ $t('movies.rollAgain') }}
               </button>
               <router-link
                 :to="'/movies/' + movie.id"
                 @click="$emit('close')"
                 class="flex-1 flex items-center justify-center gap-2 bg-[var(--bg-app)] hover:bg-[var(--bg-sidebar)] text-[var(--text-main)] text-xs font-black uppercase tracking-widest py-2 rounded-xl border border-[var(--border-ui)] transition-colors"
               >
-                <i class="bi bi-arrow-right-circle-fill"></i> Detail
+                <i class="bi bi-arrow-right-circle-fill"></i> {{ $t('movies.detail') }}
               </router-link>
             </div>
           </div>

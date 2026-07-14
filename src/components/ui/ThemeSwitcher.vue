@@ -16,15 +16,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
 
 const settings = useSettingsStore()
+const { t } = useI18n()
 
-const modes = [
-  { id: 'light',  icon: 'sun-fill',         label: 'Helles Design' },
-  { id: 'dark',   icon: 'moon-stars-fill',  label: 'Dunkles Design' },
-  { id: 'system', icon: 'laptop',           label: 'System folgen' }
-]
+const modes = computed(() => [
+  { id: 'light',  icon: 'sun-fill',         label: t('settings.appearance.themeLight') },
+  { id: 'dark',   icon: 'moon-stars-fill',  label: t('settings.appearance.themeDark') },
+  { id: 'system', icon: 'laptop',           label: t('settings.appearance.themeSystem') }
+])
 
 const setTheme = (mode: 'light' | 'dark' | 'system') => {
   settings.theme = mode

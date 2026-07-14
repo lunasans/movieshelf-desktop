@@ -51,7 +51,7 @@
         <!-- Collection Type / Boxset Badge (bottom left) -->
         <div class="absolute bottom-3 left-3 z-20 flex flex-col items-start gap-1">
           <span v-if="movie.is_boxset" class="text-[9px] font-black text-white/90 uppercase tracking-widest bg-red-700/80 backdrop-blur-md px-2 py-1 rounded-lg border border-red-500/30 shadow-lg flex items-center gap-1">
-            <i class="bi bi-collection-fill"></i> Box-Set
+            <i class="bi bi-collection-fill"></i> {{ $t('movies.boxset') }}
           </span>
           <span v-if="movie.collection_type" class="text-[9px] font-black text-white/90 uppercase tracking-widest bg-white/10 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 shadow-lg">
             {{ movie.collection_type }}
@@ -71,19 +71,19 @@
             @click.stop="router.push(`/movies/${movie.id}/edit`)"
             class="flex-1 bg-blue-600/80 hover:bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
           >
-            <i class="bi bi-pencil-fill"></i> Bearbeiten
+            <i class="bi bi-pencil-fill"></i> {{ $t('common.edit') }}
           </button>
           <button
             @click.stop="$emit('toggle-watched')"
             :class="['w-8 h-8 rounded-lg flex items-center justify-center transition-colors text-sm', movie.is_watched ? 'bg-green-600/80 hover:bg-green-600' : 'bg-blue-600/80 hover:bg-blue-600']"
-            title="Gesehen-Status umschalten"
+            :title="$t('movies.toggleWatched')"
           >
             <i :class="movie.is_watched ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill'" class="text-white"></i>
           </button>
           <button
             @click.stop="$emit('delete')"
             class="w-8 h-8 bg-blue-600/80 hover:bg-blue-600 text-white rounded-lg flex items-center justify-center transition-colors text-sm"
-            title="Löschen"
+            :title="$t('common.delete')"
           >
             <i class="bi bi-trash3-fill"></i>
           </button>

@@ -1,7 +1,7 @@
 <template>
   <div v-if="missingParts.length > 0">
     <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">
-      Weitere Teile — {{ collectionName }}
+      {{ $t('movieDetail.moreParts', { name: collectionName }) }}
     </h3>
     <div class="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-4">
       <div
@@ -97,14 +97,14 @@ async function load() {
 
   try {
     const { data: movie } = await axios.get(`${TMDB_BASE}/movie/${props.tmdbId}`, {
-      params: { api_key: settings.tmdbApiKey, language: 'de-DE' },
+      params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage },
     })
     if (!movie.belongs_to_collection) return
 
     collectionName.value = movie.belongs_to_collection.name
 
     const { data: col } = await axios.get(`${TMDB_BASE}/collection/${movie.belongs_to_collection.id}`, {
-      params: { api_key: settings.tmdbApiKey, language: 'de-DE' },
+      params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage },
     })
 
     const parts: CollectionPart[] = col.parts ?? []

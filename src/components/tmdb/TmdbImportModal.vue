@@ -9,8 +9,8 @@
           <div class="flex gap-5 p-6 border-b border-[var(--border-ui)] flex-shrink-0">
             <img v-if="previewForm.cover_path" :src="previewForm.cover_path" class="w-14 aspect-[2/3] rounded-xl object-cover flex-shrink-0" />
             <div>
-              <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-1">Vor dem Import bearbeiten</h2>
-              <p class="text-xs text-[var(--text-muted)] opacity-60">Daten prüfen und anpassen – dann importieren.</p>
+              <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-1">{{ $t('tmdb.importModalTitle') }}</h2>
+              <p class="text-xs text-[var(--text-muted)] opacity-60">{{ $t('tmdb.importModalHint') }}</p>
             </div>
           </div>
 
@@ -18,26 +18,27 @@
           <div class="p-6 space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="field-label">Titel *</label>
+                <label class="field-label">{{ $t('movieForm.fieldTitle') }}</label>
                 <input v-model="previewForm.title" type="text" class="modal-input" />
               </div>
               <div>
-                <label class="field-label">Jahr</label>
+                <label class="field-label">{{ $t('movieForm.fieldYear') }}</label>
                 <input v-model.number="previewForm.year" type="number" min="1900" max="2099" class="modal-input" />
               </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="field-label">Typ</label>
+                <label class="field-label">{{ $t('movieForm.fieldType') }}</label>
+                <!-- Option-Values sind DB-Werte und bleiben unübersetzt; nur Labels sind lokalisiert -->
                 <select v-model="previewForm.collection_type" class="modal-input">
-                  <option>Film</option>
-                  <option>Serie</option>
-                  <option>Dokumentation</option>
-                  <option>Kurzfilm</option>
+                  <option value="Film">{{ $t('movieForm.typeMovie') }}</option>
+                  <option value="Serie">{{ $t('movieForm.typeSeries') }}</option>
+                  <option value="Dokumentation">{{ $t('movieForm.typeDocumentary') }}</option>
+                  <option value="Kurzfilm">{{ $t('movieForm.typeShort') }}</option>
                 </select>
               </div>
               <div>
-                <label class="field-label">Format-Tag</label>
+                <label class="field-label">{{ $t('movieForm.fieldTag') }}</label>
                 <select v-model="previewForm.tag" class="modal-input">
                   <option value="">—</option>
                   <option>DVD</option>
@@ -52,38 +53,38 @@
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="field-label">Genre</label>
+                <label class="field-label">{{ $t('movieForm.fieldGenre') }}</label>
                 <input v-model="previewForm.genre" type="text" class="modal-input" />
               </div>
               <div>
-                <label class="field-label">Regisseur</label>
+                <label class="field-label">{{ $t('movieForm.fieldDirector') }}</label>
                 <input v-model="previewForm.director" type="text" class="modal-input" />
               </div>
             </div>
             <div class="grid grid-cols-3 gap-4">
               <div>
-                <label class="field-label">Laufzeit (min)</label>
+                <label class="field-label">{{ $t('movieForm.fieldRuntime') }}</label>
                 <input v-model.number="previewForm.runtime" type="number" class="modal-input" />
               </div>
               <div>
-                <label class="field-label">Bewertung (0–10)</label>
+                <label class="field-label">{{ $t('tmdb.fieldRating10') }}</label>
                 <input v-model.number="previewForm.rating" type="number" min="0" max="10" step="0.1" class="modal-input" />
               </div>
               <div>
-                <label class="field-label">FSK</label>
+                <label class="field-label">{{ $t('movieForm.fieldRatingAge') }}</label>
                 <input v-model.number="previewForm.rating_age" type="number" class="modal-input" />
               </div>
             </div>
             <div>
-              <label class="field-label">Beschreibung</label>
+              <label class="field-label">{{ $t('movieForm.fieldOverview') }}</label>
               <textarea v-model="previewForm.overview" rows="4" class="modal-input resize-none" />
             </div>
             <div>
-              <label class="field-label">Trailer URL</label>
+              <label class="field-label">{{ $t('movieForm.fieldTrailerUrl') }}</label>
               <input v-model="previewForm.trailer_url" type="url" class="modal-input" placeholder="https://www.youtube.com/watch?v=..." />
             </div>
             <div>
-              <label class="field-label">Hinzugefügt am</label>
+              <label class="field-label">{{ $t('movieForm.fieldAddedAt') }}</label>
               <input v-model="previewForm.created_at" type="date" class="modal-input" />
             </div>
 
@@ -92,17 +93,17 @@
               class="border border-[var(--border-ui)] rounded-2xl overflow-hidden">
               <div class="flex items-center justify-between px-4 py-3 bg-[var(--bg-card)] border-b border-[var(--border-ui)]">
                 <span class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60">
-                  Staffeln importieren
+                  {{ $t('tmdb.importSeasons') }}
                 </span>
                 <div class="flex gap-2">
                   <button type="button" @click="selectAllSeasons"
                     class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-60 hover:opacity-100 transition-opacity">
-                    Alle
+                    {{ $t('tmdb.allSeasons') }}
                   </button>
                   <span class="text-[var(--border-ui)]">·</span>
                   <button type="button" @click="selectNoSeasons"
                     class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-60 hover:opacity-100 transition-opacity">
-                    Keine
+                    {{ $t('tmdb.noSeasons') }}
                   </button>
                 </div>
               </div>
@@ -119,7 +120,7 @@
                     class="w-4 h-4 accent-red-600 rounded"
                   />
                   <span class="text-sm font-bold text-[var(--text-main)] flex-1">{{ season.name }}</span>
-                  <span class="text-xs text-[var(--text-muted)] opacity-50">{{ season.episode_count }} Folgen</span>
+                  <span class="text-xs text-[var(--text-muted)] opacity-50">{{ $t('movieDetail.episodesCount', { count: season.episode_count }) }}</span>
                 </label>
               </div>
             </div>
@@ -134,13 +135,13 @@
             >
               <span v-if="importing === previewSource?.id" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               <i v-else class="bi bi-plus-lg"></i>
-              {{ importing === previewSource?.id ? 'Wird importiert...' : 'Importieren' }}
+              {{ importing === previewSource?.id ? $t('tmdb.importing') : $t('tmdb.import') }}
             </button>
             <button
               @click="emit('cancel')"
               class="px-6 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
             >
-              Abbrechen
+              {{ $t('common.cancel') }}
             </button>
           </div>
 

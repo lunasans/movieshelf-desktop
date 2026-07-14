@@ -17,6 +17,7 @@ import { registerMovieHandlers } from './handlers/movies'
 import { registerActorHandlers } from './handlers/actors'
 import { registerSyncHandlers } from './handlers/sync'
 import { registerSettingsHandlers, getSetting } from './handlers/settings'
+import { tMain } from './i18n'
 import { registerMediaHandlers } from './handlers/media'
 import { registerListHandlers } from './handlers/lists'
 import { registerExternalHandlers } from './handlers/external'
@@ -129,16 +130,21 @@ function showMainWindow() {
   mainWindow.focus()
 }
 
+function buildTrayMenu() {
+  const db = getDb()
+  return Menu.buildFromTemplate([
+    { label: tMain(db, 'trayOpen'), click: () => showMainWindow() },
+    { type: 'separator' },
+    { label: tMain(db, 'trayQuit'), click: () => quitApp() },
+  ])
+}
+
 function createTray() {
   if (tray) return
   const icon = nativeImage.createFromPath(join(__dirname, '../public/icon.png'))
   tray = new Tray(icon.resize({ width: 16, height: 16 }))
   tray.setToolTip('MovieShelf')
-  tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'MovieShelf öffnen', click: () => showMainWindow() },
-    { type: 'separator' },
-    { label: 'Beenden', click: () => quitApp() },
-  ]))
+  tray.setContextMenu(buildTrayMenu())
   tray.on('click', () => showMainWindow())
   tray.on('double-click', () => showMainWindow())
 }
@@ -173,12 +179,12 @@ function quitApp() {
     showMainWindow()
     dialog.showMessageBox(mainWindow!, {
       type: 'question',
-      buttons: ['Jetzt Synchronisieren', 'Trotzdem Beenden', 'Abbrechen'],
+      buttons: [tMain(db, 'quitSyncNow'), tMain(db, 'quitAnyway'), tMain(db, 'cancel')],
       defaultId: 0,
       cancelId: 2,
-      title: 'Nicht synchronisierte Änderungen',
-      message: `Du hast ${dirtyCount} Filme noch nicht synchronisiert.`,
-      detail: 'Möchtest du jetzt synchronisieren, bevor du das Programm schließt?'
+      title: tMain(db, 'quitTitle'),
+      message: tMain(db, 'quitMessage', { count: dirtyCount }),
+      detail: tMain(db, 'quitDetail')
     }).then((res: { response: number }) => {
       if (res.response === 0) {
         mainWindow!.webContents.send('navigate-to', '/sync')
@@ -227,7 +233,10 @@ app.whenReady().then(() => {
   registerMovieHandlers()
   registerActorHandlers()
   registerSyncHandlers()
-  registerSettingsHandlers()
+  registerSettingsHandlers((key) => {
+    // Tray-Menü live in der neuen Sprache aufbauen (kein Neustart nötig)
+    if (key === 'language') tray?.setContextMenu(buildTrayMenu())
+  })
   registerMediaHandlers()
   registerListHandlers()
   registerExternalHandlers()

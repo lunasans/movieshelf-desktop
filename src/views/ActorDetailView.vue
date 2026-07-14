@@ -21,32 +21,32 @@
             
             <div class="flex items-center gap-6 text-sm font-bold text-[var(--text-muted)]">
               <div v-if="actor.birthday" class="flex items-center gap-2">
-                <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">Geburtstag</span>
+                <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('actor.birthday') }}</span>
                 <span class="text-[var(--text-main)] opacity-80">{{ actor.birthday }}</span>
               </div>
               <div v-if="actor.place_of_birth" class="flex items-center gap-2">
-                <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">Geburtsort</span>
+                <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('actor.placeOfBirth') }}</span>
                 <span class="text-[var(--text-main)] opacity-80">{{ actor.place_of_birth }}</span>
               </div>
             </div>
           </div>
 
           <div v-if="actor.bio">
-            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-4">Biografie</h3>
+            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-4">{{ $t('actor.biography') }}</h3>
             <p class="text-lg text-[var(--text-main)] opacity-70 leading-relaxed font-medium max-w-4xl whitespace-pre-line">
               {{ actor.bio }}
             </p>
           </div>
 
           <router-link to="/movies" class="inline-flex items-center gap-2 text-red-500 hover:text-red-600 font-bold transition-colors">
-            ← Zurück zur Übersicht
+            {{ $t('actor.backToOverview') }}
           </router-link>
         </div>
       </div>
 
       <!-- Filmography -->
       <div class="mt-20">
-        <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-8">Filmografie in deiner Sammlung</h3>
+        <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-8">{{ $t('actor.filmography') }}</h3>
         
         <div v-if="movies.length > 0" class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-6">
           <MovieCard
@@ -55,7 +55,7 @@
             :movie="movie"
           />
         </div>
-        <p v-else class="text-[var(--text-muted)] opacity-40 italic">Keine Filme mit diesem Schauspieler gefunden.</p>
+        <p v-else class="text-[var(--text-muted)] opacity-40 italic">{{ $t('actor.noMovies') }}</p>
       </div>
     </div>
   </div>

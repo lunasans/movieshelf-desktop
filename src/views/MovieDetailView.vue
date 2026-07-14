@@ -21,7 +21,7 @@
           <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center group-hover:bg-red-500 transition-colors">
             <i class="bi bi-youtube"></i>
           </div>
-          <span>Trailer suchen</span>
+          <span>{{ $t('movieDetail.searchTrailer') }}</span>
         </button>
       </div>
     </div>
@@ -71,26 +71,26 @@
           
           <div class="flex items-center gap-6 text-sm font-bold text-[var(--text-muted)] transition-all duration-500" :class="{ 'opacity-0 scale-95 translate-y-[-10px]': isSticky }">
             <div v-if="movie.collection_no" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">Nr.</span>
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelNo') }}</span>
               <span class="text-[var(--text-main)] opacity-70">{{ movie.collection_no }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">Jahr</span>
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelYear') }}</span>
               <span class="text-[var(--text-main)] opacity-70">{{ movie.year }}</span>
             </div>
             <div v-if="movie.genre" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">Genre</span>
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelGenre') }}</span>
               <span class="text-[var(--text-main)] opacity-70">{{ movie.genre }}</span>
             </div>
             <div v-if="movie.runtime" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">Dauer</span>
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelRuntime') }}</span>
               <span class="text-[var(--text-main)] opacity-70">{{ movie.runtime }} min</span>
             </div>
             <div v-if="movie.rating" class="flex items-center gap-2 bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">
               <span class="text-yellow-600">★ {{ Number(movie.rating).toFixed(1) }}</span>
             </div>
             <div v-if="movie.director" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">Regie</span>
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelDirector') }}</span>
               <span class="text-[var(--text-main)] opacity-70">{{ movie.director }}</span>
             </div>
           </div>
@@ -102,7 +102,7 @@
         <div class="lg:col-span-2 space-y-12">
           <!-- Description -->
           <div>
-            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-4">Handlung</h3>
+            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-4">{{ $t('movieDetail.plot') }}</h3>
             <div v-if="movie.overview" class="text-lg text-[var(--text-main)] opacity-90 leading-relaxed font-medium">
                <template v-for="(segment, i) in parsedOverview" :key="i">
                 <router-link 
@@ -115,12 +115,12 @@
                 <span v-else>{{ segment.value }}</span>
               </template>
             </div>
-            <p v-else class="text-[var(--text-muted)] opacity-40 italic">Keine Beschreibung verfügbar.</p>
+            <p v-else class="text-[var(--text-muted)] opacity-40 italic">{{ $t('movieDetail.noOverview') }}</p>
           </div>
           
           <!-- Cast Section -->
           <div v-if="linkedActors.length > 0">
-            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">Besetzung</h3>
+            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">{{ $t('movieDetail.cast') }}</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <router-link 
                 v-for="actor in linkedActors" 
@@ -146,7 +146,7 @@
 
           <!-- Trailer -->
           <div v-if="movie.trailer_url">
-            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">Trailer</h3>
+            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">{{ $t('movieDetail.trailer') }}</h3>
             <div
               class="relative aspect-video rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] cursor-pointer group"
               @click="openTrailer"
@@ -173,7 +173,7 @@
 
           <!-- Boxset Children -->
           <div v-if="boxsetChildren.length > 0">
-            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">Enthaltene Filme</h3>
+            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">{{ $t('movieDetail.containedMovies') }}</h3>
             <div class="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-4">
               <router-link
                 v-for="child in boxsetChildren"
@@ -201,7 +201,7 @@
 
           <!-- Seasons (Series) -->
           <div v-if="movie.collection_type === 'Serie' && seasons.length > 0">
-            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">Staffeln</h3>
+            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">{{ $t('movieDetail.seasons') }}</h3>
             <div class="space-y-3">
               <div v-for="season in seasons" :key="season.id" class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl overflow-hidden">
                 <button
@@ -210,13 +210,13 @@
                 >
                   <div class="min-w-0 flex-1">
                     <p class="text-sm font-black text-[var(--text-main)] uppercase tracking-tight">
-                      Staffel {{ season.season_number }}
+                      {{ $t('movieDetail.season', { number: season.season_number }) }}
                       <span v-if="season.title" class="font-normal normal-case tracking-normal text-[var(--text-muted)] opacity-60"> – {{ season.title }}</span>
                     </p>
                     <p v-if="season.overview" class="text-xs text-[var(--text-muted)] opacity-50 mt-0.5 truncate">{{ season.overview }}</p>
                   </div>
                   <div class="flex items-center gap-3 flex-shrink-0 ml-4">
-                    <span class="text-xs text-[var(--text-muted)] opacity-40">{{ season.episodes.length }} Folgen</span>
+                    <span class="text-xs text-[var(--text-muted)] opacity-40">{{ $t('movieDetail.episodesCount', { count: season.episodes.length }) }}</span>
                     <i class="bi text-[var(--text-muted)] opacity-40 transition-transform" :class="openSeasons.has(season.id) ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                   </div>
                 </button>
@@ -224,11 +224,11 @@
                   <div v-for="ep in season.episodes" :key="ep.id" class="px-5 py-3 border-b border-[var(--border-ui)] last:border-0">
                     <p class="text-sm font-bold text-[var(--text-main)]">
                       <span class="text-[var(--text-muted)] opacity-40 text-xs mr-2 font-mono">E{{ ep.episode_number }}</span>
-                      {{ ep.title ?? `Folge ${ep.episode_number}` }}
+                      {{ ep.title ?? $t('movieDetail.episodeFallback', { number: ep.episode_number }) }}
                     </p>
                     <p v-if="ep.overview" class="text-xs text-[var(--text-muted)] opacity-60 mt-1 leading-relaxed">{{ ep.overview }}</p>
                   </div>
-                  <p v-if="season.episodes.length === 0" class="px-5 py-3 text-xs text-[var(--text-muted)] opacity-40 italic">Keine Folgen vorhanden.</p>
+                  <p v-if="season.episodes.length === 0" class="px-5 py-3 text-xs text-[var(--text-muted)] opacity-40 italic">{{ $t('movieDetail.noEpisodes') }}</p>
                 </div>
               </div>
             </div>
@@ -240,15 +240,15 @@
         <div class="space-y-4">
           <router-link :to="`/movies/${movie.id}/edit`"
             class="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-red-600/20">
-            Film bearbeiten
+            {{ $t('movieDetail.editMovie') }}
           </router-link>
 
           <!-- Listen -->
           <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-4 space-y-3">
-            <p class="text-[var(--text-muted)] opacity-50 text-[10px] font-black uppercase tracking-[0.15em]">Listen</p>
+            <p class="text-[var(--text-muted)] opacity-50 text-[10px] font-black uppercase tracking-[0.15em]">{{ $t('movieDetail.lists') }}</p>
 
             <div v-if="listStore.lists.length === 0" class="text-xs text-[var(--text-muted)] opacity-40 italic">
-              Noch keine Listen vorhanden.
+              {{ $t('movieDetail.noLists') }}
             </div>
 
             <div
@@ -270,13 +270,13 @@
 
             <router-link to="/lists"
               class="flex items-center gap-2 text-xs text-[var(--text-muted)] hover:text-red-500 opacity-60 hover:opacity-100 transition-all pt-1">
-              <i class="bi bi-plus-circle"></i> Listen verwalten
+              <i class="bi bi-plus-circle"></i> {{ $t('movieDetail.manageLists') }}
             </router-link>
           </div>
 
           <router-link to="/movies"
             class="flex items-center justify-center w-full bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-4 rounded-2xl transition-colors">
-            Zurück zur Sammlung
+            {{ $t('movieDetail.backToCollection') }}
           </router-link>
         </div>
       </div>
@@ -485,7 +485,7 @@ async function loadMovie(id: number) {
         for (const season of missing) {
           try {
             const { data } = await axios.get(`${TMDB_BASE}/tv/${movie.value.tmdb_id}/season/${season.season_number}`, {
-              params: { api_key: settings.tmdbApiKey, language: 'de-DE' },
+              params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage },
             })
             for (const ep of (data.episodes ?? [])) {
               await window.electron.db.episodes.upsert({

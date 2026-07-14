@@ -8,14 +8,14 @@
         </router-link>
         <div>
           <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight">{{ list.name }}</h1>
-          <p class="text-sm text-[var(--text-muted)] opacity-60">{{ list.items.length }} {{ list.items.length === 1 ? 'Film' : 'Filme' }}</p>
+          <p class="text-sm text-[var(--text-muted)] opacity-60">{{ $t('lists.movieCount', list.items.length) }}</p>
         </div>
       </div>
       <button
         @click="showAddModal = true"
         class="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
       >
-        <i class="bi bi-plus-lg"></i> Film hinzufügen
+        <i class="bi bi-plus-lg"></i> {{ $t('movieForm.addTitle') }}
       </button>
     </div>
 
@@ -46,8 +46,8 @@
 
           <!-- Typ-Badge -->
           <div class="absolute top-2 right-2">
-            <span v-if="movie.item_type === 'external'" class="px-2 py-0.5 bg-sky-500/80 backdrop-blur-sm rounded-full text-[8px] font-black text-white uppercase tracking-widest">Extern</span>
-            <span v-else class="px-2 py-0.5 bg-emerald-500/80 backdrop-blur-sm rounded-full text-[8px] font-black text-white uppercase tracking-widest">Sammlung</span>
+            <span v-if="movie.item_type === 'external'" class="px-2 py-0.5 bg-sky-500/80 backdrop-blur-sm rounded-full text-[8px] font-black text-white uppercase tracking-widest">{{ $t('lists.external') }}</span>
+            <span v-else class="px-2 py-0.5 bg-emerald-500/80 backdrop-blur-sm rounded-full text-[8px] font-black text-white uppercase tracking-widest">{{ $t('lists.inCollection') }}</span>
           </div>
 
           <!-- Hover overlay -->
@@ -56,7 +56,7 @@
               @click.stop="removeFromList(movie)"
               class="w-full bg-red-600/80 hover:bg-red-600 text-white text-[10px] font-black uppercase tracking-widest py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
             >
-              <i class="bi bi-dash-lg"></i> Entfernen
+              <i class="bi bi-dash-lg"></i> {{ $t('lists.remove') }}
             </button>
           </div>
         </div>
@@ -71,37 +71,37 @@
     <!-- Empty -->
     <div v-else class="text-center py-20 text-[var(--text-muted)] opacity-40 text-sm">
       <i class="bi bi-collection text-4xl block mb-4 opacity-30"></i>
-      Diese Liste ist noch leer.
+      {{ $t('lists.emptyList') }}
       <button @click="showAddModal = true" class="block mx-auto mt-4 text-red-500 hover:text-red-400 opacity-100 font-bold transition-colors">
-        + Film hinzufügen
+        + {{ $t('movieForm.addTitle') }}
       </button>
     </div>
   </div>
 
   <div v-else-if="!loading" class="flex items-center justify-center py-20 text-[var(--text-muted)] opacity-40">
-    Liste nicht gefunden.
+    {{ $t('lists.notFound') }}
   </div>
 
   <!-- Add Movie Modal -->
   <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="closeAddModal">
     <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6 w-full max-w-lg shadow-2xl">
-      <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-4">Film hinzufügen</h2>
+      <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-4">{{ $t('movieForm.addTitle') }}</h2>
 
       <input
         v-model="searchQuery"
         @input="onSearch"
         type="text"
-        placeholder="Film suchen..."
+        :placeholder="$t('lists.searchMoviePlaceholder')"
         class="w-full bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors mb-3"
         autofocus
       />
 
       <div class="max-h-80 overflow-y-auto space-y-1 custom-scrollbar">
         <div v-if="searchResults.length === 0 && searchQuery.length > 0" class="text-center py-8 text-[var(--text-muted)] opacity-40 text-sm">
-          Keine Filme gefunden.
+          {{ $t('movies.noneFound') }}
         </div>
         <div v-else-if="searchQuery.length === 0" class="text-center py-8 text-[var(--text-muted)] opacity-40 text-sm">
-          Suchbegriff eingeben…
+          {{ $t('lists.typeQuery') }}
         </div>
         <div
           v-for="movie in searchResults"
@@ -131,7 +131,7 @@
 
       <div class="flex justify-end mt-4">
         <button @click="closeAddModal" class="bg-[var(--bg-elevated)] hover:bg-[var(--bg-sidebar)] text-[var(--text-muted)] font-bold py-2 px-5 rounded-xl transition-colors text-sm">
-          Schließen
+          {{ $t('common.close') }}
         </button>
       </div>
     </div>
