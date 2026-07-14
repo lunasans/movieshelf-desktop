@@ -11,7 +11,14 @@ Plan: vue-i18n@11 (legacy:false), Locale-Dateien `src/i18n/de.ts` (Strings 1:1) 
 - [x] Electron-Main: `electron/i18n.ts` (tMain), Tray-Rebuild, Quit-/Backup-Dialoge, OAuth-Titel
 - [x] Tests: settings `language` round-trip, tMain-Fallback; `npm test` (143 grün) + `npm run build` grün
 - [x] Sweep: unübersetzte Attribute/Strings (nur Kommentare/DB-Werte übrig)
-- [ ] PR erstellen
+- [x] PR erstellen (#50, Branch `feat/i18n`)
+
+### Review
+
+- Ein Commit auf `feat/i18n`, 44 Dateien, +1532/−397. Kein Version-Bump (Release erst auf Signal).
+- Verifikation: `npm test` 143 grün (neu: language-Roundtrip, tMain), `npm run build` grün (vue-tsc erzwingt de/en-Key-Parität via `satisfies`).
+- E2E/Playwright startet in dieser Umgebung generell nicht (ELECTRON_RUN_AS_NODE=1 in der Shell; Single-Instance-Lock der laufenden App; `release/` enthält alten Build vom 21.06.) — unabhängig von diesem PR. Manueller Kurztest: `npm run dev` → Einstellungen → Erscheinungsbild → EN.
+- DB-Enum-Werte (Film/Serie, Format-Tags) bewusst unübersetzt; nur Options-Labels lokalisiert.
 
 ## Bug-Scan Runde 2 – Fixes (2026-07-12)
 
