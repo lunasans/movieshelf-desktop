@@ -10,7 +10,7 @@ Entscheidung (Shelf = Master): `collection_type` = Film | Serie, das Medium (DVD
 - [x] Desktop: Tag-Default beim TMDb-Import wieder '' (Shelf setzt kein Tag)
 - [x] Neue Tests `database.test.ts` (4 Fälle) — `npm test` 147 grün, `npm run build` grün
 - [x] PR erstellen (gestackt auf feat/tmdb-movie-import-shelf-parity)
-- [ ] Android-App angleichen (separates Repo `dvd/versions/android`)
+- [x] Android-App angleichen (MovieShelf PR #79, Branch `feat/collection-type-film-serie`, Base `android-app`): Typ-Dropdown Film/Serie, Tag als Medium/Format-Dropdown, keine lokale Migration nötig (API-Client, Room-Cache übernimmt Server-Werte)
 
 ## Film-Import: Feld-Parität mit der Shelf (2026-07-18)
 
