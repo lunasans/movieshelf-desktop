@@ -57,6 +57,46 @@ export function useTmdbSearch() {
     toastTimer = setTimeout(() => { toast.value = '' }, 3000)
   }
 
+  // ── Feld-Extraktion analog zur Shelf (TmdbImportService) ────────────────────
+
+  // Erster YouTube-Trailer ODER -Teaser, wie extractTrailer() in der Shelf.
+  function extractTrailerUrl(videos: any[] | undefined): string {
+    const v = (videos ?? []).find((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'))
+    return v ? `https://www.youtube.com/watch?v=${v.key}` : ''
+  }
+
+  // FSK für Filme: deutsches Zertifikat aus release_dates (wie getGermanRating).
+  function extractMovieFsk(m: any): number | null {
+    for (const result of m.release_dates?.results ?? []) {
+      if (result.iso_3166_1 !== 'DE') continue
+      for (const release of result.release_dates ?? []) {
+        if (release.certification) {
+          const n = parseInt(String(release.certification).replace(/\D/g, ''), 10)
+          if (!Number.isNaN(n)) return n
+        }
+      }
+    }
+    return null
+  }
+
+  // FSK für Serien: DE-Rating aus content_ratings, US-Fallback mit TV-Rating-Map
+  // (wie getGermanTvRating + getUsFallbackRating).
+  function extractTvFsk(m: any): number | null {
+    const results = m.content_ratings?.results ?? []
+    const de = results.find((r: any) => r.iso_3166_1 === 'DE' && r.rating)
+    if (de) {
+      const n = parseInt(String(de.rating).replace(/\D/g, ''), 10)
+      if (!Number.isNaN(n)) return n
+    }
+    const us = results.find((r: any) => r.iso_3166_1 === 'US' && r.rating)
+    if (us) {
+      if (/^\d+$/.test(us.rating)) return parseInt(us.rating, 10)
+      const map: Record<string, number> = { 'TV-Y': 0, 'TV-Y7': 6, 'TV-G': 0, 'TV-PG': 6, 'TV-14': 12, 'TV-MA': 16 }
+      return map[us.rating] ?? null
+    }
+    return null
+  }
+
   async function search() {
     if (!query.value.trim()) return
     loading.value = true
@@ -111,7 +151,7 @@ export function useTmdbSearch() {
         title: result.title,
         year: result.release_date ? parseInt(result.release_date.slice(0, 4)) : null,
         genre: '', director: '', runtime: null, rating: null, rating_age: null,
-        overview: '', collection_type: isTv ? 'Serie' : 'Film', tag: '', trailer_url: '',
+        overview: '', collection_type: isTv ? 'Serie' : 'Film', tag: isTv ? '' : 'BluRay', trailer_url: '',
         tmdb_id: result.id,
         cover_path: result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null,
         backdrop_path: null, actors_names: '',
@@ -128,7 +168,6 @@ export function useTmdbSearch() {
         })
         const m = detailRes.data
         const creator = (m.created_by ?? [])[0]?.name ?? ''
-        const trailer = (m.videos?.results ?? []).find((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'))
 
         seriesForm.value = {
           title:           m.name,
@@ -137,11 +176,11 @@ export function useTmdbSearch() {
           director:        creator,
           runtime:         (m.episode_run_time ?? [])[0] ?? null,
           rating:          m.vote_average != null ? Math.round(m.vote_average * 10) / 10 : null,
-          rating_age:      null,
+          rating_age:      extractTvFsk(m),
           overview:        m.overview ?? '',
           collection_type: 'Serie',
           tag:             '',
-          trailer_url:     trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : '',
+          trailer_url:     extractTrailerUrl(m.videos?.results),
           tmdb_id:         m.id,
           cover_path:      m.poster_path    ? `https://image.tmdb.org/t/p/w500${m.poster_path}`    : null,
           backdrop_path:   m.backdrop_path  ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
@@ -165,17 +204,12 @@ export function useTmdbSearch() {
         selectedSeasons.value = []
 
       } else {
-        const [detailRes, videoRes] = await Promise.all([
-          axios.get(`${TMDB_BASE}/movie/${result.id}`, {
-            params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits' }
-          }),
-          axios.get(`${TMDB_BASE}/movie/${result.id}/videos`, {
-            params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage }
-          }).catch(() => ({ data: { results: [] } }))
-        ])
+        // Wie die Shelf: ein Detail-Request mit videos + release_dates (FSK)
+        const detailRes = await axios.get(`${TMDB_BASE}/movie/${result.id}`, {
+          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits,videos,release_dates' }
+        })
         const m        = detailRes.data
         const director = (m.credits?.crew ?? []).find((c: any) => c.job === 'Director')?.name ?? ''
-        const trailer  = (videoRes.data.results ?? []).find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
         previewForm.value = {
           title:           m.title,
           year:            m.release_date ? parseInt(m.release_date.slice(0, 4)) : null,
@@ -183,11 +217,13 @@ export function useTmdbSearch() {
           director,
           runtime:         m.runtime ?? null,
           rating:          m.vote_average != null ? Math.round(m.vote_average * 10) / 10 : null,
-          rating_age:      null,
+          rating_age:      extractMovieFsk(m),
           overview:        m.overview ?? '',
           collection_type: 'Film',
-          tag:             '',
-          trailer_url:     trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : '',
+          // Shelf-Import markiert Filme als Blu-ray; im Desktop-Modell ist das
+          // Format das Tag (im Modal weiterhin änderbar).
+          tag:             'BluRay',
+          trailer_url:     extractTrailerUrl(m.videos?.results),
           tmdb_id:         m.id,
           cover_path:      m.poster_path    ? `https://image.tmdb.org/t/p/w500${m.poster_path}`    : null,
           backdrop_path:   m.backdrop_path  ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
@@ -341,37 +377,6 @@ export function useTmdbSearch() {
     previewSource.value   = null
     tmdbSeasons.value     = []
     selectedSeasons.value = []
-  }
-
-  async function importLocally(tmdbId: number, inCollection = 1) {
-    const [detailRes, videoRes] = await Promise.all([
-      axios.get(`${TMDB_BASE}/movie/${tmdbId}`, {
-        params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits' }
-      }),
-      axios.get(`${TMDB_BASE}/movie/${tmdbId}/videos`, {
-        params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage }
-      }).catch(() => ({ data: { results: [] } }))
-    ])
-    const m        = detailRes.data
-    const director = (m.credits?.crew ?? []).find((c: any) => c.job === 'Director')?.name ?? ''
-    const trailer  = (videoRes.data.results ?? []).find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
-    const movie = await window.electron.db.movies.create({
-      title: m.title, year: m.release_date ? parseInt(m.release_date.slice(0, 4)) : null,
-      genre: (m.genres ?? []).map((g: any) => g.name).join(', '), director,
-      runtime: m.runtime ?? null, rating: m.vote_average ?? null, rating_age: null,
-      overview: m.overview ?? '',
-      cover_path:    m.poster_path   ? `https://image.tmdb.org/t/p/w500${m.poster_path}`    : null,
-      backdrop_path: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
-      actors_names: (m.credits?.cast ?? []).slice(0, 10).map((c: any) => c.name).join(', '),
-      trailer_url: trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : '',
-      collection_type: 'Film', tag: null, tmdb_id: m.id, remote_id: null, in_collection: inCollection,
-    })
-    await downloadImages(
-      movie,
-      m.poster_path   ? `https://image.tmdb.org/t/p/w500${m.poster_path}`    : null,
-      m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
-    )
-    return movie
   }
 
   async function addToList(result: TmdbResult, listId: number) {
