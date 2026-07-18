@@ -78,8 +78,6 @@ const de = {
     fieldType: 'Typ',
     typeMovie: 'Film',
     typeSeries: 'Serie',
-    typeDocumentary: 'Dokumentation',
-    typeShort: 'Kurzfilm',
     fieldTag: 'Format-Tag',
     fieldGenre: 'Genre',
     genrePlaceholder: 'Action, Drama, ...',
