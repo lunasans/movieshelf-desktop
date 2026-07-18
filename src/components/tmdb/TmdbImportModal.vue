@@ -33,8 +33,6 @@
                 <select v-model="previewForm.collection_type" class="modal-input">
                   <option value="Film">{{ $t('movieForm.typeMovie') }}</option>
                   <option value="Serie">{{ $t('movieForm.typeSeries') }}</option>
-                  <option value="Dokumentation">{{ $t('movieForm.typeDocumentary') }}</option>
-                  <option value="Kurzfilm">{{ $t('movieForm.typeShort') }}</option>
                 </select>
               </div>
               <div>

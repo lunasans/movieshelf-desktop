@@ -79,8 +79,6 @@ const en = {
     fieldType: 'Type',
     typeMovie: 'Movie',
     typeSeries: 'Series',
-    typeDocumentary: 'Documentary',
-    typeShort: 'Short film',
     fieldTag: 'Format tag',
     fieldGenre: 'Genre',
     genrePlaceholder: 'Action, Drama, ...',

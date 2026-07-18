@@ -70,8 +70,6 @@
           <select v-model="form.collection_type" class="input">
             <option value="Film">{{ $t('movieForm.typeMovie') }}</option>
             <option value="Serie">{{ $t('movieForm.typeSeries') }}</option>
-            <option value="Dokumentation">{{ $t('movieForm.typeDocumentary') }}</option>
-            <option value="Kurzfilm">{{ $t('movieForm.typeShort') }}</option>
           </select>
         </FormRow>
         <FormRow :label="$t('movieForm.fieldTag')">

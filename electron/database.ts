@@ -114,6 +114,26 @@ function runMigrations(instance: Database.Database = db): void {
     console.error('Migration failed:', e)
   }
 
+  // Kanonisches Schema wie in der Shelf: collection_type = Film | Serie,
+  // das Medium (DVD, Blu-ray, ...) steht im tag-Feld. Historische Format-
+  // und Typ-Werte werden in leere Tags gerettet und dann normalisiert.
+  instance.exec(`
+    UPDATE movies SET tag = CASE collection_type
+        WHEN 'Blu-ray'   THEN 'BluRay'
+        WHEN 'BluRay'    THEN 'BluRay'
+        WHEN 'DVD'       THEN 'DVD'
+        WHEN '4K'        THEN '4K'
+        WHEN 'Stream'    THEN 'Streaming'
+        WHEN 'Streaming' THEN 'Streaming'
+        WHEN 'Digital'   THEN 'Digital'
+        WHEN 'VHS'       THEN 'VHS'
+      END
+    WHERE (tag IS NULL OR tag = '')
+      AND collection_type IN ('Blu-ray','BluRay','DVD','4K','Stream','Streaming','Digital','VHS');
+    UPDATE movies SET collection_type = 'Film'
+    WHERE collection_type IS NOT NULL AND collection_type NOT IN ('Film','Serie');
+  `)
+
   // Custom lists (der polymorphe Pivot list_items wird weiter unten erstellt;
   // ein evtl. noch vorhandenes altes list_movies wird dort migriert und gedroppt).
   instance.exec(`
