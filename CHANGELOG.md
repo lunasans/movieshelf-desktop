@@ -1,3 +1,19 @@
+## [0.18.0] - 2026-07-18
+
+Der TMDb-Import arbeitet jetzt exakt wie in der Shelf – Serien bekommen einen eigenen Staffel-Dialog, Filme vollständige Metadaten, und das Datenschema ist mit Shelf und Android-App vereinheitlicht.
+
+### Neu
+
+- **Serien-Import mit Staffel-Dialog.** Ein Serien-Treffer in der TMDb-Suche öffnet wie in der Shelf direkt die Staffel-Auswahl (Poster, Episodenzahl, „Alle wählen"/„Auswahl leeren"). Keine Vorauswahl mehr – importiert wird erst ab einer gewählten Staffel, inklusive aller Episoden (#52).
+- **Film-Import mit Shelf-Feldern.** FSK wird automatisch aus TMDb übernommen (deutsches Zertifikat, bei Serien mit US-Fallback), Trailer akzeptieren jetzt auch Teaser als Fallback (#53).
+- **Einheitliches Typ-Schema.** Typ ist jetzt Film oder Serie; das Medium (DVD, Blu-ray, 4K, Streaming, …) steht im Tag – identisch zu Shelf und Android-App (#54).
+
+### Migration
+
+- Bestehende Einträge werden beim ersten Start automatisch normalisiert: Format-Werte im Typ-Feld (z. B. Blu-ray, DVD) wandern in leere Tags, Dokumentation/Kurzfilm werden zu Film. Serien bleiben unverändert.
+
+---
+
 ## [0.17.0] - 2026-07-14
 
 MovieShelf spricht jetzt Deutsch und Englisch – und begrüßt neue Nutzer mit einem überarbeiteten Onboarding.
