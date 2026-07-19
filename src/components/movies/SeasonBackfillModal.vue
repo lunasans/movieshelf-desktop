@@ -25,15 +25,14 @@
               <label
                 v-for="season in seasons"
                 :key="season.season_number"
-                class="group flex items-center gap-4 p-3 rounded-2xl border border-[var(--border-ui)] bg-[var(--bg-card)] transition-all"
-                :class="isExisting(season.season_number) ? 'opacity-50' : 'hover:border-red-500/40 cursor-pointer'"
+                class="group flex items-center gap-4 p-3 rounded-2xl border bg-[var(--bg-card)] transition-all cursor-pointer"
+                :class="isRemoving(season.season_number) ? 'border-red-500/40' : 'border-[var(--border-ui)] hover:border-red-500/40'"
               >
                 <input
                   type="checkbox"
                   :value="season.season_number"
                   v-model="selected"
-                  :disabled="isExisting(season.season_number)"
-                  class="w-4 h-4 accent-red-600 rounded flex-shrink-0 disabled:opacity-40"
+                  class="w-4 h-4 accent-red-600 rounded flex-shrink-0"
                 />
                 <div class="w-10 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-[var(--bg-elevated)] border border-[var(--border-ui)]">
                   <img v-if="season.poster_path" :src="`https://image.tmdb.org/t/p/w92${season.poster_path}`" class="w-full h-full object-cover" />
@@ -46,7 +45,13 @@
                   <div class="text-xs text-[var(--text-muted)] opacity-50">{{ $t('movieDetail.episodesCount', { count: season.episode_count }) }}</div>
                 </div>
                 <span
-                  v-if="isExisting(season.season_number)"
+                  v-if="isRemoving(season.season_number)"
+                  class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-[var(--status-red)] bg-[var(--status-red)]/10 border border-[var(--status-red)]/20 flex-shrink-0"
+                >
+                  {{ $t('movieDetail.seasonWillRemove') }}
+                </span>
+                <span
+                  v-else-if="isExisting(season.season_number)"
                   class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-[var(--status-green)] bg-[var(--status-green)]/10 border border-[var(--status-green)]/20 flex-shrink-0"
                 >
                   {{ $t('movieDetail.seasonOwned') }}
@@ -56,22 +61,27 @@
           </div>
 
           <!-- Footer -->
-          <div class="flex gap-3 p-6 border-t border-[var(--border-ui)] flex-shrink-0">
-            <button
-              @click="emit('confirm', selected.map(Number))"
-              :disabled="importing || selected.length === 0"
-              class="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-sm active:scale-95"
-            >
-              <span v-if="importing" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <i v-else class="bi bi-download"></i>
-              {{ importing ? $t('tmdb.importing') : $t('tmdb.importSeasonsCount', { count: selected.length }) }}
-            </button>
-            <button
-              @click="emit('cancel')"
-              class="px-6 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
-            >
-              {{ $t('common.cancel') }}
-            </button>
+          <div class="p-6 border-t border-[var(--border-ui)] flex-shrink-0">
+            <p v-if="toRemove.length > 0" class="mb-4 text-xs font-bold text-[var(--status-red)] opacity-80">
+              {{ $t('movieDetail.removeSeasonsWarning') }}
+            </p>
+            <div class="flex gap-3">
+              <button
+                @click="emit('confirm', { add: toAdd, remove: toRemove })"
+                :disabled="importing || !hasChanges"
+                class="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-sm active:scale-95"
+              >
+                <span v-if="importing" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <i v-else class="bi bi-check2-circle"></i>
+                {{ importing ? $t('tmdb.importing') : applyLabel }}
+              </button>
+              <button
+                @click="emit('cancel')"
+                class="px-6 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
+              >
+                {{ $t('common.cancel') }}
+              </button>
+            </div>
           </div>
 
         </div>
@@ -81,7 +91,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { SeasonOption } from '@/composables/useSeasonImport'
 
 const props = defineProps<{
@@ -94,15 +105,33 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  confirm: [seasonNumbers: number[]]
+  confirm: [changes: { add: number[]; remove: number[] }]
   cancel: []
 }>()
 
-const selected = ref<number[]>([])
+const { t } = useI18n()
+
+// Vorhandene Staffeln sind vorbelegt: Abwählen = Entfernen, Anhaken = Nachladen
+const selected = ref<number[]>(props.existing.map(Number))
 
 function isExisting(n: number) {
   return props.existing.includes(Number(n))
 }
+
+function isRemoving(n: number) {
+  return isExisting(n) && !selected.value.map(Number).includes(Number(n))
+}
+
+const toAdd = computed(() => selected.value.map(Number).filter(n => !isExisting(n)))
+const toRemove = computed(() => props.existing.map(Number).filter(n => !selected.value.map(Number).includes(n)))
+const hasChanges = computed(() => toAdd.value.length > 0 || toRemove.value.length > 0)
+
+const applyLabel = computed(() => {
+  const parts: string[] = []
+  if (toAdd.value.length) parts.push(t('movieDetail.seasonsAddCount', { count: toAdd.value.length }))
+  if (toRemove.value.length) parts.push(t('movieDetail.seasonsRemoveCount', { count: toRemove.value.length }))
+  return parts.length ? parts.join(', ') : t('movieDetail.noSeasonChanges')
+})
 </script>
 
 <style scoped>

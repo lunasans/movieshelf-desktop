@@ -104,6 +104,8 @@ interface Window {
       seasons: {
         forMovie: (movieId: number) => Promise<SeasonWithEpisodes[]>
         upsert:   (data: Record<string, unknown>) => Promise<number | undefined>
+        remove:   (movieId: number, seasonNumbers: number[]) => Promise<number>
+        pruneRemote: (movieId: number, keepRemoteIds: number[]) => Promise<number>
       }
       episodes: {
         upsert: (data: Record<string, unknown>) => Promise<void>

@@ -237,6 +237,8 @@ export function useSyncEngine() {
                 }
               }
             }
+            // Auf der Shelf entfernte Staffeln auch lokal entfernen (Shelf ist Master)
+            await window.electron.db.seasons.pruneRemote(local.id, movie.seasons.map((s: any) => s.id))
           }
           if (needsUpdate) pulled++
           else skipped++

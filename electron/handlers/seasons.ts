@@ -122,10 +122,32 @@ export function upsertEpisode(db: Database.Database, data: Record<string, unknow
   }
 }
 
+export function removeSeasonsByNumbers(db: Database.Database, movieId: number, seasonNumbers: number[]): number {
+  if (!Array.isArray(seasonNumbers) || seasonNumbers.length === 0) return 0
+  const placeholders = seasonNumbers.map(() => '?').join(',')
+  const result = db.prepare(
+    `DELETE FROM seasons WHERE movie_id = ? AND season_number IN (${placeholders})`
+  ).run(movieId, ...seasonNumbers.map(Number))
+  return result.changes
+}
+
+// Sync-Prune: Staffeln entfernen, die es auf der Shelf nicht mehr gibt.
+// Nur synchronisierte Zeilen (remote_id gesetzt) — lokal angelegte Staffeln bleiben.
+export function pruneSeasonsMissingRemote(db: Database.Database, movieId: number, keepRemoteIds: number[]): number {
+  const keep = (keepRemoteIds ?? []).map(Number).filter(n => Number.isFinite(n))
+  const placeholders = keep.map(() => '?').join(',')
+  const sql = keep.length
+    ? `DELETE FROM seasons WHERE movie_id = ? AND remote_id IS NOT NULL AND remote_id NOT IN (${placeholders})`
+    : 'DELETE FROM seasons WHERE movie_id = ? AND remote_id IS NOT NULL'
+  return db.prepare(sql).run(movieId, ...keep).changes
+}
+
 export function registerSeasonHandlers(): void {
   const db = () => getDb()
 
   ipcMain.handle('db:seasons:forMovie', (_event, movieId: number) => getSeasonsForMovie(db(), movieId))
   ipcMain.handle('db:seasons:upsert',   (_event, data) => upsertSeason(db(), data))
+  ipcMain.handle('db:seasons:remove',   (_event, movieId: number, seasonNumbers: number[]) => removeSeasonsByNumbers(db(), movieId, seasonNumbers))
+  ipcMain.handle('db:seasons:pruneRemote', (_event, movieId: number, keepRemoteIds: number[]) => pruneSeasonsMissingRemote(db(), movieId, keepRemoteIds))
   ipcMain.handle('db:episodes:upsert',  (_event, data) => upsertEpisode(db(), data))
 }
