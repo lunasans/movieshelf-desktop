@@ -285,19 +285,23 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-// Window controls
-ipcMain.on('window:minimize', () => mainWindow?.minimize())
-ipcMain.on('window:maximize', () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow.unmaximize()
+// Window controls: immer das Fenster des Absenders steuern — sonst schließt
+// z. B. das X im Statistik-Popup das Hauptfenster. Das Hauptfenster behält
+// sein Close-to-Tray-Verhalten über seinen eigenen 'close'-Handler.
+ipcMain.on('window:minimize', (event) => {
+  BrowserWindow.fromWebContents(event.sender)?.minimize()
+})
+ipcMain.on('window:maximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (!win) return
+  if (win.isMaximized()) {
+    win.unmaximize()
   } else {
-    mainWindow?.maximize()
+    win.maximize()
   }
 })
-ipcMain.on('window:close', () => {
-  if (mainWindow) {
-    mainWindow.close()
-  }
+ipcMain.on('window:close', (event) => {
+  BrowserWindow.fromWebContents(event.sender)?.close()
 })
 
 ipcMain.handle('trailer:open', (_event, url: string) => {
