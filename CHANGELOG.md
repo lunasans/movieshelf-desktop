@@ -1,3 +1,17 @@
+## [0.19.0] - 2026-07-19
+
+Bestehende Serien können jetzt Staffeln nachladen – mit Auswahl, welche man wirklich besitzt. Dazu zählen die Statistiken exakt wie in der Shelf.
+
+### Neu
+
+- **Staffeln nachladen.** Auf der Serien-Detailseite lassen sich fehlende Staffeln per Dialog importieren (wie in der Shelf): keine Vorauswahl, bereits vorhandene Staffeln sind markiert und gesperrt, importiert werden nur die gewählten inklusive Episoden. Im Online-Modus importiert der Shelf-Server (ab Shelf 2.29.0) und die App spiegelt das Ergebnis; im Standalone-Modus läuft der Import direkt über TMDb (#58).
+
+### Behoben
+
+- **Statistik:** Das Sammlungstypen-Panel zählt Boxset-Container nicht mehr mit und stimmt damit exakt mit den Kacheln und der Shelf überein (#57).
+
+---
+
 ## [0.18.0] - 2026-07-18
 
 Der TMDb-Import arbeitet jetzt exakt wie in der Shelf – Serien bekommen einen eigenen Staffel-Dialog, Filme vollständige Metadaten, und das Datenschema ist mit Shelf und Android-App vereinheitlicht.
