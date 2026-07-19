@@ -51,10 +51,12 @@ export function getStats(db: Database.Database) {
     LIMIT 10
   `).all() as { name: string; remote_id: number | null; image_path: string | null; movie_count: number }[]
 
+  // Gleiche Basis wie die Kacheln (ohne Boxset-Eltern), sonst weichen
+  // Typen-Panel und Gesamtzahl voneinander ab — wie in der Shelf.
   const byTypeRaw = db.prepare(`
     SELECT collection_type, COUNT(*) as count
     FROM movies
-    WHERE is_deleted = 0 AND in_collection = 1
+    WHERE ${BASE}
     GROUP BY collection_type
     ORDER BY count DESC
   `).all() as { collection_type: string; count: number }[]
@@ -62,7 +64,7 @@ export function getStats(db: Database.Database) {
   const filmsByType = db.prepare(`
     SELECT id, title, year, collection_type
     FROM movies
-    WHERE is_deleted = 0 AND in_collection = 1 AND collection_type IS NOT NULL
+    WHERE ${BASE} AND collection_type IS NOT NULL
     ORDER BY title ASC
   `).all() as { id: number; title: string; year: number | null; collection_type: string }[]
 
