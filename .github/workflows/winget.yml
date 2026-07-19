@@ -1,7 +1,10 @@
 name: Submit to winget
 
-# Reicht bei jedem veröffentlichten (stabilen) Release automatisch ein aktualisiertes
-# winget-Manifest als Pull Request bei microsoft/winget-pkgs ein (über komac).
+# Manueller Fallback: Die reguläre winget-Einreichung läuft als Job in
+# release.yml (das frühere release-Event hier feuerte nie, weil Releases mit
+# dem Standard-GITHUB_TOKEN erstellt werden und solche Events absichtlich
+# keine weiteren Workflows starten). Dieser Workflow dient zum Nachreichen
+# einzelner Versionen, z.B. wenn der Release-Job fehlgeschlagen ist.
 #
 # Voraussetzungen (einmalig):
 #  1. Das Paket muss in winget-pkgs schon existieren — die ERSTE Version einmalig
@@ -10,8 +13,11 @@ name: Submit to winget
 #     (forkt winget-pkgs und öffnet den PR).
 
 on:
-  release:
-    types: [released]
+  workflow_dispatch:
+    inputs:
+      release-tag:
+        description: 'Release-Tag (z.B. v0.20.0)'
+        required: true
 
 jobs:
   publish:
@@ -22,4 +28,5 @@ jobs:
         with:
           identifier: Lunasans.MovieShelf
           installers-regex: 'MovieShelf-Setup-.*\.exe$'
+          release-tag: ${{ inputs.release-tag }}
           token: ${{ secrets.WINGET_TOKEN }}

@@ -174,3 +174,20 @@ jobs:
               --arg hash_deb   "$SHA256_DEB" \
               --arg changelog  "$CHANGELOG_BODY" \
               '{version: $version, download_url: $url_win, download_url_linux_deb: $url_deb, file_hash: $hash_win, file_hash_linux_deb: $hash_deb, changelog: $changelog}')"
+
+  # winget-Einreichung direkt hier statt in winget.yml: das dort genutzte
+  # release-Event feuert nie, weil das Release mit dem Standard-GITHUB_TOKEN
+  # erstellt wird und solche Events absichtlich keine Workflows starten.
+  winget:
+    name: winget einreichen
+    needs: [notify]
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-linux')
+    runs-on: ubuntu-latest
+    steps:
+      - name: winget-Manifest aktualisieren & einreichen
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: Lunasans.MovieShelf
+          installers-regex: 'MovieShelf-Setup-.*\.exe$'
+          release-tag: ${{ github.ref_name }}
+          token: ${{ secrets.WINGET_TOKEN }}

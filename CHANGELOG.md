@@ -1,3 +1,18 @@
+## [0.20.0] - 2026-07-19
+
+Aus „Staffeln nachladen" wird „Staffeln verwalten": einzelne Staffeln lassen sich jetzt auch wieder entfernen – wie in der Shelf.
+
+### Neu
+
+- **Staffeln verwalten.** Im Dialog auf der Serien-Detailseite sind vorhandene Staffeln jetzt vorbelegt und abwählbar: Anhaken lädt fehlende Staffeln nach, Abwählen entfernt vorhandene samt Folgen (mit rotem „Wird entfernt"-Hinweis und Warnung). Im Online-Modus entfernt der Shelf-Server (ab Shelf 2.30.0) und die App spiegelt das Ergebnis; im Standalone-Modus passiert es direkt lokal (#60).
+
+### Behoben
+
+- **Sync:** Auf der Shelf entfernte Staffeln werden beim Delta-/Full-Sync jetzt auch lokal entfernt. Bisher blieben sie ewig liegen, weil der Sync Staffeln nur anlegte/aktualisierte. Lokal (standalone) angelegte Staffeln bleiben unangetastet (#60).
+- **winget:** Die winget-Einreichung läuft jetzt als Job im Release-Workflow – der bisherige eigenständige Workflow wurde vom Release-Event nie gestartet, weshalb winget seit 0.15.0 keine neuen Versionen bekam.
+
+---
+
 ## [0.19.1] - 2026-07-19
 
 ### Behoben
