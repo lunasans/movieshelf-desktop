@@ -1,5 +1,20 @@
 # Todo
 
+## Film-Import: Feld-Parität mit der Shelf (2026-07-18)
+
+Ziel: Der Desktop-Film-Import erzeugt dieselben Felder wie `TmdbImportService::importMovie` der Shelf (v2-saas). Branch `feat/tmdb-movie-import-shelf-parity` (gestackt auf `feat/tmdb-series-import-shelf`, gleiche Datei), PR-Base = Serien-Branch.
+
+- [x] FSK/`rating_age`: Filme aus `release_dates` (DE-Zertifikat), Serien aus `content_ratings` (DE → US-Fallback-Map) — wie extractRating() der Shelf
+- [x] Trailer: YouTube Trailer ODER Teaser (Shelf-Logik), gemeinsamer Helper
+- [x] Film-Detail-Request wie Shelf: ein Call mit `append_to_response=credits,videos,release_dates` (statt separatem Videos-Call)
+- [x] Format/Tag: Film-Import default `tag: 'BluRay'` (Shelf markiert Importe als Blu-ray; im Desktop-Modell ist das Format = `tag`, im Modal änderbar)
+- [x] Totes `importLocally()` entfernt (nirgends referenziert)
+- [x] `npm run build` grün, `npm test` 143 grün
+
+### Review
+
+- Bewusst NICHT angefasst: `collection_type`-Vokabular (Desktop: Film/Dokumentation/Kurzfilm vs. Shelf-Import historisch „Blu-ray", Shelf-Edit-Form: Owned/Serie/Stream). Vereinheitlichung wäre ein Datenmodell-Eingriff in Bestandsdaten → separate Entscheidung.
+
 ## Serien-Import wie in der Shelf – eigener Staffel-Dialog (2026-07-18)
 
 Ziel: Serien-Treffer in der TMDb-Suche öffnen nicht mehr das Film-Bearbeitungsformular, sondern direkt einen eigenen Staffel-Auswahl-Dialog wie im Shelf-Admin-Import (v2-saas `admin/tmdb/index.blade.php`): Staffel-Poster, Episodenzahl, „Alle wählen" / „Auswahl leeren", KEINE Vorauswahl, Import erst ab 1 gewählter Staffel. Branch `feat/tmdb-series-import-shelf`, ein PR, kein Version-Bump.
