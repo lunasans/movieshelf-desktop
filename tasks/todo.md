@@ -1,5 +1,17 @@
 # Todo
 
+## Kanonisches collection_type-Schema: Film | Serie (2026-07-18)
+
+Entscheidung (Shelf = Master): `collection_type` = Film | Serie, das Medium (DVD/BluRay/4K/Streaming/Digital/VHS/Leihe) steht im `tag`-Feld. „Owned/Stream/Blu-ray"-Varianten entfallen. Bestandsdaten werden migriert (Format-Werte in leere Tags gerettet, Rest → Film).
+
+- [x] Shelf (v2-saas, PR #11): Import 'Blu-ray'→'Film', Formular Typ Film/Serie, Tenant-Migration, Factory/Tests
+- [x] Desktop: idempotente Normalisierung in `runMigrations()` (database.ts)
+- [x] Desktop: Typ-Selects auf Film/Serie reduziert (MovieFormView, TmdbImportModal); i18n-Keys typeDocumentary/typeShort entfernt
+- [x] Desktop: Tag-Default beim TMDb-Import wieder '' (Shelf setzt kein Tag)
+- [x] Neue Tests `database.test.ts` (4 Fälle) — `npm test` 147 grün, `npm run build` grün
+- [x] PR erstellen (gestackt auf feat/tmdb-movie-import-shelf-parity)
+- [x] Android-App angleichen (MovieShelf PR #79, Branch `feat/collection-type-film-serie`, Base `android-app`): Typ-Dropdown Film/Serie, Tag als Medium/Format-Dropdown, keine lokale Migration nötig (API-Client, Room-Cache übernimmt Server-Werte)
+
 ## Film-Import: Feld-Parität mit der Shelf (2026-07-18)
 
 Ziel: Der Desktop-Film-Import erzeugt dieselben Felder wie `TmdbImportService::importMovie` der Shelf (v2-saas). Branch `feat/tmdb-movie-import-shelf-parity` (gestackt auf `feat/tmdb-series-import-shelf`, gleiche Datei), PR-Base = Serien-Branch.

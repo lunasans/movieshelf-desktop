@@ -151,7 +151,7 @@ export function useTmdbSearch() {
         title: result.title,
         year: result.release_date ? parseInt(result.release_date.slice(0, 4)) : null,
         genre: '', director: '', runtime: null, rating: null, rating_age: null,
-        overview: '', collection_type: isTv ? 'Serie' : 'Film', tag: isTv ? '' : 'BluRay', trailer_url: '',
+        overview: '', collection_type: isTv ? 'Serie' : 'Film', tag: '', trailer_url: '',
         tmdb_id: result.id,
         cover_path: result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null,
         backdrop_path: null, actors_names: '',
@@ -220,9 +220,7 @@ export function useTmdbSearch() {
           rating_age:      extractMovieFsk(m),
           overview:        m.overview ?? '',
           collection_type: 'Film',
-          // Shelf-Import markiert Filme als Blu-ray; im Desktop-Modell ist das
-          // Format das Tag (im Modal weiterhin änderbar).
-          tag:             'BluRay',
+          tag:             '',
           trailer_url:     extractTrailerUrl(m.videos?.results),
           tmdb_id:         m.id,
           cover_path:      m.poster_path    ? `https://image.tmdb.org/t/p/w500${m.poster_path}`    : null,
