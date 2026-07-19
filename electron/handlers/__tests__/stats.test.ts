@@ -78,6 +78,16 @@ describe('getStats', () => {
     expect(filmType!.films.some((f: any) => f.title === 'Film A')).toBe(true)
   })
 
+  it('byType — zählt Boxset-Eltern nicht mit (gleiche Basis wie totalMovies)', () => {
+    insertMovie(db, { title: 'Einzelfilm', collection_type: 'Film' })
+    insertMovie(db, { title: 'Boxset', collection_type: 'Film', is_boxset: 1 })
+
+    const { byType, totalMovies } = getStats(db)
+    const filmType = byType.find((t: any) => t.collection_type === 'Film')
+    expect(filmType!.count).toBe(1)
+    expect(totalMovies).toBe(1)
+  })
+
   it('byRuntime — 5 Buckets korrekt befüllt', () => {
     insertMovie(db, { runtime: 45 })   // < 60 min
     insertMovie(db, { runtime: 75 })   // 60–90 min
