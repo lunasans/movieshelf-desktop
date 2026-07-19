@@ -87,43 +87,6 @@
               <label class="field-label">{{ $t('movieForm.fieldAddedAt') }}</label>
               <input v-model="previewForm.created_at" type="date" class="modal-input" />
             </div>
-
-            <!-- Season selection (only for series with available seasons) -->
-            <div v-if="previewForm.collection_type === 'Serie' && tmdbSeasons.length > 0"
-              class="border border-[var(--border-ui)] rounded-2xl overflow-hidden">
-              <div class="flex items-center justify-between px-4 py-3 bg-[var(--bg-card)] border-b border-[var(--border-ui)]">
-                <span class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60">
-                  {{ $t('tmdb.importSeasons') }}
-                </span>
-                <div class="flex gap-2">
-                  <button type="button" @click="selectAllSeasons"
-                    class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-60 hover:opacity-100 transition-opacity">
-                    {{ $t('tmdb.allSeasons') }}
-                  </button>
-                  <span class="text-[var(--border-ui)]">·</span>
-                  <button type="button" @click="selectNoSeasons"
-                    class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-60 hover:opacity-100 transition-opacity">
-                    {{ $t('tmdb.noSeasons') }}
-                  </button>
-                </div>
-              </div>
-              <div class="divide-y divide-[var(--border-ui)]">
-                <label
-                  v-for="season in tmdbSeasons"
-                  :key="season.season_number"
-                  class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-[var(--bg-card)] transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    :value="season.season_number"
-                    v-model="localSelectedSeasons"
-                    class="w-4 h-4 accent-red-600 rounded"
-                  />
-                  <span class="text-sm font-bold text-[var(--text-main)] flex-1">{{ season.name }}</span>
-                  <span class="text-xs text-[var(--text-muted)] opacity-50">{{ $t('movieDetail.episodesCount', { count: season.episode_count }) }}</span>
-                </label>
-              </div>
-            </div>
           </div>
 
           <!-- Footer -->
@@ -152,35 +115,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { TmdbResult, TmdbSeason } from '@/composables/useTmdbSearch'
+import type { TmdbResult } from '@/composables/useTmdbSearch'
 
-const props = defineProps<{
+defineProps<{
   previewForm: Record<string, any> | null
   previewSource: TmdbResult | null
   importing: number | null
-  tmdbSeasons: TmdbSeason[]
-  selectedSeasons: number[]
 }>()
 
 const emit = defineEmits<{
   confirm: []
   cancel: []
-  'update:selectedSeasons': [value: number[]]
 }>()
-
-const localSelectedSeasons = computed({
-  get: () => props.selectedSeasons,
-  set: (v) => emit('update:selectedSeasons', v),
-})
-
-function selectAllSeasons() {
-  emit('update:selectedSeasons', props.tmdbSeasons.map(s => s.season_number))
-}
-
-function selectNoSeasons() {
-  emit('update:selectedSeasons', [])
-}
 </script>
 
 <style scoped>

@@ -21,6 +21,7 @@ export interface TmdbSeason {
   name: string
   episode_count: number
   overview: string | null
+  poster_path: string | null
 }
 
 export function useTmdbSearch() {
@@ -40,6 +41,7 @@ export function useTmdbSearch() {
   const importToCollection = ref(true)
   const listPickerFor      = ref<number | null>(null)
   const previewForm        = ref<Record<string, any> | null>(null)
+  const seriesForm         = ref<Record<string, any> | null>(null)
   const previewSource      = ref<TmdbResult | null>(null)
   const previewLoading     = ref(false)
   const tmdbSeasons        = ref<TmdbSeason[]>([])
@@ -98,6 +100,7 @@ export function useTmdbSearch() {
     if (previewLoading.value || importedIds.value.has(result.id)) return
     previewSource.value = result
     error.value = ''
+    seriesForm.value = null
     tmdbSeasons.value = []
     selectedSeasons.value = []
 
@@ -127,7 +130,7 @@ export function useTmdbSearch() {
         const creator = (m.created_by ?? [])[0]?.name ?? ''
         const trailer = (m.videos?.results ?? []).find((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'))
 
-        previewForm.value = {
+        seriesForm.value = {
           title:           m.name,
           year:            m.first_air_date ? parseInt(m.first_air_date.slice(0, 4)) : null,
           genre:           (m.genres ?? []).map((g: any) => g.name).join(', '),
@@ -154,9 +157,12 @@ export function useTmdbSearch() {
             name: s.name,
             episode_count: s.episode_count,
             overview: s.overview || null,
+            poster_path: s.poster_path ?? null,
           }))
         tmdbSeasons.value = seasons
-        selectedSeasons.value = seasons.map(s => s.season_number)
+        // Wie in der Shelf: keine Vorauswahl – ein versehentlicher Klick soll
+        // nicht alle Staffeln importieren.
+        selectedSeasons.value = []
 
       } else {
         const [detailRes, videoRes] = await Promise.all([
@@ -280,10 +286,9 @@ export function useTmdbSearch() {
       console.log('[TMDb] confirmImport – erstellter Film:', movie)
       await downloadImages(movie, coverUrl, backdropUrl)
 
-      // Import seasons if: specific seasons selected OR seasons were never loaded (auto-fetch all).
-      // Skip only when user explicitly chose "Keine" (tmdbSeasons loaded but selectedSeasons empty).
-      const userChoseNone = tmdbSeasons.value.length > 0 && selectedSeasons.value.length === 0
-      if (previewForm.value.collection_type === 'Serie' && previewForm.value.tmdb_id && settings.tmdbApiKey && !userChoseNone) {
+      // Falls der Typ im Formular auf "Serie" umgestellt wurde: alle Staffeln
+      // nachladen (der eigene Serien-Flow läuft über confirmSeriesImport).
+      if (previewForm.value.collection_type === 'Serie' && previewForm.value.tmdb_id && settings.tmdbApiKey) {
         await importSeasons(movie.id, previewForm.value.tmdb_id)
       }
 
@@ -299,6 +304,43 @@ export function useTmdbSearch() {
     } finally {
       importing.value = null
     }
+  }
+
+  // Serien-Import wie in der Shelf: eigener Staffel-Dialog, Import nur mit Auswahl.
+  async function confirmSeriesImport() {
+    if (!seriesForm.value || !previewSource.value) return
+    if (selectedSeasons.value.length === 0) return
+    const result = previewSource.value
+    importing.value = result.id
+    error.value = ''
+    try {
+      const coverUrl    = seriesForm.value.cover_path
+      const backdropUrl = seriesForm.value.backdrop_path
+      const movie = await window.electron.db.movies.create({
+        ...seriesForm.value,
+        in_collection: importToCollection.value ? 1 : 0,
+        remote_id: null,
+      }) as any
+
+      await downloadImages(movie, coverUrl, backdropUrl)
+      await importSeasons(movie.id, seriesForm.value.tmdb_id)
+
+      importedIds.value = new Set(importedIds.value).add(result.id)
+      movieStore.clearCache()
+      showToast(t('tmdb.addedToCollection', { title: seriesForm.value.title }))
+      cancelSeriesImport()
+    } catch (e: any) {
+      error.value = t('tmdb.importFailed', { message: e?.response?.data?.status_message ?? e.message })
+    } finally {
+      importing.value = null
+    }
+  }
+
+  function cancelSeriesImport() {
+    seriesForm.value      = null
+    previewSource.value   = null
+    tmdbSeasons.value     = []
+    selectedSeasons.value = []
   }
 
   async function importLocally(tmdbId: number, inCollection = 1) {
@@ -359,8 +401,8 @@ export function useTmdbSearch() {
 
   return {
     query, searchMode, results, loading, importing, importedIds, error, toast,
-    importToCollection, listPickerFor, previewForm, previewSource, previewLoading,
+    importToCollection, listPickerFor, previewForm, seriesForm, previewSource, previewLoading,
     tmdbSeasons, selectedSeasons,
-    canSearch, search, openPreview, confirmImport, addToList,
+    canSearch, search, openPreview, confirmImport, confirmSeriesImport, cancelSeriesImport, addToList,
   }
 }

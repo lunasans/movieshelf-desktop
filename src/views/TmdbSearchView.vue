@@ -105,11 +105,20 @@
       :previewForm="previewForm"
       :previewSource="previewSource"
       :importing="importing"
+      @confirm="confirmImport"
+      @cancel="previewForm = null; previewSource = null"
+    />
+
+    <!-- Serien: eigener Staffel-Dialog wie in der Shelf -->
+    <TmdbSeasonModal
+      :seriesForm="seriesForm"
+      :previewSource="previewSource"
+      :importing="importing"
       :tmdbSeasons="tmdbSeasons"
       :selectedSeasons="selectedSeasons"
       @update:selectedSeasons="selectedSeasons = $event"
-      @confirm="confirmImport"
-      @cancel="previewForm = null; previewSource = null"
+      @confirm="confirmSeriesImport"
+      @cancel="cancelSeriesImport"
     />
   </div>
 </template>
@@ -120,13 +129,14 @@ import { useListStore } from '@/stores/lists'
 import { useTmdbSearch } from '@/composables/useTmdbSearch'
 import TmdbResultGrid  from '@/components/tmdb/TmdbResultGrid.vue'
 import TmdbImportModal from '@/components/tmdb/TmdbImportModal.vue'
+import TmdbSeasonModal from '@/components/tmdb/TmdbSeasonModal.vue'
 
 const listStore = useListStore()
 const {
   query, searchMode, results, loading, importing, importedIds, error, toast,
-  importToCollection, listPickerFor, previewForm, previewSource, previewLoading,
+  importToCollection, listPickerFor, previewForm, seriesForm, previewSource, previewLoading,
   tmdbSeasons, selectedSeasons,
-  canSearch, search, openPreview, confirmImport, addToList,
+  canSearch, search, openPreview, confirmImport, confirmSeriesImport, cancelSeriesImport, addToList,
 } = useTmdbSearch()
 
 onMounted(() => listStore.fetchLists())

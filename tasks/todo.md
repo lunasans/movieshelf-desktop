@@ -1,5 +1,29 @@
 # Todo
 
+## Serien-Import wie in der Shelf – eigener Staffel-Dialog (2026-07-18)
+
+Ziel: Serien-Treffer in der TMDb-Suche öffnen nicht mehr das Film-Bearbeitungsformular, sondern direkt einen eigenen Staffel-Auswahl-Dialog wie im Shelf-Admin-Import (v2-saas `admin/tmdb/index.blade.php`): Staffel-Poster, Episodenzahl, „Alle wählen" / „Auswahl leeren", KEINE Vorauswahl, Import erst ab 1 gewählter Staffel. Branch `feat/tmdb-series-import-shelf`, ein PR, kein Version-Bump.
+
+- [x] Shelf-Flow analysieren (TmdbController + admin blade + TmdbImportService)
+- [x] Desktop-Ist-Stand analysieren (useTmdbSearch, TmdbImportModal, TmdbResultGrid)
+- [x] `TmdbSeason` um `poster_path` erweitern
+- [x] `useTmdbSearch`: eigener Serien-Pfad – `seriesForm`-State, `openPreview` verzweigt bei TV (mit API-Key) in Staffel-Dialog statt Formular; keine Staffel-Vorauswahl
+- [x] `confirmSeriesImport()` + `cancelSeriesImport()` (Import nur mit ≥1 Staffel)
+- [x] Neue Komponente `TmdbSeasonModal.vue` nach Shelf-Vorbild
+- [x] `TmdbSearchView.vue` verdrahten
+- [x] `TmdbImportModal.vue`: Staffel-Block entfernen (nur noch Film-Formular)
+- [x] i18n DE/EN ergänzen (neue Keys, ungenutzte `importSeasons`/`allSeasons`/`noSeasons` entfernt)
+- [x] `npm run build` (Type-Check) + `npm test`
+- [x] PR erstellen
+
+### Review
+
+- Serien-Treffer öffnen jetzt `TmdbSeasonModal` (Staffel-Poster w92, Episodenzahl, „Alle wählen"/„Auswahl leeren"), keine Vorauswahl, Import-Button erst ab 1 gewählter Staffel — 1:1 das Shelf-Verhalten.
+- Film-Flow unverändert (`TmdbImportModal` ohne Staffel-Block); Edge-Case „Typ im Film-Formular auf Serie umgestellt" importiert weiterhin alle Staffeln automatisch.
+- Fallback ohne TMDb-API-Key bleibt: Serie öffnet das einfache Formular (Staffeln ohne Key nicht ladbar).
+- Verifikation: `npm run build` grün (vue-tsc), `npm test` 143 grün (nach dokumentiertem `npm rebuild better-sqlite3`, ABI-Wechsel der lokalen Node-Version — siehe lessons.md).
+- Kein Version-Bump (Release erst auf Signal).
+
 ## Mehrsprachigkeit DE/EN (2026-07-14)
 
 Plan: vue-i18n@11 (legacy:false), Locale-Dateien `src/i18n/de.ts` (Strings 1:1) + `en.ts` (`satisfies MessageSchema`), Setting `language` (lokal, wie theme), TMDb folgt via `tmdbLanguage`-Computed. Branch `feat/i18n`, ein PR, kein Version-Bump.
