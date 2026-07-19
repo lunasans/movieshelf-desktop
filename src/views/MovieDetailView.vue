@@ -208,7 +208,7 @@
                 @click="openSeasonBackfill"
                 class="text-[10px] font-black uppercase tracking-widest text-[var(--status-red)] opacity-80 hover:opacity-100 transition-opacity"
               >
-                <i class="bi bi-plus-lg mr-1"></i>{{ $t('movieDetail.backfillSeasons') }}
+                <i class="bi bi-pencil-square mr-1"></i>{{ $t('movieDetail.backfillSeasons') }}
               </button>
             </div>
             <div class="space-y-3">
@@ -364,8 +364,9 @@ async function openSeasonBackfill() {
   }
 }
 
-async function confirmSeasonBackfill(nums: number[]) {
-  if (!movie.value || nums.length === 0) return
+async function confirmSeasonBackfill(changes: { add: number[]; remove: number[] }) {
+  const { add, remove } = changes
+  if (!movie.value || (add.length === 0 && remove.length === 0)) return
   backfillImporting.value = true
   backfillError.value = null
   try {
@@ -374,13 +375,17 @@ async function confirmSeasonBackfill(nums: number[]) {
     if (localId === null) return
 
     if (settings.isOnline && remoteId) {
-      // Shelf ist Master: Import läuft auf dem Server, danach lokal spiegeln
-      await apiPost('/tmdb/import-seasons', { movie_id: remoteId, seasons: nums })
+      // Shelf ist Master: Änderungen laufen auf dem Server, danach lokal spiegeln
+      if (add.length) await apiPost('/tmdb/import-seasons', { movie_id: remoteId, seasons: add })
+      if (remove.length) await apiPost('/tmdb/remove-seasons', { movie_id: remoteId, seasons: remove })
       await refreshSeasonsFromRemote(localId, remoteId)
     } else {
-      const knownNames: Record<number, string> = {}
-      for (const s of backfillSeasons.value) knownNames[s.season_number] = s.name
-      await importSeasonsLocally(localId, movie.value.tmdb_id, nums, knownNames)
+      if (add.length) {
+        const knownNames: Record<number, string> = {}
+        for (const s of backfillSeasons.value) knownNames[s.season_number] = s.name
+        await importSeasonsLocally(localId, movie.value.tmdb_id, add, knownNames)
+      }
+      if (remove.length) await window.electron.db.seasons.remove(localId, remove)
     }
 
     seasons.value = await window.electron.db.seasons.forMovie(localId)
@@ -520,7 +525,7 @@ async function toggleList(listId: number) {
   movieListIds.value = new Set(movieListIds.value)
 }
 
-// Staffeln + Episoden vom Server in die lokale DB spiegeln (Upserts)
+// Staffeln + Episoden vom Server in die lokale DB spiegeln (Upserts + Prune)
 async function refreshSeasonsFromRemote(localId: number, remoteId: number) {
   try {
     const remote = await apiGet(`/movies/${remoteId}`) as any
@@ -540,6 +545,8 @@ async function refreshSeasonsFromRemote(localId: number, remoteId: number) {
           }
         }
       }
+      // Auf der Shelf entfernte Staffeln auch lokal entfernen (Shelf ist Master)
+      await window.electron.db.seasons.pruneRemote(localId, remoteSeasonsData.seasons.map((s: any) => s.id))
     }
   } catch { /* offline oder kein Zugriff – ignorieren */ }
 }

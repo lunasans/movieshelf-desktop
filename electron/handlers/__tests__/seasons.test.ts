@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type Database from 'better-sqlite3'
 import { createTestDb, insertMovie } from './testDb'
-import { getSeasonsForMovie, upsertSeason, upsertEpisode } from '../seasons'
+import { getSeasonsForMovie, upsertSeason, upsertEpisode, removeSeasonsByNumbers, pruneSeasonsMissingRemote } from '../seasons'
 
 let db: Database.Database
 
@@ -97,6 +97,73 @@ describe('upsertEpisode', () => {
     const ep1 = db.prepare('SELECT * FROM episodes WHERE season_id = ? AND episode_number = 1').get(seasonId) as any
     expect(ep1.remote_id).toBe(51)
     expect(ep1.title).toBe('E2 (getauscht)')
+  })
+})
+
+describe('removeSeasonsByNumbers', () => {
+  it('löscht die angefragten Staffeln samt Episoden (FK-Cascade)', () => {
+    const movieId = insertMovie(db)
+    const s1 = upsertSeason(db, { remote_id: 1, movie_id: movieId, season_number: 1 })
+    const s2 = upsertSeason(db, { remote_id: 2, movie_id: movieId, season_number: 2 })
+    upsertEpisode(db, { remote_id: 10, season_id: s2, episode_number: 1, title: 'Ep 1' })
+
+    const removed = removeSeasonsByNumbers(db, movieId, [2, 5])
+
+    expect(removed).toBe(1)
+    const seasons = getSeasonsForMovie(db, movieId) as any[]
+    expect(seasons).toHaveLength(1)
+    expect(seasons[0].id).toBe(s1)
+    expect(db.prepare('SELECT COUNT(*) AS c FROM episodes WHERE season_id = ?').get(s2) as any).toEqual({ c: 0 })
+  })
+
+  it('löscht nichts bei leerer Auswahl oder fremder Serie', () => {
+    const movieId = insertMovie(db)
+    const otherId = insertMovie(db, { title: 'Andere Serie' })
+    upsertSeason(db, { remote_id: 1, movie_id: movieId, season_number: 1 })
+
+    expect(removeSeasonsByNumbers(db, movieId, [])).toBe(0)
+    expect(removeSeasonsByNumbers(db, otherId, [1])).toBe(0)
+    expect(getSeasonsForMovie(db, movieId)).toHaveLength(1)
+  })
+})
+
+describe('pruneSeasonsMissingRemote', () => {
+  it('entfernt synchronisierte Staffeln, die es remote nicht mehr gibt', () => {
+    const movieId = insertMovie(db)
+    upsertSeason(db, { remote_id: 1, movie_id: movieId, season_number: 1 })
+    const s2 = upsertSeason(db, { remote_id: 2, movie_id: movieId, season_number: 2 })
+    upsertEpisode(db, { remote_id: 20, season_id: s2, episode_number: 1 })
+
+    const pruned = pruneSeasonsMissingRemote(db, movieId, [1])
+
+    expect(pruned).toBe(1)
+    const seasons = getSeasonsForMovie(db, movieId) as any[]
+    expect(seasons).toHaveLength(1)
+    expect(seasons[0].remote_id).toBe(1)
+  })
+
+  it('lässt lokal angelegte Staffeln (remote_id NULL) unangetastet', () => {
+    const movieId = insertMovie(db)
+    upsertSeason(db, { movie_id: movieId, season_number: 1 })
+    upsertSeason(db, { remote_id: 2, movie_id: movieId, season_number: 2 })
+
+    const pruned = pruneSeasonsMissingRemote(db, movieId, [])
+
+    expect(pruned).toBe(1)
+    const seasons = getSeasonsForMovie(db, movieId) as any[]
+    expect(seasons).toHaveLength(1)
+    expect(seasons[0].remote_id).toBeNull()
+  })
+
+  it('berührt keine Staffeln anderer Filme', () => {
+    const movieId = insertMovie(db)
+    const otherId = insertMovie(db, { title: 'Andere Serie' })
+    upsertSeason(db, { remote_id: 1, movie_id: movieId, season_number: 1 })
+    upsertSeason(db, { remote_id: 9, movie_id: otherId, season_number: 1 })
+
+    pruneSeasonsMissingRemote(db, movieId, [])
+
+    expect(getSeasonsForMovie(db, otherId)).toHaveLength(1)
   })
 })
 
