@@ -1,5 +1,9 @@
 # Lessons
 
+## Keine Emojis in PR-Beschreibungen
+PR-Bodies und Commit-Messages ohne Emojis halten (auch kein 🤖-Footer) —
+der Nutzer empfindet das als unprofessionell. Sachlicher Text genügt.
+
 ## package-lock.json immer synchron halten
 Nach dem Hinzufügen von Paketen zu `package.json` muss lokal `npm install` ausgeführt
 und die aktualisierte `package-lock.json` committet werden. `npm ci` in GitHub Actions
