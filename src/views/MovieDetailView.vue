@@ -200,8 +200,17 @@
           </div>
 
           <!-- Seasons (Series) -->
-          <div v-if="movie.collection_type === 'Serie' && seasons.length > 0">
-            <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">{{ $t('movieDetail.seasons') }}</h3>
+          <div v-if="movie.collection_type === 'Serie' && (seasons.length > 0 || canBackfillSeasons)">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em]">{{ $t('movieDetail.seasons') }}</h3>
+              <button
+                v-if="canBackfillSeasons"
+                @click="openSeasonBackfill"
+                class="text-[10px] font-black uppercase tracking-widest text-[var(--status-red)] opacity-80 hover:opacity-100 transition-opacity"
+              >
+                <i class="bi bi-plus-lg mr-1"></i>{{ $t('movieDetail.backfillSeasons') }}
+              </button>
+            </div>
             <div class="space-y-3">
               <div v-for="season in seasons" :key="season.id" class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl overflow-hidden">
                 <button
@@ -281,6 +290,18 @@
         </div>
       </div>
     </div>
+
+    <SeasonBackfillModal
+      v-if="backfillOpen"
+      :title="movie?.title ?? ''"
+      :seasons="backfillSeasons"
+      :existing="existingSeasonNumbers"
+      :loading="backfillLoading"
+      :importing="backfillImporting"
+      :error="backfillError"
+      @confirm="confirmSeasonBackfill"
+      @cancel="backfillOpen = false"
+    />
   </div>
 </template>
 
@@ -289,14 +310,17 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { useApi } from '@/composables/useApi'
+import { useSeasonImport, type SeasonOption } from '@/composables/useSeasonImport'
 import { useUiStore } from '@/stores/ui'
 import { useListStore } from '@/stores/lists'
 import { useSettingsStore } from '@/stores/settings'
 import CollectionPartsSection from '@/components/movies/CollectionPartsSection.vue'
+import SeasonBackfillModal from '@/components/movies/SeasonBackfillModal.vue'
 
 const TMDB_BASE = 'https://api.themoviedb.org/3'
 const route = useRoute()
-const { resolveMediaUrl, apiGet } = useApi()
+const { resolveMediaUrl, apiGet, apiPost } = useApi()
+const { mapSeasons, fetchTvSeasons, importSeasonsLocally } = useSeasonImport()
 const settings = useSettingsStore()
 const ui = useUiStore()
 const listStore = useListStore()
@@ -308,6 +332,65 @@ const boxsetChildren = ref<any[]>([])
 const seasons = ref<any[]>([])
 const openSeasons = ref(new Set<number>())
 const isSticky = ref(false)
+
+// Staffeln nachladen (wie in der Shelf): Dialog mit Auswahl, vorhandene gesperrt
+const backfillOpen      = ref(false)
+const backfillLoading   = ref(false)
+const backfillImporting = ref(false)
+const backfillSeasons   = ref<SeasonOption[]>([])
+const backfillError     = ref<string | null>(null)
+
+const existingSeasonNumbers = computed(() => seasons.value.map((s: any) => Number(s.season_number)))
+const canBackfillSeasons = computed(() =>
+  !!movie.value?.tmdb_id && (settings.isOnline || settings.hasTmdb)
+)
+
+async function openSeasonBackfill() {
+  backfillOpen.value = true
+  backfillError.value = null
+  if (backfillSeasons.value.length > 0) return
+  backfillLoading.value = true
+  try {
+    if (settings.isOnline) {
+      const data = await apiGet('/tmdb/details', { tmdb_id: movie.value.tmdb_id, type: 'tv' }) as any
+      backfillSeasons.value = mapSeasons(data?.seasons ?? [])
+    } else {
+      backfillSeasons.value = await fetchTvSeasons(movie.value.tmdb_id)
+    }
+  } catch (e: any) {
+    backfillError.value = e?.response?.data?.error ?? e.message
+  } finally {
+    backfillLoading.value = false
+  }
+}
+
+async function confirmSeasonBackfill(nums: number[]) {
+  if (!movie.value || nums.length === 0) return
+  backfillImporting.value = true
+  backfillError.value = null
+  try {
+    const remoteId = movie.value.remote_id ?? (localMovieId.value === null ? movie.value.id : null)
+    const localId = await ensureLocalMovie()
+    if (localId === null) return
+
+    if (settings.isOnline && remoteId) {
+      // Shelf ist Master: Import läuft auf dem Server, danach lokal spiegeln
+      await apiPost('/tmdb/import-seasons', { movie_id: remoteId, seasons: nums })
+      await refreshSeasonsFromRemote(localId, remoteId)
+    } else {
+      const knownNames: Record<number, string> = {}
+      for (const s of backfillSeasons.value) knownNames[s.season_number] = s.name
+      await importSeasonsLocally(localId, movie.value.tmdb_id, nums, knownNames)
+    }
+
+    seasons.value = await window.electron.db.seasons.forMovie(localId)
+    backfillOpen.value = false
+  } catch (e: any) {
+    backfillError.value = e?.response?.data?.error ?? e.message
+  } finally {
+    backfillImporting.value = false
+  }
+}
 
 function toggleSeason(seasonId: number) {
   if (openSeasons.value.has(seasonId)) {
@@ -437,6 +520,30 @@ async function toggleList(listId: number) {
   movieListIds.value = new Set(movieListIds.value)
 }
 
+// Staffeln + Episoden vom Server in die lokale DB spiegeln (Upserts)
+async function refreshSeasonsFromRemote(localId: number, remoteId: number) {
+  try {
+    const remote = await apiGet(`/movies/${remoteId}`) as any
+    const remoteSeasonsData = remote?.data ?? remote
+    if (remoteSeasonsData?.seasons && Array.isArray(remoteSeasonsData.seasons)) {
+      for (const season of remoteSeasonsData.seasons) {
+        const localSeasonId = await window.electron.db.seasons.upsert({
+          remote_id: season.id, movie_id: localId,
+          season_number: season.season_number, title: season.title, overview: season.overview,
+        })
+        if (localSeasonId && Array.isArray(season.episodes)) {
+          for (const ep of season.episodes) {
+            await window.electron.db.episodes.upsert({
+              remote_id: ep.id, season_id: localSeasonId,
+              episode_number: ep.episode_number, title: ep.title, overview: ep.overview,
+            })
+          }
+        }
+      }
+    }
+  } catch { /* offline oder kein Zugriff – ignorieren */ }
+}
+
 async function loadMovie(id: number) {
   movie.value = await window.electron.db.movies.get(id)
   linkedActors.value = await window.electron.db.movies.actors.getForMovie(id)
@@ -444,6 +551,9 @@ async function loadMovie(id: number) {
   boxsetChildren.value = []
   seasons.value = []
   openSeasons.value = new Set()
+  backfillOpen.value = false
+  backfillSeasons.value = []
+  backfillError.value = null
 
 
   if (movie.value?.is_boxset) {
@@ -455,27 +565,8 @@ async function loadMovie(id: number) {
 
     // Online-Fallback: Staffeln direkt von der API laden und lokal speichern
     if (seasons.value.length === 0 && settings.isOnline && movie.value.remote_id) {
-      try {
-        const remote = await apiGet(`/movies/${movie.value.remote_id}`) as any
-        const remoteSeasonsData = remote?.data ?? remote
-        if (remoteSeasonsData?.seasons && Array.isArray(remoteSeasonsData.seasons)) {
-          for (const season of remoteSeasonsData.seasons) {
-            const localSeasonId = await window.electron.db.seasons.upsert({
-              remote_id: season.id, movie_id: id,
-              season_number: season.season_number, title: season.title, overview: season.overview,
-            })
-            if (localSeasonId && Array.isArray(season.episodes)) {
-              for (const ep of season.episodes) {
-                await window.electron.db.episodes.upsert({
-                  remote_id: ep.id, season_id: localSeasonId,
-                  episode_number: ep.episode_number, title: ep.title, overview: ep.overview,
-                })
-              }
-            }
-          }
-          seasons.value = await window.electron.db.seasons.forMovie(id)
-        }
-      } catch { /* offline oder kein Zugriff – ignorieren */ }
+      await refreshSeasonsFromRemote(id, movie.value.remote_id)
+      seasons.value = await window.electron.db.seasons.forMovie(id)
     }
 
     // TMDb-Fallback: Folgen nachladen wenn Staffeln vorhanden aber Folgen fehlen
