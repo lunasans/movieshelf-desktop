@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import axios from 'axios'
 import { t } from '@/i18n'
 import { useApi } from '@/composables/useApi'
+import { useSeasonImport } from '@/composables/useSeasonImport'
 import { useSettingsStore } from '@/stores/settings'
 import { useListStore } from '@/stores/lists'
 import { useMovieStore } from '@/stores/movies'
@@ -29,6 +30,7 @@ export function useTmdbSearch() {
   const listStore  = useListStore()
   const movieStore = useMovieStore()
   const { apiGet, isOnline } = useApi()
+  const { mapSeasons, fetchTvSeasons, importSeasonsLocally } = useSeasonImport()
 
   const query              = ref('')
   const searchMode         = ref<'movie' | 'tv'>('movie')
@@ -189,16 +191,7 @@ export function useTmdbSearch() {
         }
 
         // Build season list, skip season 0 (Specials)
-        const seasons: TmdbSeason[] = (m.seasons ?? [])
-          .filter((s: any) => s.season_number > 0)
-          .map((s: any) => ({
-            season_number: s.season_number,
-            name: s.name,
-            episode_count: s.episode_count,
-            overview: s.overview || null,
-            poster_path: s.poster_path ?? null,
-          }))
-        tmdbSeasons.value = seasons
+        tmdbSeasons.value = mapSeasons(m.seasons)
         // Wie in der Shelf: keine Vorauswahl – ein versehentlicher Klick soll
         // nicht alle Staffeln importieren.
         selectedSeasons.value = []
@@ -267,39 +260,14 @@ export function useTmdbSearch() {
     // If no seasons were selected/loaded yet, fetch all from TMDb
     if (numsToImport.length === 0) {
       try {
-        const { data: show } = await axios.get(`${TMDB_BASE}/tv/${tmdbId}`, {
-          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage }
-        })
-        numsToImport = (show.seasons ?? [])
-          .filter((s: any) => s.season_number > 0)
-          .map((s: any) => s.season_number)
+        numsToImport = (await fetchTvSeasons(tmdbId)).map(s => s.season_number)
       } catch { return }
     }
 
-    for (const seasonNum of numsToImport) {
-      try {
-        const { data } = await axios.get(`${TMDB_BASE}/tv/${tmdbId}/season/${seasonNum}`, {
-          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage }
-        })
-        const knownSeason = tmdbSeasons.value.find(s => s.season_number === seasonNum)
-        const seasonId = await window.electron.db.seasons.upsert({
-          movie_id: movieId,
-          season_number: seasonNum,
-          title: knownSeason?.name ?? data.name ?? null,
-          overview: data.overview ?? null,
-        })
-        if (seasonId != null && Array.isArray(data.episodes)) {
-          for (const ep of data.episodes) {
-            await window.electron.db.episodes.upsert({
-              season_id: seasonId,
-              episode_number: ep.episode_number,
-              title: ep.name ?? null,
-              overview: ep.overview ?? null,
-            })
-          }
-        }
-      } catch { /* continue with remaining seasons */ }
-    }
+    const knownNames: Record<number, string> = {}
+    for (const s of tmdbSeasons.value) knownNames[s.season_number] = s.name
+
+    await importSeasonsLocally(movieId, tmdbId, numsToImport, knownNames)
   }
 
   async function confirmImport() {
