@@ -1,3 +1,11 @@
+## [0.19.1] - 2026-07-19
+
+### Behoben
+
+- **Statistik-Popup:** Das X im Statistik-Fenster schloss das Hauptfenster statt des Popups. Die Fenster-Buttons (Schließen/Minimieren/Maximieren) steuern jetzt immer das Fenster, in dem sie geklickt wurden; das Hauptfenster minimiert weiterhin ins Tray.
+
+---
+
 ## [0.19.0] - 2026-07-19
 
 Bestehende Serien können jetzt Staffeln nachladen – mit Auswahl, welche man wirklich besitzt. Dazu zählen die Statistiken exakt wie in der Shelf.
