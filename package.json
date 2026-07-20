@@ -23,7 +23,7 @@
   "dependencies": {
     "@playwright/test": "^1.60.0",
     "@tanstack/vue-virtual": "^3.13.24",
-    "adm-zip": "^0.5.17",
+    "adm-zip": "^0.6.0",
     "axios": "^1.16.0",
     "better-sqlite3": "^12.9.0",
     "bootstrap-icons": "^1.13.1",
