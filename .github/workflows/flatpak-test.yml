@@ -4,6 +4,13 @@ name: Flatpak Build (Test)
 # Release-Trigger (Tag-Push) gekoppelt - läuft nur manuell, solange der
 # Build nicht verifiziert ist. Erst nach erfolgreichem Test in
 # release.yml übernehmen.
+#
+# Nutzt bewusst kein electron-builder --linux flatpak: dessen interne
+# @malept/flatpak-bundler-Abhängigkeit reicht die stderr-Ausgabe von
+# flatpak-builder nicht durch, ein fehlgeschlagener Build war dadurch
+# nicht diagnostizierbar. Stattdessen eigenes Flatpak-Manifest
+# (flatpak/info.movieshelf.desktop.yml) + direkter flatpak-builder-Aufruf,
+# wie es die meisten echten Flathub-Einträge für Electron-Apps machen.
 on:
   workflow_dispatch: {}
 
@@ -29,6 +36,12 @@ jobs:
       - name: App bauen
         run: npx vite build
 
+      # --dir statt --linux deb/flatpak: erzeugt nur das entpackte
+      # release/linux-unpacked, ohne selbst ein Paketformat zu bauen -
+      # genau das braucht unser eigenes Flatpak-Modul als Quelle.
+      - name: Electron-App entpackt bauen (linux-unpacked)
+        run: npx electron-builder --linux dir --publish never
+
       - name: Flatpak-Werkzeuge installieren
         run: |
           sudo apt-get update
@@ -42,17 +55,22 @@ jobs:
 
       # Ubuntu 24.04-Runner schränken unprivilegierte User-Namespaces per AppArmor
       # standardmäßig ein - flatpak-builder braucht bubblewrap (bwrap) dafür, um
-      # die Sandbox beim Bauen aufzusetzen. Ohne das hier bricht der Build sofort
-      # und ohne brauchbare Fehlermeldung ab (siehe @malept/flatpak-bundler, das
-      # die stderr-Ausgabe von flatpak nicht durchreicht).
+      # die Sandbox beim Bauen aufzusetzen.
       - name: bubblewrap-Sandbox freigeben (AppArmor, Ubuntu 24.04)
         run: |
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
           bwrap --version
-          bwrap --unshare-all --ro-bind / / true && echo "bwrap OK" || echo "bwrap FAILED - siehe Ausgabe oben"
 
-      - name: Linux Flatpak bauen
-        run: npx electron-builder --linux flatpak --publish never
+      - name: Flatpak-Repo bauen (flatpak-builder, mit voller Ausgabe)
+        working-directory: flatpak
+        run: |
+          flatpak-builder --repo=repo --force-clean --verbose build-dir info.movieshelf.desktop.yml
+
+      - name: Flatpak-Bundle erstellen
+        working-directory: flatpak
+        run: |
+          mkdir -p ../release
+          flatpak build-bundle repo ../release/MovieShelf.flatpak info.movieshelf.desktop
 
       - name: Artefakt hochladen
         uses: actions/upload-artifact@v4
