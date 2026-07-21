@@ -112,11 +112,15 @@ export function useSyncEngine() {
    *  macht die Staffeln der Shelf 1:1 wie lokal (fehlende ergänzen, überzählige
    *  entfernen) - Desktop ist für diesen Push die Quelle der Wahrheit. Rührt die
    *  lokale DB dabei bewusst nicht an; das wäre Pull-Aufgabe. Genutzt vom reinen
-   *  Desktop->Shelf-Push für bereits synchronisierte Serien. */
-  async function pushSeriesSeasons(localId: number, remoteId: number): Promise<void> {
+   *  Desktop->Shelf-Push für bereits synchronisierte Serien.
+   *  @returns true, wenn tatsächlich etwas auf der Shelf korrigiert wurde. */
+  async function pushSeriesSeasons(localId: number, remoteId: number): Promise<boolean> {
     try {
       const remote = await apiGet(`/movies/${remoteId}`) as any
-      const remoteSeasonNumbers = new Set(((remote?.seasons ?? []) as any[]).map(s => s.season_number))
+      // Einzelne API-Resource kommt als { data: {...} } (Laravel-Standard-Wrapping) -
+      // siehe refreshSeasonsFromRemote() in MovieDetailView.vue für dasselbe Muster.
+      const remoteMovie = remote?.data ?? remote
+      const remoteSeasonNumbers = new Set(((remoteMovie?.seasons ?? []) as any[]).map((s: any) => s.season_number))
       const localSeasons = await window.electron.db.seasons.forMovie(localId) as any[]
       const localSeasonNumbers = new Set(localSeasons.map(s => s.season_number))
 
@@ -129,7 +133,13 @@ export function useSyncEngine() {
       if (extraOnServer.length > 0) {
         await apiPost('/tmdb/remove-seasons', { movie_id: remoteId, seasons: extraOnServer })
       }
-    } catch { /* offline oder Fehler - naechster Sync versucht es erneut */ }
+      return missingOnServer.length > 0 || extraOnServer.length > 0
+    } catch (e: any) {
+      // Nicht komplett verschlucken - sonst bleibt ein defekter Staffel-Abgleich
+      // unsichtbar (wie zuvor: 0 Fehler angezeigt, obwohl nichts korrigiert wurde).
+      errors.value.push(`Staffel-Abgleich ID ${remoteId}: ${e?.response?.data?.error ?? e.message}`)
+      return false
+    }
   }
 
   async function loadPreview() {
@@ -433,7 +443,7 @@ export function useSyncEngine() {
       for (const serie of allSeries.data ?? []) {
         if (serie.remote_id) {
           phaseDetail.value = serie.title
-          await pushSeriesSeasons(serie.id, serie.remote_id)
+          if (await pushSeriesSeasons(serie.id, serie.remote_id)) pushed++
         }
       }
     } catch (e: any) {
