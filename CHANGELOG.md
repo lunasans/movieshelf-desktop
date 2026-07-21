@@ -1,3 +1,12 @@
+## [0.20.1] - 2026-07-21
+
+### Behoben
+
+- **Sync:** Beim erstmaligen Hochladen einer neuen Serie fehlte der `seasons`-Parameter beim Import - der Shelf-Server importierte dadurch alle bei TMDb bekannten Staffeln statt nur der lokal vorhandenen. Die App schickt jetzt die lokal vorhandenen Staffelnummern mit. Staffel-/Episodenänderungen (z. B. eine auf der Shelf entfernte Staffel) werden in der Sync-Vorschau jetzt außerdem als Änderung erkannt (#63).
+- **Sicherheit:** brace-expansion, axios und adm-zip auf gepatchte Versionen aktualisiert (#64, #65).
+
+---
+
 ## [0.20.0] - 2026-07-19
 
 Aus „Staffeln nachladen" wird „Staffeln verwalten": einzelne Staffeln lassen sich jetzt auch wieder entfernen – wie in der Shelf.
