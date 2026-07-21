@@ -212,6 +212,7 @@ const en = {
       collectionType: 'Type',
       tag: 'Format',
       trailer: 'Trailer',
+      seasons: 'Seasons',
     },
     phases: {
       connecting: 'Connecting to shelf…',
