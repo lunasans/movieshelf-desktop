@@ -35,5 +35,8 @@ modules:
       - type: file
         path: info.movieshelf.desktop.desktop
       - type: file
-        path: ../public/icon.png
+        # Muss exakt 512x512 sein (Flatpak prüft die Größe gegen den Zielordner
+        # share/icons/hicolor/512x512/apps/) - wird vom CI-Workflow aus
+        # public/icon.png (1254x1254) frisch erzeugt, siehe flatpak-test.yml.
+        path: icon-512.png
         dest-filename: icon.png

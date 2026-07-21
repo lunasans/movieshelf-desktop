@@ -45,8 +45,13 @@ jobs:
       - name: Flatpak-Werkzeuge installieren
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder
+          sudo apt-get install -y flatpak flatpak-builder imagemagick
           sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+      # Flatpak prüft Icon-Größe exakt gegen den Zielordner (hier 512x512) -
+      # public/icon.png ist 1254x1254 und wird deshalb abgelehnt.
+      - name: Icon auf 512x512 skalieren
+        run: convert public/icon.png -resize 512x512 flatpak/icon-512.png
 
       - name: Flatpak-Runtime installieren
         run: |
