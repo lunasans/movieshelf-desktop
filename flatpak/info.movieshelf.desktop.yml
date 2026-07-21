@@ -1,0 +1,39 @@
+app-id: info.movieshelf.desktop
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '23.08'
+command: movieshelf-launcher
+separate-locales: false
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+  - --filesystem=xdg-run/pipewire-0
+
+modules:
+  - name: movieshelf
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/movieshelf
+      - cp -r linux-unpacked/. /app/movieshelf/
+      - install -D movieshelf-launcher /app/bin/movieshelf-launcher
+      - chmod +x /app/bin/movieshelf-launcher
+      - install -D info.movieshelf.desktop.desktop /app/share/applications/info.movieshelf.desktop.desktop
+      - install -D icon.png /app/share/icons/hicolor/512x512/apps/info.movieshelf.desktop.png
+    sources:
+      - type: dir
+        path: ../release/linux-unpacked
+        dest: linux-unpacked
+      - type: file
+        path: movieshelf-launcher
+      - type: file
+        path: info.movieshelf.desktop.desktop
+      - type: file
+        path: ../public/icon.png
+        dest-filename: icon.png
