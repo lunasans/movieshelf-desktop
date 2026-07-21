@@ -1,3 +1,18 @@
+## [0.21.0] - 2026-07-21
+
+Sync-Verhalten grundlegend überarbeitet: statt "Shelf ist Master" bestimmt jetzt die Sync-Richtung, wessen Stand gilt.
+
+### Neu
+
+- **Sync-Vorschau warnt bei Filmen, die nur auf einer Seite bekannt sind.** Beim Vollsync zeigt die Vorschau jetzt separat an, welche Filme nur auf der Shelf oder nur auf diesem Gerät existieren (Badges "Nicht hier" / "Nicht auf Shelf"). Standardmäßig ist nichts ausgewählt - "fehlt hier" kann genauso "auf diesem Gerät noch nie synchronisiert" bedeuten wie "bewusst entfernt". Nur explizit angekreuzte Filme werden über einen eigenen Bestätigen-Button gelöscht, nie automatisch (#66).
+
+### Behoben
+
+- **Sync:** Staffeln wurden bislang einseitig von der Shelf diktiert ("Shelf ist Master") - eine auf der Shelf fälschlich importierte Staffel (z. B. durch einen alten Import-Bug) überschrieb beim Pull die korrekten lokalen Daten. Jetzt gerichtetes Spiegeln: Push macht die Staffeln der Shelf 1:1 wie lokal (inkl. Entfernen überzähliger Shelf-Staffeln), Pull macht die lokalen Staffeln 1:1 wie auf der Shelf. Wer synct, bestimmt die Richtung (#66).
+- **Sync:** Filme wurden beim Vollsync fälschlich lokal gelöscht, wenn sie zwar nicht gelöscht, aber nur "nicht in Sammlung" markiert waren (z. B. Wunschliste) - beide Fälle sahen für die App identisch aus ("fehlt im Export"). Löschungen werden jetzt ausschließlich über das explizite Shelf-Flag erkannt. Benötigt Shelf >= 2.31.0 (#66).
+
+---
+
 ## [0.20.1] - 2026-07-21
 
 ### Behoben
