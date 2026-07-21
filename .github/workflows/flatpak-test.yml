@@ -1,0 +1,50 @@
+name: Flatpak Build (Test)
+
+# Isolierter Testlauf für das Flatpak-Target, bewusst NICHT an den
+# Release-Trigger (Tag-Push) gekoppelt - läuft nur manuell, solange der
+# Build nicht verifiziert ist. Erst nach erfolgreichem Test in
+# release.yml übernehmen.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build-flatpak:
+    name: Build Linux (Flatpak)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm install
+
+      - name: Native Module neu bauen
+        run: npx @electron/rebuild -f -w better-sqlite3
+
+      - name: App bauen
+        run: npx vite build
+
+      - name: Flatpak-Werkzeuge installieren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Flatpak-Runtime installieren
+        run: |
+          sudo flatpak install -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
+          sudo flatpak install -y flathub org.electronjs.Electron2.BaseApp//23.08
+
+      - name: Linux Flatpak bauen
+        run: npx electron-builder --linux flatpak --publish never
+
+      - name: Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-flatpak
+          path: release/*.flatpak
