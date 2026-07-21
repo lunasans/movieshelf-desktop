@@ -258,6 +258,13 @@ const en = {
     statusChanges: 'Changes',
     statusLastSync: 'Last sync',
     showErrors: 'Show {count} errors',
+    mirrorWarningTitle: 'Only known on one side',
+    mirrorWarningHint: 'This can mean a movie was simply never synced on this device yet - not necessarily that it should be deleted. Nothing is removed automatically, only what you check below.',
+    mirrorMissingLocal: '{count} on the shelf, not on this device',
+    mirrorMissingRemote: '{count} on this device, not on the shelf',
+    notOnDevice: 'Not here',
+    notOnShelf: 'Not on shelf',
+    mirrorConfirmButton: 'Remove selected ({count})',
   },
   stats: {
     tabOverview: 'Overview',

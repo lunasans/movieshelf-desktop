@@ -257,6 +257,13 @@ const de = {
     statusChanges: 'Änderungen',
     statusLastSync: 'Letzter Sync',
     showErrors: '{count} Fehler anzeigen',
+    mirrorWarningTitle: 'Nur auf einer Seite bekannt',
+    mirrorWarningHint: 'Kann bedeuten, dass ein Film hier noch nie synchronisiert wurde - nicht zwangsläufig, dass er gelöscht werden soll. Nichts wird automatisch entfernt, nur was du unten ankreuzt.',
+    mirrorMissingLocal: '{count} auf der Shelf, nicht auf diesem Gerät',
+    mirrorMissingRemote: '{count} auf diesem Gerät, nicht auf der Shelf',
+    notOnDevice: 'Nicht hier',
+    notOnShelf: 'Nicht auf Shelf',
+    mirrorConfirmButton: 'Ausgewählte entfernen ({count})',
   },
   stats: {
     tabOverview: 'Übersicht',

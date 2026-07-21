@@ -19,7 +19,7 @@
 
       <SyncProgress v-if="phase !== 'idle'" :phaseLabel="phaseLabel" :phaseDetail="phaseDetail" :progressPct="progressPct" />
 
-      <SyncPreview v-if="preview && phase === 'idle'" :preview="preview" @apply="handleApply" @cancel="cancelPreview" />
+      <SyncPreview v-if="preview && phase === 'idle'" :preview="preview" @apply="handleApply" @cancel="cancelPreview" @mirror-delete="handleMirrorDelete" />
 
       <SyncResult v-if="result && phase === 'idle' && !preview" :result="result" />
 
@@ -68,6 +68,7 @@ const {
   localCount, dirtyCount, lastSyncLabel,
   errors, previewLoading, preview, result,
   loadStats, loadPreview, applyPull, runPush, runPreviewSync, runFullSync,
+  applyMirrorDeletions,
 } = useSyncEngine()
 
 const fullSyncPending = ref(false)
@@ -96,6 +97,13 @@ function handleApply() {
 function cancelPreview() {
   fullSyncPending.value = false
   preview.value = null
+}
+
+async function handleMirrorDelete({ pushIds, pullIds }: { pushIds: number[]; pullIds: number[] }) {
+  if (pushIds.length === 0 && pullIds.length === 0) return
+  await applyMirrorDeletions(pushIds, pullIds)
+  // Vorschau neu laden, damit bestätigte Einträge aus der Liste verschwinden.
+  await loadPreview()
 }
 
 onMounted(loadStats)

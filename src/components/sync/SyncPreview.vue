@@ -82,6 +82,61 @@
       {{ $t('sync.overflow', { count: preview.overflow }) }}
     </div>
 
+    <!-- Ganze Filme, die nur auf einer Seite bekannt sind: NIE Teil des normalen
+         Syncs oben, da "fehlt hier" genauso "noch nie gepullt" heißen kann wie
+         "bewusst entfernt". Eigene, bewusst zu bestätigende Auswahl. -->
+    <div v-if="hasMirrorCandidates" class="border-t border-[var(--border-ui)] bg-[var(--status-yellow)]/5">
+      <div class="px-5 py-3 flex items-start gap-3">
+        <i class="bi bi-exclamation-triangle text-[var(--status-yellow)] mt-0.5"></i>
+        <div class="min-w-0">
+          <p class="text-xs font-black text-[var(--status-yellow)] uppercase tracking-wider mb-1">{{ $t('sync.mirrorWarningTitle') }}</p>
+          <p class="text-xs text-[var(--text-muted)] opacity-70">{{ $t('sync.mirrorWarningHint') }}</p>
+        </div>
+      </div>
+
+      <div v-if="preview.mirrorMissingLocal.length > 0" class="px-5 pb-3">
+        <p class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-50 mb-2">
+          {{ $t('sync.mirrorMissingLocal', { count: preview.mirrorMissingLocal.length }) }}
+        </p>
+        <div class="max-h-40 overflow-y-auto space-y-1">
+          <label v-for="c in preview.mirrorMissingLocal" :key="'ml_' + c.remoteId"
+            class="flex items-center gap-2 text-xs cursor-pointer hover:bg-[var(--bg-elevated)] rounded-lg px-2 py-1.5">
+            <input type="checkbox" :value="c.remoteId" v-model="selectedPushDeletes">
+            <span class="flex-shrink-0 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--status-yellow)]/10 text-[var(--status-yellow)]">
+              {{ $t('sync.notOnDevice') }}
+            </span>
+            <span class="truncate text-[var(--text-main)] flex-1">{{ c.title }}</span>
+            <span class="text-[var(--text-muted)] opacity-40 flex-shrink-0">{{ c.year ?? '–' }}</span>
+          </label>
+        </div>
+      </div>
+
+      <div v-if="preview.mirrorMissingRemote.length > 0" class="px-5 pb-3">
+        <p class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-50 mb-2">
+          {{ $t('sync.mirrorMissingRemote', { count: preview.mirrorMissingRemote.length }) }}
+        </p>
+        <div class="max-h-40 overflow-y-auto space-y-1">
+          <label v-for="c in preview.mirrorMissingRemote" :key="'mr_' + c.remoteId"
+            class="flex items-center gap-2 text-xs cursor-pointer hover:bg-[var(--bg-elevated)] rounded-lg px-2 py-1.5">
+            <input type="checkbox" :value="c.remoteId" v-model="selectedPullDeletes">
+            <span class="flex-shrink-0 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--status-yellow)]/10 text-[var(--status-yellow)]">
+              {{ $t('sync.notOnShelf') }}
+            </span>
+            <span class="truncate text-[var(--text-main)] flex-1">{{ c.title }}</span>
+            <span class="text-[var(--text-muted)] opacity-40 flex-shrink-0">{{ c.year ?? '–' }}</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="px-5 pb-4">
+        <button @click="confirmMirrorDeletions"
+          :disabled="selectedPushDeletes.length === 0 && selectedPullDeletes.length === 0"
+          class="w-full bg-[var(--status-yellow)] hover:opacity-90 disabled:opacity-40 text-black text-xs font-black py-2.5 rounded-xl transition-all">
+          {{ $t('sync.mirrorConfirmButton', { count: selectedPushDeletes.length + selectedPullDeletes.length }) }}
+        </button>
+      </div>
+    </div>
+
     <div class="flex items-center gap-3 px-5 py-4 border-t border-[var(--border-ui)] bg-[var(--bg-app)]">
       <button @click="emit('apply')" :disabled="totalItems === 0"
         class="flex-1 bg-[var(--status-red)] hover:opacity-90 disabled:opacity-40 text-white text-sm font-black py-3 rounded-xl transition-all flex items-center justify-center gap-2">
@@ -97,13 +152,28 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { PreviewData } from '@/composables/useSyncEngine'
 
 const props = defineProps<{ preview: PreviewData }>()
-const emit = defineEmits<{ apply: []; cancel: [] }>()
+const emit = defineEmits<{
+  apply: []
+  cancel: []
+  mirrorDelete: [{ pushIds: number[]; pullIds: number[] }]
+}>()
 
 const pullItems = computed(() => props.preview.items.filter(i => i.direction === 'pull'))
 const pushItems = computed(() => props.preview.items.filter(i => i.direction === 'push'))
 const totalItems = computed(() => pullItems.value.length + pushItems.value.length)
+
+const selectedPushDeletes = ref<number[]>([])
+const selectedPullDeletes = ref<number[]>([])
+const hasMirrorCandidates = computed(() =>
+  props.preview.mirrorMissingLocal.length > 0 || props.preview.mirrorMissingRemote.length > 0)
+
+function confirmMirrorDeletions() {
+  emit('mirrorDelete', { pushIds: [...selectedPushDeletes.value], pullIds: [...selectedPullDeletes.value] })
+  selectedPushDeletes.value = []
+  selectedPullDeletes.value = []
+}
 </script>

@@ -14,6 +14,8 @@ export type PreviewItem = {
   changes: string[]
 }
 
+export type MirrorCandidate = { remoteId: number; title: string; year: number | null }
+
 export type PreviewData = {
   items: PreviewItem[]
   new: number
@@ -24,6 +26,13 @@ export type PreviewData = {
   pushDeleted: number
   overflow: number
   rawMovies: any[]
+  // Ganze Filme, die nur auf einer Seite bekannt sind - NICHT automatisch Teil des
+  // normalen Syncs. "Fehlt hier" kann genauso gut heißen "auf diesem Gerät noch nie
+  // gepullt" wie "bewusst entfernt" - deshalb nur als eigene, explizit zu
+  // bestätigende Liste (siehe applyMirrorDeletions). Wird nur beim Vollsync (kein
+  // `since`) berechnet, da nur dort beide Seiten vollständig bekannt sind.
+  mirrorMissingLocal: MirrorCandidate[]
+  mirrorMissingRemote: MirrorCandidate[]
 }
 
 export type SyncResult = {
@@ -99,6 +108,30 @@ export function useSyncEngine() {
     return localSig !== serverSig
   }
 
+  /** Gerichtetes Spiegeln, nicht Union: wer synct, bestimmt die Richtung. Push
+   *  macht die Staffeln der Shelf 1:1 wie lokal (fehlende ergänzen, überzählige
+   *  entfernen) - Desktop ist für diesen Push die Quelle der Wahrheit. Rührt die
+   *  lokale DB dabei bewusst nicht an; das wäre Pull-Aufgabe. Genutzt vom reinen
+   *  Desktop->Shelf-Push für bereits synchronisierte Serien. */
+  async function pushSeriesSeasons(localId: number, remoteId: number): Promise<void> {
+    try {
+      const remote = await apiGet(`/movies/${remoteId}`) as any
+      const remoteSeasonNumbers = new Set(((remote?.seasons ?? []) as any[]).map(s => s.season_number))
+      const localSeasons = await window.electron.db.seasons.forMovie(localId) as any[]
+      const localSeasonNumbers = new Set(localSeasons.map(s => s.season_number))
+
+      const missingOnServer = [...localSeasonNumbers].filter(n => !remoteSeasonNumbers.has(n))
+      const extraOnServer = [...remoteSeasonNumbers].filter(n => !localSeasonNumbers.has(n))
+
+      if (missingOnServer.length > 0) {
+        await apiPost('/tmdb/import-seasons', { movie_id: remoteId, seasons: missingOnServer })
+      }
+      if (extraOnServer.length > 0) {
+        await apiPost('/tmdb/remove-seasons', { movie_id: remoteId, seasons: extraOnServer })
+      }
+    } catch { /* offline oder Fehler - naechster Sync versucht es erneut */ }
+  }
+
   async function loadPreview() {
     previewLoading.value = true
     preview.value = null
@@ -112,19 +145,9 @@ export function useSyncEngine() {
       const items: PreviewItem[] = []
       let newCount = 0, updatedCount = 0, deletedCount = 0
 
-      if (!since) {
-        const exportedIds = new Set(movies.map((m: any) => m.id))
-        const localMapped = await window.electron.db.movies.allRemoteIds()
-        for (const row of localMapped) {
-          if (!exportedIds.has(row.remote_id)) {
-            deletedCount++
-            const local = await window.electron.db.movies.getByRemoteId(row.remote_id) as any
-            if (items.length < PREVIEW_LIMIT)
-              items.push({ remoteId: row.remote_id, title: local?.title ?? `ID ${row.remote_id}`, year: local?.year ?? null, action: 'deleted', direction: 'pull', changes: [] })
-          }
-        }
-      }
-
+      // Server-Export meldet Löschungen jetzt immer explizit über is_deleted
+      // (auch beim Vollsync) - kein Abgleich per "fehlt im Export" mehr nötig,
+      // der nicht zwischen "gelöscht" und "nicht in Sammlung" unterscheiden konnte.
       for (const movie of movies) {
         if (movie.is_deleted) {
           deletedCount++
@@ -174,8 +197,32 @@ export function useSyncEngine() {
         }
       }
 
+      // Ganze Filme, die nur auf einer Seite bekannt sind - separat von der
+      // normalen Vorschau, da "fehlt hier" nicht zuverlässig "soll entfernt werden"
+      // bedeutet (siehe applyMirrorDeletions). Nur beim Vollsync berechenbar.
+      const mirrorMissingLocal: MirrorCandidate[] = []
+      const mirrorMissingRemote: MirrorCandidate[] = []
+      if (!since) {
+        const localMapped = await window.electron.db.movies.allRemoteIds() as Array<{ remote_id: number }>
+        const localRemoteIds = new Set(localMapped.map(r => r.remote_id))
+        const serverActiveIds = new Set(movies.filter((m: any) => !m.is_deleted).map((m: any) => m.id))
+
+        for (const movie of movies) {
+          if (movie.is_deleted) continue
+          if (!localRemoteIds.has(movie.id)) {
+            mirrorMissingLocal.push({ remoteId: movie.id, title: movie.title, year: movie.year })
+          }
+        }
+        for (const row of localMapped) {
+          if (!serverActiveIds.has(row.remote_id)) {
+            const local = await window.electron.db.movies.getByRemoteId(row.remote_id) as any
+            mirrorMissingRemote.push({ remoteId: row.remote_id, title: local?.title ?? `ID ${row.remote_id}`, year: local?.year ?? null })
+          }
+        }
+      }
+
       const total = newCount + updatedCount + deletedCount + pushNew + pushUpdated + pushDeleted
-      preview.value = { items, new: newCount, updated: updatedCount, deleted: deletedCount, pushNew, pushUpdated, pushDeleted, overflow: Math.max(0, total - items.length), rawMovies: movies }
+      preview.value = { items, new: newCount, updated: updatedCount, deleted: deletedCount, pushNew, pushUpdated, pushDeleted, overflow: Math.max(0, total - items.length), rawMovies: movies, mirrorMissingLocal, mirrorMissingRemote }
     } catch (e: any) {
       errors.value = [e.message]
     } finally {
@@ -201,7 +248,6 @@ export function useSyncEngine() {
     const remoteToLocalId = new Map<number, number>()
 
     setPhase('metadata', data.is_delta ? t('sync.phases.delta') : t('sync.phases.metadata'), '', 0)
-    const exportedRemoteIds = full ? new Set(movies.map((m: any) => m.id)) : null
 
     for (let i = 0; i < movies.length; i++) {
       const movie = movies[i]
@@ -255,7 +301,9 @@ export function useSyncEngine() {
                 }
               }
             }
-            // Auf der Shelf entfernte Staffeln auch lokal entfernen (Shelf ist Master)
+            // Gerichtetes Spiegeln: Pull macht die lokalen Staffeln 1:1 wie auf der
+            // Shelf - Staffeln, die die Shelf nicht (mehr) kennt, werden lokal
+            // entfernt. Für den umgekehrten Push siehe pushSeriesSeasons().
             await window.electron.db.seasons.pruneRemote(local.id, movie.seasons.map((s: any) => s.id))
           }
           if (needsUpdate) pulled++
@@ -265,18 +313,6 @@ export function useSyncEngine() {
         errors.value.push(`Pull ${movie.title}: ${e.message}`)
         pullErrors++
       }
-    }
-
-    if (exportedRemoteIds) {
-      try {
-        const localMapped = await window.electron.db.movies.allRemoteIds()
-        for (const row of localMapped) {
-          if (!exportedRemoteIds.has(row.remote_id)) {
-            const r = await window.electron.db.movies.deleteByRemoteId(row.remote_id)
-            if (r.success && r.localId != null) { await window.electron.db.movies.sync.hardDelete(r.localId); deleted++ }
-          }
-        }
-      } catch { /* ignorieren */ }
     }
 
     let media = 0
@@ -374,6 +410,12 @@ export function useSyncEngine() {
         } else {
           await apiPut(`/admin/movies/${movie.remote_id}`, { title: movie.title, year: movie.year, genre: movie.genre, director: movie.director, runtime: movie.runtime, rating: movie.rating, rating_age: movie.rating_age, overview: movie.overview, collection_type: movie.collection_type, tag: movie.tag, tmdb_id: movie.tmdb_id, trailer_url: movie.trailer_url, in_collection: movie.in_collection ?? 1 })
           await window.electron.db.movies.sync.markSynced({ id: movie.id, remote_id: movie.remote_id, synced_at: new Date().toISOString() })
+          if (movie.collection_type === 'Serie') {
+            // Push spiegelt die lokalen Staffeln 1:1 zur Shelf - Desktop ist für
+            // diesen Push die Quelle der Wahrheit (fehlende ergänzen, überzählige
+            // Shelf-Staffeln entfernen).
+            await pushSeriesSeasons(movie.id, movie.remote_id)
+          }
           pushed++
         }
       } catch (e: any) {
@@ -384,6 +426,40 @@ export function useSyncEngine() {
 
     progressPct.value = 100
     return { pushed, pushErrors, deleted }
+  }
+
+  /** Löscht ganze Filme, die der Nutzer in der Vorschau explizit als "nur auf
+   *  einer Seite vorhanden" bestätigt hat - eigener, bewusster Schritt, NIE
+   *  Teil des normalen Syncs (siehe mirrorMissingLocal/mirrorMissingRemote). */
+  async function applyMirrorDeletions(pushIds: number[], pullIds: number[]): Promise<{ pushDeleted: number; pullDeleted: number; mirrorErrors: number }> {
+    let pushDeleted = 0, pullDeleted = 0, mirrorErrors = 0
+
+    for (const id of pushIds) {
+      try {
+        await apiDelete(`/admin/movies/${id}`)
+        pushDeleted++
+      } catch (e: any) {
+        if (e?.response?.status === 404) { pushDeleted++; continue }
+        errors.value.push(`Shelf-Löschung ID ${id}: ${e.message}`)
+        mirrorErrors++
+      }
+    }
+
+    for (const id of pullIds) {
+      try {
+        const r = await window.electron.db.movies.deleteByRemoteId(id)
+        if (r.success && r.localId != null) {
+          await window.electron.db.movies.sync.hardDelete(r.localId)
+          pullDeleted++
+        }
+      } catch (e: any) {
+        errors.value.push(`Lokale Löschung ID ${id}: ${e.message}`)
+        mirrorErrors++
+      }
+    }
+
+    await loadStats()
+    return { pushDeleted, pullDeleted, mirrorErrors }
   }
 
   // ── Listen-Sync (richtungsbewusst, immer UNION → kein Datenverlust) ──────────
@@ -716,5 +792,6 @@ export function useSyncEngine() {
     localCount, dirtyCount, lastSyncLabel,
     errors, previewLoading, preview, result,
     loadStats, loadPreview, applyPull, runPull, runPush, runPreviewSync, runFullSync,
+    applyMirrorDeletions,
   }
 }
