@@ -40,6 +40,17 @@ jobs:
           sudo flatpak install -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
           sudo flatpak install -y flathub org.electronjs.Electron2.BaseApp//23.08
 
+      # Ubuntu 24.04-Runner schränken unprivilegierte User-Namespaces per AppArmor
+      # standardmäßig ein - flatpak-builder braucht bubblewrap (bwrap) dafür, um
+      # die Sandbox beim Bauen aufzusetzen. Ohne das hier bricht der Build sofort
+      # und ohne brauchbare Fehlermeldung ab (siehe @malept/flatpak-bundler, das
+      # die stderr-Ausgabe von flatpak nicht durchreicht).
+      - name: bubblewrap-Sandbox freigeben (AppArmor, Ubuntu 24.04)
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          bwrap --version
+          bwrap --unshare-all --ro-bind / / true && echo "bwrap OK" || echo "bwrap FAILED - siehe Ausgabe oben"
+
       - name: Linux Flatpak bauen
         run: npx electron-builder --linux flatpak --publish never
 
