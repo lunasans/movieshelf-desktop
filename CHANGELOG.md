@@ -1,3 +1,11 @@
+## [0.21.2] - 2026-07-21
+
+### Behoben
+
+- **Sync:** Der Staffel-Abgleich beim Push (#66, #67) hat auf der Shelf tatsächlich nie etwas gelöscht - `apiGet('/movies/{id}')` liefert eine einzelne API-Resource gewrappt in `{ data: {...} }`, es wurde aber direkt auf `remote.seasons` zugegriffen. Dadurch war die Menge der Server-Staffeln strukturell immer leer und überzählige Shelf-Staffeln wurden nie erkannt. Fehler in diesem Schritt werden jetzt außerdem protokolliert statt komplett verschluckt zu werden (#68).
+
+---
+
 ## [0.21.1] - 2026-07-21
 
 ### Behoben
