@@ -1,3 +1,11 @@
+## [0.21.1] - 2026-07-21
+
+### Behoben
+
+- **Sync:** Der Staffel-Abgleich beim Push (#66) lief nur für Filme mit ausstehenden Metadaten-Änderungen ("dirty") - eine Serie ohne solche Änderungen, aber mit falscher Staffelanzahl auf der Shelf, wurde beim Push komplett übersprungen. `push()` prüft jetzt alle bereits synchronisierten Serien unabhängig vom dirty-Status (#67).
+
+---
+
 ## [0.21.0] - 2026-07-21
 
 Sync-Verhalten grundlegend überarbeitet: statt "Shelf ist Master" bestimmt jetzt die Sync-Richtung, wessen Stand gilt.

@@ -1,6 +1,6 @@
 {
   "name": "movieshelf-desktop",
-  "version": "0.21.0",
+  "version": "0.21.1",
   "description": "MovieShelf Desktop – Filmsammlung lokal verwalten & mit deiner Shelf synchronisieren",
   "main": "dist-electron/main.js",
   "author": {
