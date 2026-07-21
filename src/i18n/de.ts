@@ -211,6 +211,7 @@ const de = {
       collectionType: 'Typ',
       tag: 'Format',
       trailer: 'Trailer',
+      seasons: 'Staffeln',
     },
     phases: {
       connecting: 'Verbinde mit Shelf…',

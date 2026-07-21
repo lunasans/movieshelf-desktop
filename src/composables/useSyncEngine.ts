@@ -84,6 +84,21 @@ export function useSyncEngine() {
     progressPct.value = pct
   }
 
+  /** Vergleicht lokale Staffeln/Episoden mit dem Server-Stand einer Serie (nur Zählung,
+   *  kein Feldabgleich) - erkennt z.B. eine auf der Shelf entfernte Staffel als Änderung. */
+  async function seasonsDiffer(localId: number, serverSeasons: any[]): Promise<boolean> {
+    const local = await window.electron.db.seasons.forMovie(localId) as any[]
+    const localSig = local
+      .map(s => `${s.season_number}:${(s.episodes ?? []).length}`)
+      .sort()
+      .join(',')
+    const serverSig = (serverSeasons ?? [])
+      .map(s => `${s.season_number}:${(s.episodes ?? []).length}`)
+      .sort()
+      .join(',')
+    return localSig !== serverSig
+  }
+
   async function loadPreview() {
     previewLoading.value = true
     preview.value = null
@@ -126,6 +141,9 @@ export function useSyncEngine() {
           const changed: string[] = []
           for (const [field, label] of Object.entries(FIELD_LABELS)) {
             if (String(movie[field] ?? null) !== String((local as any)[field] ?? null)) changed.push(t(label))
+          }
+          if (movie.collection_type === 'Serie' && await seasonsDiffer((local as any).id, movie.seasons)) {
+            changed.push(t('sync.fields.seasons'))
           }
           if (changed.length > 0) {
             updatedCount++
@@ -339,7 +357,15 @@ export function useSyncEngine() {
         } else if (!movie.remote_id) {
           let res
           if (movie.tmdb_id) {
-            res = await apiPost('/tmdb/import', { tmdb_id: movie.tmdb_id, type: movie.collection_type === 'Serie' ? 'tv' : 'movie', in_collection: movie.in_collection ?? 1 })
+            const payload: Record<string, unknown> = { tmdb_id: movie.tmdb_id, type: movie.collection_type === 'Serie' ? 'tv' : 'movie', in_collection: movie.in_collection ?? 1 }
+            if (movie.collection_type === 'Serie') {
+              // Ohne `seasons` importiert der Server alle bei TMDb bekannten Staffeln -
+              // wir besitzen aber ggf. nur einen Teil davon. Nur die lokal vorhandenen
+              // Staffelnummern mitschicken, damit Desktop und Shelf deckungsgleich bleiben.
+              const localSeasons = await window.electron.db.seasons.forMovie(movie.id) as any[]
+              payload.seasons = localSeasons.map(s => s.season_number)
+            }
+            res = await apiPost('/tmdb/import', payload)
           } else {
             res = await apiPost('/admin/movies', { title: movie.title, year: movie.year, genre: movie.genre, director: movie.director, runtime: movie.runtime, rating: movie.rating, rating_age: movie.rating_age, overview: movie.overview, collection_type: movie.collection_type, tag: movie.tag, tmdb_id: movie.tmdb_id, trailer_url: movie.trailer_url, in_collection: movie.in_collection ?? 1 })
           }
@@ -408,7 +434,14 @@ export function useSyncEngine() {
   async function createMovieOnServer(m: any): Promise<number | null> {
     let res
     if (m.tmdb_id) {
-      res = await apiPost('/tmdb/import', { tmdb_id: m.tmdb_id, type: m.collection_type === 'Serie' ? 'tv' : 'movie' })
+      const payload: Record<string, unknown> = { tmdb_id: m.tmdb_id, type: m.collection_type === 'Serie' ? 'tv' : 'movie' }
+      if (m.collection_type === 'Serie') {
+        // Siehe push(): ohne `seasons` importiert der Server alle TMDb-Staffeln statt
+        // nur der lokal vorhandenen.
+        const localSeasons = await window.electron.db.seasons.forMovie(m.id) as any[]
+        payload.seasons = localSeasons.map(s => s.season_number)
+      }
+      res = await apiPost('/tmdb/import', payload)
     } else {
       res = await apiPost('/admin/movies', { title: m.title, year: m.year, genre: m.genre, director: m.director, runtime: m.runtime, rating: m.rating, rating_age: m.rating_age, overview: m.overview, collection_type: m.collection_type, tag: m.tag, tmdb_id: m.tmdb_id, trailer_url: m.trailer_url, in_collection: 1 })
     }
