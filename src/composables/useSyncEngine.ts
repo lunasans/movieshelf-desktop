@@ -424,6 +424,23 @@ export function useSyncEngine() {
       }
     }
 
+    // Staffel-Abgleich für ALLE bereits synchronisierten Serien, nicht nur für
+    // dirty Filme: eine Serie ohne Metadaten-Änderung seit dem letzten Sync würde
+    // sonst nie erneut auf Staffel-Abweichungen zur Shelf geprüft, obwohl genau
+    // das der eigentliche Zweck von pushSeriesSeasons() ist.
+    try {
+      const allSeries = await window.electron.db.movies.list({ collectionType: 'Serie', perPage: 100000 }) as { data: any[] }
+      for (const serie of allSeries.data ?? []) {
+        if (serie.remote_id) {
+          phaseDetail.value = serie.title
+          await pushSeriesSeasons(serie.id, serie.remote_id)
+        }
+      }
+    } catch (e: any) {
+      errors.value.push(`Staffel-Abgleich: ${e.message}`)
+      pushErrors++
+    }
+
     progressPct.value = 100
     return { pushed, pushErrors, deleted }
   }
