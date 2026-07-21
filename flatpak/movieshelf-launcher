@@ -1,0 +1,6 @@
+#!/bin/sh
+# zypak-wrapper kommt von der org.electronjs.Electron2.BaseApp-Runtime und
+# uebersetzt Electrons Sandbox-Aufrufe (unshare/clone) in Flatpak-vertraegliche
+# Portal-Aufrufe. Ohne den Wrapper startet Electron innerhalb der Flatpak-
+# Sandbox nicht (chrome-sandbox braucht Rechte, die die Sandbox nicht erlaubt).
+exec zypak-wrapper /app/movieshelf/movieshelf "$@"

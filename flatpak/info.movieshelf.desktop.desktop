@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=MovieShelf
+Comment=Filmsammlung lokal verwalten & mit deiner Shelf synchronisieren
+Exec=movieshelf-launcher %U
+Terminal=false
+Type=Application
+Icon=info.movieshelf.desktop
+Categories=AudioVideo;
+StartupWMClass=MovieShelf
