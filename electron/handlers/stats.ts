@@ -7,17 +7,24 @@ let statsWindow: BrowserWindow | null = null
 
 export function getStats(db: Database.Database) {
   const BASE = "is_deleted = 0 AND is_boxset = 0 AND in_collection = 1"
+  // Wie in der Shelf: Serien getrennt ausweisen; die übrigen
+  // Film-Statistiken beziehen sich nur auf Filme.
+  const FILMS = `${BASE} AND (collection_type IS NULL OR collection_type != 'Serie')`
 
   const totalMovies = (db.prepare(
-    `SELECT COUNT(*) as count FROM movies WHERE ${BASE}`
+    `SELECT COUNT(*) as count FROM movies WHERE ${FILMS}`
+  ).get() as { count: number }).count
+
+  const totalSeries = (db.prepare(
+    `SELECT COUNT(*) as count FROM movies WHERE ${BASE} AND collection_type = 'Serie'`
   ).get() as { count: number }).count
 
   const totalRuntime = (db.prepare(
-    `SELECT COALESCE(SUM(runtime), 0) as total FROM movies WHERE ${BASE} AND runtime IS NOT NULL`
+    `SELECT COALESCE(SUM(runtime), 0) as total FROM movies WHERE ${FILMS} AND runtime IS NOT NULL`
   ).get() as { total: number }).total
 
   const movieGenres = db.prepare(
-    `SELECT genre FROM movies WHERE ${BASE} AND genre IS NOT NULL AND genre != ''`
+    `SELECT genre FROM movies WHERE ${FILMS} AND genre IS NOT NULL AND genre != ''`
   ).all() as { genre: string }[]
 
   const genreMap: Record<string, number> = {}
@@ -35,7 +42,7 @@ export function getStats(db: Database.Database) {
   const byYear = db.prepare(`
     SELECT year, COUNT(*) as count
     FROM movies
-    WHERE ${BASE} AND year IS NOT NULL
+    WHERE ${FILMS} AND year IS NOT NULL
     GROUP BY year
     ORDER BY year ASC
   `).all() as { year: number; count: number }[]
@@ -91,19 +98,19 @@ export function getStats(db: Database.Database) {
   const byRuntime = runtimeBuckets.map(b => ({
     label: b.label,
     count: (db.prepare(
-      `SELECT COUNT(*) as count FROM movies WHERE ${BASE} AND runtime >= ? AND (? IS NULL OR runtime < ?)`
+      `SELECT COUNT(*) as count FROM movies WHERE ${FILMS} AND runtime >= ? AND (? IS NULL OR runtime < ?)`
     ).get(b.min, Number.isFinite(b.max) ? b.max : null, Number.isFinite(b.max) ? b.max : null) as { count: number }).count,
   }))
 
   const watchedMovies = (db.prepare(
-    `SELECT COUNT(*) as count FROM movies WHERE ${BASE} AND is_watched = 1`
+    `SELECT COUNT(*) as count FROM movies WHERE ${FILMS} AND is_watched = 1`
   ).get() as { count: number }).count
 
   const avgRating = (db.prepare(
-    `SELECT ROUND(AVG(rating), 1) as avg FROM movies WHERE ${BASE} AND rating > 0`
+    `SELECT ROUND(AVG(rating), 1) as avg FROM movies WHERE ${FILMS} AND rating > 0`
   ).get() as { avg: number | null }).avg ?? 0
 
-  return { totalMovies, totalRuntime, genres, byYear, topActors, byType, byRuntime, watchedMovies, avgRating }
+  return { totalMovies, totalSeries, totalRuntime, genres, byYear, topActors, byType, byRuntime, watchedMovies, avgRating }
 }
 
 export function registerStatsHandlers(): void {

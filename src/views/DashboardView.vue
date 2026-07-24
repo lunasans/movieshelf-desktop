@@ -13,8 +13,9 @@
       </button>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
       <StatCard :label="$t('dashboard.totalMovies')" :value="stats.total" icon="film" />
+      <StatCard :label="$t('dashboard.totalSeries')" :value="stats.series" icon="tv" />
       <StatCard :label="$t('dashboard.watched')"     :value="stats.watched" icon="eye" />
       <StatCard :label="$t('dashboard.avgRating')"   :value="stats.avgRating" icon="star-fill" />
     </div>
@@ -36,7 +37,7 @@ import { ref, onMounted } from 'vue'
 import StatCard from '@/components/ui/StatCard.vue'
 import MovieListRow from '@/components/movies/MovieListRow.vue'
 const recent = ref<any[]>([])
-const stats  = ref({ total: 0, watched: 0, avgRating: 0 })
+const stats  = ref({ total: 0, series: 0, watched: 0, avgRating: 0 })
 
 function openStats() {
   window.electron.stats.openWindow()
@@ -49,6 +50,7 @@ onMounted(async () => {
   ])
   recent.value = recentMovies as any[]
   stats.value.total     = s.totalMovies   ?? 0
+  stats.value.series    = s.totalSeries   ?? 0
   stats.value.watched   = s.watchedMovies ?? 0
   stats.value.avgRating = s.avgRating     ?? 0
 })

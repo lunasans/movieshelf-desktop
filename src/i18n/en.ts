@@ -29,6 +29,7 @@ const en = {
     welcome: 'Welcome to MovieShelf Desktop',
     statsButton: 'Statistics',
     totalMovies: 'Total movies',
+    totalSeries: 'Total series',
     watched: 'Watched',
     avgRating: 'Ø Rating',
     recentlyAdded: 'Recently added',
