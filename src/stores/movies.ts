@@ -17,6 +17,12 @@ export interface Movie {
   backdrop_url?: string | null
   actors_names: string | null
   trailer_url: string | null
+  edition: string | null
+  region_code: string | null
+  disc_location: string | null
+  purchase_date: string | null
+  purchase_price: number | null
+  condition: string | null
   collection_type: string
   tag: string | null
   tmdb_id: number | null

@@ -93,6 +93,30 @@
               <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelDirector') }}</span>
               <span class="text-[var(--text-main)] opacity-70">{{ movie.director }}</span>
             </div>
+            <div v-if="movie.edition" class="flex items-center gap-2">
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelEdition') }}</span>
+              <span class="text-[var(--text-main)] opacity-70">{{ movie.edition }}</span>
+            </div>
+            <div v-if="movie.region_code" class="flex items-center gap-2">
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelRegionCode') }}</span>
+              <span class="text-[var(--text-main)] opacity-70">{{ movie.region_code }}</span>
+            </div>
+            <div v-if="movie.disc_location" class="flex items-center gap-2">
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelDiscLocation') }}</span>
+              <span class="text-[var(--text-main)] opacity-70">{{ movie.disc_location }}</span>
+            </div>
+            <div v-if="movie.condition" class="flex items-center gap-2">
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelCondition') }}</span>
+              <span class="text-[var(--text-main)] opacity-70">{{ ({ new: $t('movieForm.conditionNew'), like_new: $t('movieForm.conditionLikeNew'), good: $t('movieForm.conditionGood'), acceptable: $t('movieForm.conditionAcceptable'), damaged: $t('movieForm.conditionDamaged') } as Record<string, string>)[movie.condition || ''] || movie.condition }}</span>
+            </div>
+            <div v-if="movie.purchase_date" class="flex items-center gap-2">
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelPurchaseDate') }}</span>
+              <span class="text-[var(--text-main)] opacity-70">{{ movie.purchase_date }}</span>
+            </div>
+            <div v-if="movie.purchase_price != null" class="flex items-center gap-2">
+              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelPurchasePrice') }}</span>
+              <span class="text-[var(--text-main)] opacity-70">{{ movie.purchase_price }} €</span>
+            </div>
           </div>
         </div>
       </div>
