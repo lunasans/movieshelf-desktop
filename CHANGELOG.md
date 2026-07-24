@@ -1,3 +1,11 @@
+## [0.22.0] - 2026-07-24
+
+### Neu
+
+- **Physische Sammlungs-Felder pro Titel.** Edition/Auflage, Regionalcode, Standort im Regal, Kaufdatum, Kaufpreis und Zustand lassen sich jetzt beim Anlegen und Bearbeiten erfassen und werden in der Detailansicht angezeigt. Die Felder werden mit der Shelf synchronisiert (Pull sowie Push beim Anlegen und Bearbeiten) und stehen auch in der Android-App zur Verfügung (#74).
+
+---
+
 ## [0.21.2] - 2026-07-21
 
 ### Behoben
