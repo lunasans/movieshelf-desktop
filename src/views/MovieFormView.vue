@@ -115,6 +115,35 @@
           </button>
         </div>
       </FormRow>
+      <div class="grid grid-cols-2 gap-4">
+        <FormRow :label="$t('movieForm.fieldEdition')">
+          <input v-model="form.edition" type="text" class="input" :placeholder="$t('movieForm.editionPlaceholder')" />
+        </FormRow>
+        <FormRow :label="$t('movieForm.fieldRegionCode')">
+          <input v-model="form.region_code" type="text" class="input" placeholder="2, B, Free" />
+        </FormRow>
+      </div>
+      <FormRow :label="$t('movieForm.fieldDiscLocation')">
+        <input v-model="form.disc_location" type="text" class="input" :placeholder="$t('movieForm.discLocationPlaceholder')" />
+      </FormRow>
+      <div class="grid grid-cols-2 gap-4">
+        <FormRow :label="$t('movieForm.fieldPurchaseDate')">
+          <input v-model="form.purchase_date" type="date" class="input" />
+        </FormRow>
+        <FormRow :label="$t('movieForm.fieldPurchasePrice')">
+          <input v-model.number="form.purchase_price" type="number" min="0" step="0.01" class="input" placeholder="0.00" />
+        </FormRow>
+      </div>
+      <FormRow :label="$t('movieForm.fieldCondition')">
+        <select v-model="form.condition" class="input">
+          <option value="">—</option>
+          <option value="new">{{ $t('movieForm.conditionNew') }}</option>
+          <option value="like_new">{{ $t('movieForm.conditionLikeNew') }}</option>
+          <option value="good">{{ $t('movieForm.conditionGood') }}</option>
+          <option value="acceptable">{{ $t('movieForm.conditionAcceptable') }}</option>
+          <option value="damaged">{{ $t('movieForm.conditionDamaged') }}</option>
+        </select>
+      </FormRow>
       <FormRow :label="$t('movieForm.fieldTmdbId')">
         <div class="flex gap-2">
           <input v-model.number="form.tmdb_id" type="number" class="input flex-1" />
@@ -242,6 +271,9 @@ const form = ref({
   title: '', year: null as number | null, genre: '', director: '',
   runtime: null as number | null, rating: null as number | null,
   rating_age: null as number | null, overview: '', trailer_url: '',
+  edition: '' as string | null, region_code: '' as string | null,
+  disc_location: '' as string | null, purchase_date: '' as string | null,
+  purchase_price: null as number | null, condition: '' as string | null,
   collection_type: 'Film', tag: '', tmdb_id: null as number | null,
   created_at: new Date().toISOString().slice(0, 10),
   cover_path: null as string | null,

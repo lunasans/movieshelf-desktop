@@ -285,6 +285,9 @@ export function useSyncEngine() {
           tag: movie.tag, tmdb_id: movie.tmdb_id, remote_id: movie.id, collection_no: movie.collection_no ?? null,
           cover_path: movie.cover_url, backdrop_path: movie.backdrop_url,
           actors_names: movie.actors_names, trailer_url: movie.trailer_url,
+          edition: movie.edition ?? null, region_code: movie.region_code ?? null,
+          disc_location: movie.disc_location ?? null, purchase_date: movie.purchase_date ?? null,
+          purchase_price: movie.purchase_price ?? null, condition: movie.condition ?? null,
           created_at: movie.created_at, updated_at: movie.updated_at,
           is_boxset: movie.is_boxset ? 1 : 0, boxset_parent_id: movie.boxset_parent_id ?? null,
           view_count: movie.view_count ?? 0, is_watched: movie.is_watched ? 1 : 0,
@@ -413,12 +416,12 @@ export function useSyncEngine() {
             }
             res = await apiPost('/tmdb/import', payload)
           } else {
-            res = await apiPost('/admin/movies', { title: movie.title, year: movie.year, genre: movie.genre, director: movie.director, runtime: movie.runtime, rating: movie.rating, rating_age: movie.rating_age, overview: movie.overview, collection_type: movie.collection_type, tag: movie.tag, tmdb_id: movie.tmdb_id, trailer_url: movie.trailer_url, in_collection: movie.in_collection ?? 1 })
+            res = await apiPost('/admin/movies', { title: movie.title, year: movie.year, genre: movie.genre, director: movie.director, runtime: movie.runtime, rating: movie.rating, rating_age: movie.rating_age, overview: movie.overview, collection_type: movie.collection_type, tag: movie.tag, tmdb_id: movie.tmdb_id, trailer_url: movie.trailer_url, edition: movie.edition, region_code: movie.region_code, disc_location: movie.disc_location, purchase_date: movie.purchase_date, purchase_price: movie.purchase_price, condition: movie.condition, in_collection: movie.in_collection ?? 1 })
           }
           await window.electron.db.movies.sync.markSynced({ id: movie.id, remote_id: res.data.id, synced_at: new Date().toISOString() })
           pushed++
         } else {
-          await apiPut(`/admin/movies/${movie.remote_id}`, { title: movie.title, year: movie.year, genre: movie.genre, director: movie.director, runtime: movie.runtime, rating: movie.rating, rating_age: movie.rating_age, overview: movie.overview, collection_type: movie.collection_type, tag: movie.tag, tmdb_id: movie.tmdb_id, trailer_url: movie.trailer_url, in_collection: movie.in_collection ?? 1 })
+          await apiPut(`/admin/movies/${movie.remote_id}`, { title: movie.title, year: movie.year, genre: movie.genre, director: movie.director, runtime: movie.runtime, rating: movie.rating, rating_age: movie.rating_age, overview: movie.overview, collection_type: movie.collection_type, tag: movie.tag, tmdb_id: movie.tmdb_id, trailer_url: movie.trailer_url, edition: movie.edition, region_code: movie.region_code, disc_location: movie.disc_location, purchase_date: movie.purchase_date, purchase_price: movie.purchase_price, condition: movie.condition, in_collection: movie.in_collection ?? 1 })
           await window.electron.db.movies.sync.markSynced({ id: movie.id, remote_id: movie.remote_id, synced_at: new Date().toISOString() })
           if (movie.collection_type === 'Serie') {
             // Push spiegelt die lokalen Staffeln 1:1 zur Shelf - Desktop ist für

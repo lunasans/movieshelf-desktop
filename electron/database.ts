@@ -97,6 +97,12 @@ function runMigrations(instance: Database.Database = db): void {
   try { instance.exec('ALTER TABLE movies ADD COLUMN is_watched INTEGER DEFAULT 0') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN in_collection INTEGER DEFAULT 1') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN collection_no INTEGER') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN edition TEXT') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN region_code TEXT') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN disc_location TEXT') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN purchase_date TEXT') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN purchase_price REAL') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN condition TEXT') } catch (e) {}
 
   // Cleanup duplicates before creating unique index
   try {

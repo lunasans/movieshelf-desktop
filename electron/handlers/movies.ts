@@ -6,6 +6,7 @@ const ALLOWED_MOVIE_COLUMNS = new Set([
   'title', 'year', 'genre', 'director', 'runtime', 'rating', 'rating_age',
   'overview', 'cover_path', 'backdrop_path', 'actors_names', 'trailer_url',
   'collection_type', 'tag', 'tmdb_id', 'remote_id', 'synced_at',
+  'edition', 'region_code', 'disc_location', 'purchase_date', 'purchase_price', 'condition',
   'created_at',
 ])
 
@@ -156,9 +157,11 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
   const result = db.prepare(`
     INSERT INTO movies (title, year, genre, director, runtime, rating, rating_age, overview,
       cover_path, backdrop_path, actors_names, trailer_url, collection_type, tag, tmdb_id, remote_id,
+      edition, region_code, disc_location, purchase_date, purchase_price, condition,
       is_boxset, boxset_parent_id, view_count, is_watched, in_collection, collection_no, created_at, updated_at)
     VALUES (@title, @year, @genre, @director, @runtime, @rating, @rating_age, @overview,
       @cover_path, @backdrop_path, @actors_names, @trailer_url, @collection_type, @tag, @tmdb_id, @remote_id,
+      @edition, @region_code, @disc_location, @purchase_date, @purchase_price, @condition,
       @is_boxset, @boxset_parent_id, @view_count, @is_watched, @in_collection, @collection_no, @created_at, @updated_at)
     ON CONFLICT(remote_id) DO UPDATE SET
       title = EXCLUDED.title, year = EXCLUDED.year, genre = EXCLUDED.genre,
@@ -167,6 +170,9 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
       cover_path = EXCLUDED.cover_path, backdrop_path = EXCLUDED.backdrop_path,
       actors_names = EXCLUDED.actors_names, trailer_url = EXCLUDED.trailer_url,
       collection_type = EXCLUDED.collection_type, tag = EXCLUDED.tag, tmdb_id = EXCLUDED.tmdb_id,
+      edition = EXCLUDED.edition, region_code = EXCLUDED.region_code,
+      disc_location = EXCLUDED.disc_location, purchase_date = EXCLUDED.purchase_date,
+      purchase_price = EXCLUDED.purchase_price, condition = EXCLUDED.condition,
       is_boxset = EXCLUDED.is_boxset, boxset_parent_id = EXCLUDED.boxset_parent_id,
       view_count = EXCLUDED.view_count, is_watched = EXCLUDED.is_watched,
       in_collection = EXCLUDED.in_collection,
@@ -178,6 +184,7 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     genre: null, director: null, runtime: null, rating: null, rating_age: null,
     overview: null, cover_path: null, backdrop_path: null, actors_names: null,
     trailer_url: null, collection_type: 'Film', tag: null, tmdb_id: null, remote_id: null,
+    edition: null, region_code: null, disc_location: null, purchase_date: null, purchase_price: null, condition: null,
     is_boxset: 0, boxset_parent_id: null, view_count: 0, is_watched: 0, in_collection: 1,
     collection_no: nextCollectionNo,
     ...data,
