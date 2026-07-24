@@ -33,6 +33,7 @@ type SeasonWithEpisodes = {
 
 type StatsResult = {
   totalMovies:   number
+  totalSeries:   number
   totalRuntime:  number
   watchedMovies: number
   avgRating:     number

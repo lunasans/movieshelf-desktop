@@ -51,7 +51,7 @@
     </div>
 
     <!-- Empty -->
-    <div v-else-if="stats && stats.totalMovies === 0" class="flex-1 flex flex-col items-center justify-center gap-3 text-center px-8">
+    <div v-else-if="stats && stats.totalMovies + stats.totalSeries === 0" class="flex-1 flex flex-col items-center justify-center gap-3 text-center px-8">
       <i class="bi bi-film text-3xl text-[var(--text-muted)] opacity-30"></i>
       <p class="text-sm font-black text-[var(--text-main)]">{{ $t('stats.emptyTitle') }}</p>
       <p class="text-xs text-[var(--text-muted)] opacity-50 max-w-xs">{{ $t('stats.emptyHint') }}</p>
@@ -99,7 +99,7 @@
               >
                 <div class="w-28 text-[11px] text-[var(--text-muted)] font-bold truncate flex-shrink-0">{{ t.collection_type }}</div>
                 <div class="flex-1 h-2 bg-[var(--bg-app)] rounded-full overflow-hidden">
-                  <div class="h-full bg-red-600/60 rounded-full" :style="{ width: `${(t.count / stats.totalMovies) * 100}%` }"></div>
+                  <div class="h-full bg-red-600/60 rounded-full" :style="{ width: `${(t.count / (stats.totalMovies + stats.totalSeries)) * 100}%` }"></div>
                 </div>
                 <div class="w-8 text-right text-[11px] font-black text-[var(--text-main)] flex-shrink-0">{{ t.count }}</div>
                 <i
