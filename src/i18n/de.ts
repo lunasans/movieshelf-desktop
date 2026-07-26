@@ -28,6 +28,7 @@ const de = {
     welcome: 'Willkommen bei MovieShelf Desktop',
     statsButton: 'Statistiken',
     totalMovies: 'Filme gesamt',
+    totalSeries: 'Serien gesamt',
     watched: 'Gesehen',
     avgRating: 'Ø Bewertung',
     recentlyAdded: 'Zuletzt hinzugefügt',
