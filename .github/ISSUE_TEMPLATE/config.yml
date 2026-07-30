@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Sicherheitslücke melden
+    url: https://github.com/lunasans/movieshelf-desktop/security/advisories/new
+    about: Bitte nicht öffentlich als Issue – hier geht es vertraulich.
+  - name: MovieShelf im Web
+    url: https://movieshelf.info
+    about: Fragen zur Web-Instanz und zum Online-Modus.

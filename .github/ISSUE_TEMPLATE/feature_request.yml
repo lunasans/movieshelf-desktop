@@ -1,0 +1,36 @@
+name: Funktion vorschlagen
+description: Eine Idee für MovieShelf
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Worum geht es?
+      description: Was fehlt dir, oder was ist gerade umständlich? Beschreibe gern die Situation, nicht nur die Lösung.
+    validations:
+      required: true
+
+  - type: textarea
+    id: vorschlag
+    attributes:
+      label: Wie stellst du es dir vor?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: modus
+    attributes:
+      label: Betrifft
+      options:
+        - Beide Betriebsarten
+        - Nur Standalone
+        - Nur Online
+        - Unklar
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternativen
+    attributes:
+      label: Alternativen
+      description: Hast du einen Umweg gefunden, der bisher funktioniert?

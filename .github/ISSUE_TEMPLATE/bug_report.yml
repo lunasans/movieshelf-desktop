@@ -1,0 +1,75 @@
+name: Fehler melden
+description: Etwas funktioniert nicht wie erwartet
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke, dass du dir die Zeit nimmst. Sicherheitslücken bitte **nicht** hier melden, sondern wie in [SECURITY.md](https://github.com/lunasans/movieshelf-desktop/blob/main/SECURITY.md) beschrieben.
+
+  - type: textarea
+    id: was-passiert
+    attributes:
+      label: Was passiert?
+      description: Beschreibe den Fehler und was du stattdessen erwartet hättest.
+    validations:
+      required: true
+
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Schritte zum Nachvollziehen
+      placeholder: |
+        1. Gehe zu …
+        2. Klicke auf …
+        3. Fehler erscheint
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: MovieShelf-Version
+      description: Steht in den Einstellungen unter "Über".
+      placeholder: "0.22.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: betriebssystem
+    attributes:
+      label: Betriebssystem
+      options:
+        - Windows
+        - Linux (.deb)
+        - Linux (Flatpak)
+        - Sonstiges
+    validations:
+      required: true
+
+  - type: dropdown
+    id: modus
+    attributes:
+      label: Betriebsart
+      description: Steht in den Einstellungen.
+      options:
+        - Standalone (offline)
+        - Online (mit Shelf verbunden)
+        - Weiß ich nicht
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logausgabe
+      description: |
+        Falls es um ein Update geht, ist `updater.log` aus dem Benutzerdatenverzeichnis hilfreich.
+        Unter Windows: `%APPDATA%\MovieShelf`, unter Linux: `~/.config/MovieShelf`
+      render: shell
+
+  - type: textarea
+    id: sonstiges
+    attributes:
+      label: Sonstiges
+      description: Screenshots, Besonderheiten deiner Sammlung, alles was helfen könnte.
