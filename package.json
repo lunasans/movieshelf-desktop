@@ -43,7 +43,7 @@
     "concurrently": "^9.2.1",
     "electron": "^41.5.1",
     "electron-builder": "^26.15.3",
-    "postcss": "^8.5.14",
+    "postcss": "^8.5.25",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
     "vite": "^7.3.3",
@@ -55,7 +55,8 @@
   },
   "overrides": {
     "brace-expansion@^1.0.0": "^1.1.16",
-    "brace-expansion@^2.0.0": "^2.1.2"
+    "brace-expansion@^2.0.0": "^2.1.2",
+    "tar": "^7.5.22"
   },
   "build": {
     "appId": "info.movieshelf.desktop",
