@@ -1,5 +1,6 @@
 <template>
   <div
+    data-testid="titlebar"
     class="flex items-center justify-between h-10 px-4 bg-[var(--bg-sidebar)] border-b border-[var(--border-ui)] select-none"
     style="-webkit-app-region: drag"
   >

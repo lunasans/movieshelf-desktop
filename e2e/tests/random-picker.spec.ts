@@ -1,23 +1,30 @@
-import { test, expect } from '../fixtures/app'
+import { test, expect, navigate } from '../fixtures/app'
+
+// Der Button sitzt in der Filmansicht. Die App startet auf dem Dashboard -
+// ohne Navigation konnte er nie gefunden werden.
 
 test('Random-Picker-Button öffnet Modal', async ({ page }) => {
-  // Navigate to movies view
-  await page.waitForSelector('button[title="Zufälligen Film wählen"]', { timeout: 10000 })
+  await navigate(page, '/movies')
 
-  const btn = page.locator('button[title="Zufälligen Film wählen"]')
+  const btn = page.getByTestId('random-picker-button')
+  await expect(btn).toBeVisible({ timeout: 10000 })
   await btn.click()
 
-  // Modal should appear (contains dice icon or "Zufälliger Film" heading)
-  const modal = page.locator('text=Zufälliger Film, text=Keine Filme').first()
+  // Je nach Datenlage zeigt das Modal einen Film oder den Leer-Hinweis -
+  // geprueft wird deshalb das Modal selbst, nicht sein Text.
+  const modal = page.locator('.fixed.inset-0').first()
   await expect(modal).toBeVisible({ timeout: 3000 })
 })
 
 test('Random-Picker Modal schließt mit X', async ({ page }) => {
-  await page.waitForSelector('button[title="Zufälligen Film wählen"]', { timeout: 10000 })
-  await page.locator('button[title="Zufälligen Film wählen"]').click()
+  await navigate(page, '/movies')
 
-  const closeBtn = page.locator('button:has(.bi-x-lg)').first()
-  await closeBtn.click()
+  await page.getByTestId('random-picker-button').click()
+  const modal = page.locator('.fixed.inset-0').first()
+  await expect(modal).toBeVisible({ timeout: 3000 })
 
-  await expect(page.locator('text=Zufälliger Film')).toBeHidden()
+  // Innerhalb des Modals suchen: das erste button:has(.bi-x-lg) der Seite ist
+  // der Schliessen-Knopf der Titelleiste - der beendet das Fenster.
+  await modal.locator('button:has(.bi-x-lg)').first().click()
+  await expect(modal).toBeHidden({ timeout: 3000 })
 })

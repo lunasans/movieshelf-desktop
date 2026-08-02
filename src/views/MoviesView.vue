@@ -25,6 +25,7 @@
           </button>
         </div>
         <button
+          data-testid="random-picker-button"
           @click="showRandom = true"
           class="p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-ui)] hover:border-purple-500/50 text-[var(--text-muted)] hover:text-purple-400 transition-colors"
           :title="$t('movies.randomPick')"

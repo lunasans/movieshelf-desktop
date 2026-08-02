@@ -1,40 +1,30 @@
-import { test, expect } from '../fixtures/app'
+import { test, expect, navigate } from '../fixtures/app'
 
 test('Film anlegen und in Liste sehen', async ({ page }) => {
-  // Navigate to new movie form
-  await page.goto('about:blank')
-  await page.evaluate(() => (window as any).__router?.push('/movies/new'))
+  // Kein page.goto('about:blank'): das verlaesst die geladene App-Seite, danach
+  // gibt es weder Router noch DOM. Navigiert wird ueber den Hash.
+  await navigate(page, '/movies/new')
 
-  // Wait for form
-  await page.waitForSelector('input[name="title"], input[placeholder*="Titel"]', { timeout: 5000 })
-
-  const titleInput = page.locator('input[name="title"], input[placeholder*="Titel"]').first()
+  const titleInput = page.getByTestId('movie-title-input')
+  await expect(titleInput).toBeVisible({ timeout: 10000 })
   await titleInput.fill('E2E-Testfilm')
 
-  const saveBtn = page.locator('button[type="submit"], button:has-text("Speichern")').first()
-  await saveBtn.click()
+  await page.locator('button[type="submit"]').first().click()
 
-  // Should navigate to movie list or detail
-  await expect(page).toHaveURL(/#\/(movies|movies\/\d+)/)
+  await expect(page).toHaveURL(/#\/movies/, { timeout: 10000 })
 })
 
 test('Film löschen funktioniert', async ({ page }) => {
-  // Navigate to movies
-  await page.goto('about:blank')
-  const cards = page.locator('[class*="MovieCard"], .group.cursor-pointer')
+  await navigate(page, '/movies')
+
+  const cards = page.locator('.group.cursor-pointer')
   const count = await cards.count()
+  test.skip(count === 0, 'keine Filme in der Sammlung')
 
-  if (count === 0) {
-    test.skip()
-    return
-  }
-
-  // Hover first card and click delete
   await cards.first().hover()
   const deleteBtn = cards.first().locator('button[title="Löschen"]')
   if (await deleteBtn.isVisible()) {
     await deleteBtn.click()
-    const newCount = await cards.count()
-    expect(newCount).toBeLessThanOrEqual(count)
+    await expect(cards).toHaveCount(count - 1, { timeout: 5000 })
   }
 })

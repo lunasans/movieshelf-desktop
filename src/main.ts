@@ -31,6 +31,11 @@ async function init() {
   window.electron.onNavigate((path: string) => {
     router.push(path)
   })
+
+  // Router fuer die E2E-Tests erreichbar machen. Ueber location.hash zu
+  // navigieren reisst unter file:// die Seite weg ("Target page has been
+  // closed"), und page.goto() verlaesst die App komplett.
+  ;(window as any).__router = router
 }
 
 init()
