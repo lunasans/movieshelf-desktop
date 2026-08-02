@@ -60,6 +60,8 @@ const en = {
     syncNow: 'Sync with your shelf now →',
     noneFound: 'No movies found.',
     boxset: 'Box set',
+    openBoxset: 'Open box set',
+    noBoxsetChildren: 'No movies contained.',
     toggleWatched: 'Toggle watched status',
     selectedCount: '{count} selected',
     endSelection: 'End selection',
