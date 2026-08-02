@@ -1,3 +1,16 @@
+## [0.24.1] - 2026-08-02
+
+### Behoben
+
+- **Box-Sets zeigten die falschen Filme.** Beim Abgleich mit der Shelf wurde die Zugehörigkeit eines Films zu seinem Box-Set mit der falschen Kennung gespeichert. Dadurch tauchten in einem Box-Set fremde Filme auf, während die meisten Box-Sets gar keinen Inhalt mehr anzeigten. Die Zuordnung wird jetzt korrekt übersetzt und beim ersten Start nach dem Update automatisch repariert - ein erneuter Abgleich ist dafür nicht nötig (#85).
+- **Die App liess sich von aussen nicht beenden.** Da das Schliessen grundsätzlich ins Tray führte, blieb die Anwendung auch beim Herunterfahren des Rechners als Prozess zurück. Nur der Weg über "Beenden" im Tray-Menü hat sauber beendet (#86).
+
+### Intern
+
+- **Tests:** Die Oberflächen-Tests liefen seit ihrer Einführung durchgehend ins Leere - ursächlich war das blockierte Beenden, in dessen Folge sich jede weitere Testinstanz selbst aussperrte. Dazu kamen Testanweisungen, die Bedienelemente an Stellen suchten, an denen es sie nie gab. Beides ist behoben, die Suite läuft vollständig durch (#86).
+
+---
+
 ## [0.24.0] - 2026-08-02
 
 ### Neu
