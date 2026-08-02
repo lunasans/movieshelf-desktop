@@ -332,6 +332,15 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
+// Jedes app.quit() zaehlt als echtes Beenden - nicht nur der Weg ueber das
+// Tray-Menue. Ohne das blockt der close-Handler des Hauptfensters auch das
+// Herunterfahren des Systems, ein `quit` von aussen und den Teardown der
+// E2E-Tests: das Fenster verweigert sich, die App bleibt als Zombie liegen und
+// der Single-Instance-Lock sperrt danach jeden weiteren Start aus.
+app.on('before-quit', () => {
+  ;(app as any).isQuitting = true
+})
+
 // Window controls: immer das Fenster des Absenders steuern — sonst schließt
 // z. B. das X im Statistik-Popup das Hauptfenster. Das Hauptfenster behält
 // sein Close-to-Tray-Verhalten über seinen eigenen 'close'-Handler.
