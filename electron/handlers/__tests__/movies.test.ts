@@ -4,7 +4,7 @@ import { createTestDb, insertMovie } from './testDb'
 import {
   listMovies, countMovies, recentMovies, createMovie, updateMovie,
   deleteMovie, searchMovies, checkTmdbIds, deleteMovieByRemoteId, allRemoteIds,
-  getMovie, getMovieByRemoteId, getMovieChildren, clearMovies,
+  getMovie, getMovieByRemoteId, getMovieChildren, resolveBoxsetParents, clearMovies,
   randomMovie, toggleWatched, bulkDelete, bulkUpdateTag, importMovies,
 } from '../movies'
 
@@ -254,6 +254,59 @@ describe('getMovieChildren', () => {
     const children = getMovieChildren(db, boxset) as any[]
     expect(children).toHaveLength(1)
     expect(children[0].title).toBe('Aktiv')
+  })
+
+  it('sammelt keine fremden Filme ein, deren Server-ID einer lokalen id gleicht', () => {
+    // Regression: Rocky (lokale id) und Transformers (remote_id) kollidierten.
+    const rocky = insertMovie(db, { title: 'Rocky Collection', is_boxset: 1, remote_id: 359 })
+    insertMovie(db, { title: 'Rocky', boxset_parent_id: rocky, remote_id: 358 })
+    // Fremder Film, dessen Boxset auf der Shelf die id des lokalen Rocky-Boxsets hat
+    insertMovie(db, { title: 'Transformers', boxset_parent_remote_id: rocky, remote_id: 429 })
+
+    const children = getMovieChildren(db, rocky) as any[]
+    expect(children.map(c => c.title)).toEqual(['Rocky'])
+  })
+})
+
+describe('resolveBoxsetParents', () => {
+  it('uebersetzt die Server-ID des Boxsets in die lokale id', () => {
+    const boxset = insertMovie(db, { title: 'Boxset', is_boxset: 1, remote_id: 500 })
+    const kind = insertMovie(db, { title: 'Kind', remote_id: 501, boxset_parent_remote_id: 500 })
+
+    expect(resolveBoxsetParents(db).updated).toBe(1)
+    expect((getMovie(db, kind) as any).boxset_parent_id).toBe(boxset)
+    expect(getMovieChildren(db, boxset)).toHaveLength(1)
+  })
+
+  it('funktioniert auch, wenn das Kind vor seinem Boxset ankommt', () => {
+    const kind = insertMovie(db, { title: 'Kind', remote_id: 501, boxset_parent_remote_id: 500 })
+    const boxset = insertMovie(db, { title: 'Boxset', is_boxset: 1, remote_id: 500 })
+
+    resolveBoxsetParents(db)
+    expect((getMovie(db, kind) as any).boxset_parent_id).toBe(boxset)
+  })
+
+  it('leert die Zuordnung, wenn kein passendes Boxset existiert', () => {
+    const kind = insertMovie(db, { title: 'Waise', remote_id: 501, boxset_parent_id: 42, boxset_parent_remote_id: 999 })
+
+    resolveBoxsetParents(db)
+    expect((getMovie(db, kind) as any).boxset_parent_id).toBeNull()
+  })
+
+  it('laesst rein lokale Filme unberuehrt', () => {
+    const boxset = insertMovie(db, { title: 'Lokales Boxset', is_boxset: 1 })
+    const kind = insertMovie(db, { title: 'Lokales Kind', boxset_parent_id: boxset })
+
+    resolveBoxsetParents(db)
+    expect((getMovie(db, kind) as any).boxset_parent_id).toBe(boxset)
+  })
+
+  it('ist idempotent', () => {
+    insertMovie(db, { title: 'Boxset', is_boxset: 1, remote_id: 500 })
+    insertMovie(db, { title: 'Kind', remote_id: 501, boxset_parent_remote_id: 500 })
+
+    expect(resolveBoxsetParents(db).updated).toBe(1)
+    expect(resolveBoxsetParents(db).updated).toBe(0)
   })
 })
 

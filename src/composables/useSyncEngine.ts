@@ -289,7 +289,9 @@ export function useSyncEngine() {
           disc_location: movie.disc_location ?? null, purchase_date: movie.purchase_date ?? null,
           purchase_price: movie.purchase_price ?? null, condition: movie.condition ?? null,
           created_at: movie.created_at, updated_at: movie.updated_at,
-          is_boxset: movie.is_boxset ? 1 : 0, boxset_parent_id: movie.boxset_parent_id ?? null,
+          // Der Server meint mit boxset_parent_id seine eigene ID - roh ablegen und
+          // nach dem Pull ueber resolveBoxsets() in die lokale id uebersetzen.
+          is_boxset: movie.is_boxset ? 1 : 0, boxset_parent_remote_id: movie.boxset_parent_id ?? null,
           view_count: movie.view_count ?? 0, is_watched: movie.is_watched ? 1 : 0,
           in_collection: movie.in_collection != null ? (movie.in_collection ? 1 : 0) : 1,
         }) as { id: number } | null
@@ -326,6 +328,14 @@ export function useSyncEngine() {
         errors.value.push(`Pull ${movie.title}: ${e.message}`)
         pullErrors++
       }
+    }
+
+    // Erst wenn alle Filme lokal liegen, sind die Boxset-Eltern aufloesbar - ein
+    // Kind kann vor seinem Boxset ankommen.
+    try {
+      await window.electron.db.movies.resolveBoxsets()
+    } catch (e: any) {
+      errors.value.push(`Boxset-Zuordnung: ${e.message}`)
     }
 
     let media = 0
@@ -510,12 +520,14 @@ export function useSyncEngine() {
       cover_path: m.cover_url, backdrop_path: m.backdrop_url,
       actors_names: m.actors_names, trailer_url: m.trailer_url,
       created_at: m.created_at, updated_at: m.updated_at,
-      is_boxset: m.is_boxset ? 1 : 0, boxset_parent_id: m.boxset_parent_id ?? null,
+      is_boxset: m.is_boxset ? 1 : 0, boxset_parent_remote_id: m.boxset_parent_id ?? null,
       view_count: m.view_count ?? 0, is_watched: m.is_watched ? 1 : 0,
       in_collection: 1,
     }) as { id: number } | null
     if (local?.id) {
       await window.electron.db.movies.sync.markSynced({ id: local.id, remote_id: m.id, synced_at: new Date().toISOString() })
+      // Einzelimport: das Boxset kann bereits lokal liegen, dann greift die Aufloesung sofort.
+      try { await window.electron.db.movies.resolveBoxsets() } catch { /* nicht kritisch */ }
       const coverUrl = resolveMediaUrl(m.cover_url)
       if (coverUrl && !(await window.electron.db.movies.exists(m.id, 'cover'))) {
         const r = await window.electron.db.movies.download(coverUrl, m.id, 'cover')
