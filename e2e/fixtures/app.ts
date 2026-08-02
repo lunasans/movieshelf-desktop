@@ -35,3 +35,18 @@ export { expect } from '@playwright/test'
 export function electronAppPath() {
   return path.join(process.cwd(), 'release')
 }
+
+/**
+ * Navigation im Renderer. Die App laeuft unter file:// mit Hash-Routing -
+ * page.goto() wuerde die geladene Seite verlassen und die App abschiessen,
+ * deshalb nur den Hash setzen und auf das Ziel warten.
+ */
+export async function navigate(page: Page, hashPath: string) {
+  await page.evaluate((target) => { window.location.hash = target }, `#${hashPath}`)
+  await page.waitForFunction(
+    (target) => window.location.hash.startsWith(`#${target.split('?')[0]}`),
+    hashPath,
+  )
+  // Vue braucht einen Tick, bis die Zielansicht im DOM steht.
+  await page.waitForTimeout(300)
+}

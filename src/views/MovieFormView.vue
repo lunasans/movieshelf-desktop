@@ -54,7 +54,7 @@
 
     <form @submit.prevent="save" class="space-y-4">
       <FormRow :label="$t('movieForm.fieldTitle')">
-        <input v-model="form.title" required type="text" class="input" />
+        <input v-model="form.title" data-testid="movie-title-input" required type="text" class="input" />
       </FormRow>
       <div class="grid grid-cols-2 gap-4">
         <FormRow :label="$t('movieForm.fieldYear')">
