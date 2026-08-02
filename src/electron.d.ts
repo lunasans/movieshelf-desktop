@@ -78,6 +78,7 @@ interface Window {
         upload:          (data: ArrayBuffer, id: number, type: 'cover' | 'backdrop') => Promise<{ success: boolean; error?: string }>
         count:           () => Promise<number>
         children:        (id: number) => Promise<unknown[]>
+        resolveBoxsets:  () => Promise<{ updated: number }>
         checkTmdbIds:    (ids: number[]) => Promise<number[]>
         deleteByRemoteId:(remoteId: number) => Promise<{ success: boolean; localId?: number }>
         clear:           () => Promise<{ success: boolean }>

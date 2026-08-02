@@ -89,13 +89,34 @@ export function recentMovies(db: Database.Database, limit = 10): unknown[] {
 }
 
 export function getMovieChildren(db: Database.Database, movieId: number): unknown[] {
-  const movie = db.prepare('SELECT remote_id FROM movies WHERE id = ?').get(movieId) as { remote_id: number | null } | undefined
-  const candidates: number[] = [movieId]
-  if (movie?.remote_id != null) candidates.push(movie.remote_id)
-  const placeholders = candidates.map(() => '?').join(', ')
+  // Nur die lokale id. Frueher wurde zusaetzlich ueber die remote_id gesucht, weil
+  // der Pull dort Server-IDs ablegte - dabei sammelte ein Boxset fremde Filme ein,
+  // sobald eine remote_id zufaellig einer lokalen id entsprach. Die Zuordnung
+  // loest jetzt resolveBoxsetParents() auf.
   return db.prepare(
-    `SELECT * FROM movies WHERE boxset_parent_id IN (${placeholders}) AND is_deleted = 0 AND in_collection = 1 ORDER BY title ASC`
-  ).all(...candidates)
+    'SELECT * FROM movies WHERE boxset_parent_id = ? AND is_deleted = 0 AND in_collection = 1 ORDER BY title ASC'
+  ).all(movieId)
+}
+
+/**
+ * Uebersetzt die vom Server gelieferten Boxset-Zugehoerigkeiten
+ * (`boxset_parent_remote_id`) in lokale ids. Fuer synchronisierte Filme ist die
+ * Shelf Master: findet sich kein passendes Boxset, wird die Zuordnung geleert.
+ * Rein lokale Filme (ohne remote_id) bleiben unberuehrt.
+ */
+export function resolveBoxsetParents(db: Database.Database): { updated: number } {
+  const result = db.prepare(`
+    UPDATE movies SET boxset_parent_id = (
+      SELECT p.id FROM movies p
+      WHERE p.remote_id = movies.boxset_parent_remote_id AND p.is_boxset = 1
+    )
+    WHERE remote_id IS NOT NULL
+      AND boxset_parent_id IS NOT (
+        SELECT p.id FROM movies p
+        WHERE p.remote_id = movies.boxset_parent_remote_id AND p.is_boxset = 1
+      )
+  `).run()
+  return { updated: result.changes }
 }
 
 export function getMovie(db: Database.Database, id: number): unknown {
@@ -131,13 +152,14 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
             overview = @overview, cover_path = @cover_path, backdrop_path = @backdrop_path,
             actors_names = @actors_names, trailer_url = @trailer_url,
             collection_type = @collection_type, tag = @tag,
-            is_boxset = @is_boxset, boxset_parent_id = @boxset_parent_id, updated_at = @updated_at
+            is_boxset = @is_boxset, boxset_parent_id = @boxset_parent_id,
+            boxset_parent_remote_id = @boxset_parent_remote_id, updated_at = @updated_at
           WHERE id = @id
         `).run({
           title: null, year: null, genre: null, director: null, runtime: null,
           rating: null, rating_age: null, overview: null, cover_path: null, backdrop_path: null,
           actors_names: null, trailer_url: null, collection_type: 'Film', tag: null,
-          is_boxset: 0, boxset_parent_id: null,
+          is_boxset: 0, boxset_parent_id: null, boxset_parent_remote_id: null,
           ...data, updated_at: data.updated_at || now, id: orphan.id,
         })
         for (let i = 1; i < orphans.length; i++) {
@@ -158,11 +180,11 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     INSERT INTO movies (title, year, genre, director, runtime, rating, rating_age, overview,
       cover_path, backdrop_path, actors_names, trailer_url, collection_type, tag, tmdb_id, remote_id,
       edition, region_code, disc_location, purchase_date, purchase_price, condition,
-      is_boxset, boxset_parent_id, view_count, is_watched, in_collection, collection_no, created_at, updated_at)
+      is_boxset, boxset_parent_id, boxset_parent_remote_id, view_count, is_watched, in_collection, collection_no, created_at, updated_at)
     VALUES (@title, @year, @genre, @director, @runtime, @rating, @rating_age, @overview,
       @cover_path, @backdrop_path, @actors_names, @trailer_url, @collection_type, @tag, @tmdb_id, @remote_id,
       @edition, @region_code, @disc_location, @purchase_date, @purchase_price, @condition,
-      @is_boxset, @boxset_parent_id, @view_count, @is_watched, @in_collection, @collection_no, @created_at, @updated_at)
+      @is_boxset, @boxset_parent_id, @boxset_parent_remote_id, @view_count, @is_watched, @in_collection, @collection_no, @created_at, @updated_at)
     ON CONFLICT(remote_id) DO UPDATE SET
       title = EXCLUDED.title, year = EXCLUDED.year, genre = EXCLUDED.genre,
       director = EXCLUDED.director, runtime = EXCLUDED.runtime, rating = EXCLUDED.rating,
@@ -174,6 +196,7 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
       disc_location = EXCLUDED.disc_location, purchase_date = EXCLUDED.purchase_date,
       purchase_price = EXCLUDED.purchase_price, condition = EXCLUDED.condition,
       is_boxset = EXCLUDED.is_boxset, boxset_parent_id = EXCLUDED.boxset_parent_id,
+      boxset_parent_remote_id = EXCLUDED.boxset_parent_remote_id,
       view_count = EXCLUDED.view_count, is_watched = EXCLUDED.is_watched,
       in_collection = EXCLUDED.in_collection,
       collection_no = COALESCE(EXCLUDED.collection_no, movies.collection_no),
@@ -185,7 +208,8 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     overview: null, cover_path: null, backdrop_path: null, actors_names: null,
     trailer_url: null, collection_type: 'Film', tag: null, tmdb_id: null, remote_id: null,
     edition: null, region_code: null, disc_location: null, purchase_date: null, purchase_price: null, condition: null,
-    is_boxset: 0, boxset_parent_id: null, view_count: 0, is_watched: 0, in_collection: 1,
+    is_boxset: 0, boxset_parent_id: null, boxset_parent_remote_id: null,
+    view_count: 0, is_watched: 0, in_collection: 1,
     collection_no: nextCollectionNo,
     ...data,
     created_at: data.created_at || now, updated_at: data.updated_at || now,
@@ -195,8 +219,8 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     // Gleicher „lokal neuer gewinnt"-Guard wie im Upsert: sonst überschreibt der
     // Pull hier is_watched/view_count am Konflikt-Guard vorbei mit Server-Werten.
     db.prepare(
-      'UPDATE movies SET is_boxset = ?, boxset_parent_id = ?, view_count = ?, is_watched = ?, created_at = COALESCE(?, created_at) WHERE remote_id = ? AND updated_at <= ?'
-    ).run(data.is_boxset ?? 0, data.boxset_parent_id ?? null, data.view_count ?? 0, data.is_watched ?? 0, data.created_at ?? null, data.remote_id, data.updated_at || now)
+      'UPDATE movies SET is_boxset = ?, boxset_parent_id = ?, boxset_parent_remote_id = ?, view_count = ?, is_watched = ?, created_at = COALESCE(?, created_at) WHERE remote_id = ? AND updated_at <= ?'
+    ).run(data.is_boxset ?? 0, data.boxset_parent_id ?? null, data.boxset_parent_remote_id ?? null, data.view_count ?? 0, data.is_watched ?? 0, data.created_at ?? null, data.remote_id, data.updated_at || now)
     return db.prepare('SELECT * FROM movies WHERE remote_id = ?').get(data.remote_id)
   }
   return db.prepare('SELECT * FROM movies WHERE id = ?').get(result.lastInsertRowid)
@@ -343,6 +367,7 @@ export function registerMovieHandlers(): void {
   ipcMain.handle('db:movies:count',            ()         => countMovies(db()))
   ipcMain.handle('db:movies:recent',           (_e, l)    => recentMovies(db(), l))
   ipcMain.handle('db:movies:children',         (_e, id)   => getMovieChildren(db(), id))
+  ipcMain.handle('db:movies:resolve-boxsets',  ()         => resolveBoxsetParents(db()))
   ipcMain.handle('db:movies:get',              (_e, id)   => getMovie(db(), id))
   ipcMain.handle('db:movies:get-by-remote-id', (_e, id)   => getMovieByRemoteId(db(), id))
   ipcMain.handle('db:movies:create',           (_e, data) => createMovie(db(), data))
