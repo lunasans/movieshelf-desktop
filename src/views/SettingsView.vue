@@ -370,6 +370,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, defineComponent, h } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
@@ -460,6 +461,7 @@ const SaveButton = defineComponent({
 
 // ── State ────────────────────────────────────────────────────────────────────
 
+const route    = useRoute()
 const settings = useSettingsStore()
 const { login } = useApi()
 const { checkForUpdates } = useUpdateService()
@@ -520,6 +522,15 @@ const visibleSections = computed(() =>
 watch(active, (id) => {
   if (id === 'dev') refreshLogs()
 })
+
+// Direkt auf einen Bereich springen (?section=updates aus dem Tray-Menue).
+// Als watch mit immediate, weil ein erneuter Aufruf nur die Query aendert und
+// die Komponente dabei nicht neu gemountet wird.
+watch(() => route.query.section, (section) => {
+  if (typeof section === 'string' && sections.some(s => s.id === section)) {
+    active.value = section
+  }
+}, { immediate: true })
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 

@@ -144,10 +144,27 @@ function showAndNavigate(path: string) {
   }
 }
 
+// Vom Renderer gemeldete verfuegbare Version (updateService prueft, nicht der
+// Main-Prozess) — null heisst „aktuell".
+let updateVersion: string | null = null
+
+function trayIconPath() {
+  return join(__dirname, updateVersion ? '../public/icon-update.png' : '../public/icon.png')
+}
+
 function buildTrayMenu() {
   const db = getDb()
   return Menu.buildFromTemplate([
     { label: tMain(db, 'trayOpen'), click: () => showMainWindow() },
+    ...(updateVersion
+      ? [
+          { type: 'separator' as const },
+          {
+            label: tMain(db, 'trayUpdateAvailable', { version: updateVersion }),
+            click: () => showAndNavigate('/settings?section=updates'),
+          },
+        ]
+      : []),
     { type: 'separator' },
     { label: tMain(db, 'trayAddMovie'),  click: () => showAndNavigate('/movies/new?type=Film') },
     { label: tMain(db, 'trayAddSeries'), click: () => showAndNavigate('/movies/new?type=Serie') },
@@ -158,9 +175,20 @@ function buildTrayMenu() {
   ])
 }
 
+function refreshTray() {
+  if (!tray) return
+  const db = getDb()
+  const icon = nativeImage.createFromPath(trayIconPath())
+  tray.setImage(icon.resize({ width: 16, height: 16 }))
+  tray.setToolTip(updateVersion
+    ? `MovieShelf — ${tMain(db, 'trayUpdateAvailable', { version: updateVersion })}`
+    : 'MovieShelf')
+  tray.setContextMenu(buildTrayMenu())
+}
+
 function createTray() {
   if (tray) return
-  const icon = nativeImage.createFromPath(join(__dirname, '../public/icon.png'))
+  const icon = nativeImage.createFromPath(trayIconPath())
   tray = new Tray(icon.resize({ width: 16, height: 16 }))
   tray.setToolTip('MovieShelf')
   tray.setContextMenu(buildTrayMenu())
@@ -254,7 +282,7 @@ app.whenReady().then(() => {
   registerSyncHandlers()
   registerSettingsHandlers((key) => {
     // Tray-Menü live in der neuen Sprache aufbauen (kein Neustart nötig)
-    if (key === 'language') tray?.setContextMenu(buildTrayMenu())
+    if (key === 'language') refreshTray()
   })
   registerMediaHandlers()
   registerListHandlers()
@@ -436,6 +464,16 @@ autoUpdater.on('update-downloaded', () => {
 autoUpdater.on('error', (err) => {
   updaterLog('error', err)
   mainWindow?.webContents.send('update:error', String(err?.message || err))
+})
+
+// Der Update-Check laeuft im Renderer (updateService gegen movieshelf.info).
+// Er meldet das Ergebnis hierher, damit Tray-Icon, Tooltip und Menue den
+// Hinweis auch dann zeigen, wenn das Fenster geschlossen im Tray liegt.
+ipcMain.handle('tray:set-update', (_e, version: string | null) => {
+  const next = typeof version === 'string' && version ? version : null
+  if (next === updateVersion) return
+  updateVersion = next
+  refreshTray()
 })
 
 ipcMain.handle('update:check',    () => autoUpdater.checkForUpdates())

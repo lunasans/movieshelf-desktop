@@ -92,6 +92,11 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('navigate-to', (_event, path) => callback(path))
   },
 
+  // Tray
+  tray: {
+    setUpdate: (version: string | null) => ipcRenderer.invoke('tray:set-update', version),
+  },
+
   // Updater
   update: {
     check:      () => ipcRenderer.invoke('update:check'),
