@@ -36,6 +36,27 @@ SHA256, erzeugt die drei Manifest-Dateien (version / installer / locale) und öf
 den Pull Request. Nach der Freigabe durch
 einen winget-Moderator übernimmt die CI alle weiteren Versionen automatisch.
 
+## Logo / Icon im Manifest
+
+Ein Paket-Icon geht nur ueber das Feld `Icons` im **defaultLocale-Manifest**
+(`Lunasans.MovieShelf.locale.en-US.yaml`), verfuegbar ab Schema **1.6.0**. Die
+Installer- und Version-Manifeste haben kein Bildfeld.
+
+Fertiger Block: [`icons-block.yaml`](icons-block.yaml) — im winget-pkgs-PR in das
+Locale-Manifest einfuegen und `<TAG>` durch das Release-Tag ersetzen, das
+`packaging/winget/icon-256.png` enthaelt. `ManifestVersion` dort auf `1.6.0`
+(oder hoeher) anheben.
+
+- `icon-256.png` ist die auf 256x256 skalierte Variante von `public/icon.png`
+  (`IconResolution` kennt nur feste Groessen wie `256x256`, das Original mit
+  1254x1254 passt in keine davon).
+- Wird das Icon neu erzeugt, muss der `IconSha256` in `icons-block.yaml`
+  mitgezogen werden: `(Get-FileHash packaging/winget/icon-256.png -Algorithm SHA256).Hash`
+- `winget-releaser` schreibt pro Release nur Version und Installer-Block neu, das
+  Locale-Manifest wird fortgeschrieben — der Block muss also **einmalig** rein.
+- Die winget-CLI selbst rendert kein Logo; genutzt wird es von GUI-Frontends und
+  Katalogseiten.
+
 ## Hinweis zu Updates
 
 Die App aktualisiert sich weiterhin **selbst** über electron-updater (GitHub-Releases).
