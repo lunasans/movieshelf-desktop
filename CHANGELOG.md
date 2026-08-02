@@ -1,3 +1,22 @@
+## [0.23.0] - 2026-08-02
+
+### Neu
+
+- **Tray-Menü kann mehr als öffnen und beenden.** Über das Icon in der Taskleiste lassen sich jetzt direkt ein Film oder eine Serie anlegen - der Typ ist im Formular schon vorbelegt und die Überschrift sagt, was gerade entsteht. Dazu kommt ein Eintrag "Einstellungen" (#82).
+- **Update-Hinweis im Tray.** Steht eine neuere Version bereit, bekommt das Tray-Icon einen grünen Punkt, der Tooltip nennt die Version und das Menü zeigt "Update x.y.z verfügbar" - ein Klick springt direkt in den Updates-Bereich der Einstellungen. Der Hinweis ist damit auch sichtbar, wenn das Fenster geschlossen im Tray liegt (#82).
+
+### Behoben
+
+- **Statistiken:** Die Kachel "Filme gesamt" zählte Serien mit, obwohl sie daneben noch einmal separat ausgewiesen wurden. Filmbezogene Auswertungen (Gesamtlaufzeit, Genres, Jahre, Laufzeit-Verteilung, gesehen, Durchschnittsbewertung) beziehen sich jetzt durchgehend nur auf Filme - wie in der Shelf (#75).
+
+### Intern
+
+- **winget:** Das Paket kann ein Logo mitgeben - der `Icons`-Block für das defaultLocale-Manifest liegt samt 256er-Icon unter `packaging/winget/` bereit und muss einmalig in den winget-pkgs-PR übernommen werden (#81).
+- **Abhängigkeiten:** electron-updater 6.8.9, app-builder-lib und postcss 8.5.25 samt tar-Override gegen offene Advisories aktualisiert (#76, #77, #78).
+- **Projekt:** LICENSE, README, SECURITY und Issue-Vorlagen ergänzt (#80).
+
+---
+
 ## [0.22.0] - 2026-07-24
 
 ### Neu
