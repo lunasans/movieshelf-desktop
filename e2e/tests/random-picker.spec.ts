@@ -23,6 +23,8 @@ test('Random-Picker Modal schließt mit X', async ({ page }) => {
   const modal = page.locator('.fixed.inset-0').first()
   await expect(modal).toBeVisible({ timeout: 3000 })
 
-  await page.locator('button:has(.bi-x-lg)').first().click()
+  // Innerhalb des Modals suchen: das erste button:has(.bi-x-lg) der Seite ist
+  // der Schliessen-Knopf der Titelleiste - der beendet das Fenster.
+  await modal.locator('button:has(.bi-x-lg)').first().click()
   await expect(modal).toBeHidden({ timeout: 3000 })
 })
