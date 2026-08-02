@@ -69,8 +69,20 @@ jobs:
       - name: Electron-App entpacken bauen
         run: npx electron-builder --linux dir --publish never
 
+      # Diagnose: die App einmal direkt starten und ihre Ausgabe zeigen.
+      # Startet sie hier nicht, sagt das mehr als ein Playwright-Timeout.
+      - name: App-Start pruefen
+        env:
+          ELECTRON_ENABLE_LOGGING: '1'
+        run: |
+          set +e
+          xvfb-run --auto-servernum timeout 20 ./release/linux-unpacked/movieshelf --no-sandbox
+          echo "exit=$?"
+
       # xvfb: Electron braucht auch im Playwright-Headless-Modus ein Display.
       - name: Playwright-Tests
+        env:
+          ELECTRON_ENABLE_LOGGING: '1'
         run: xvfb-run --auto-servernum npx playwright test
 
       - name: Report hochladen
