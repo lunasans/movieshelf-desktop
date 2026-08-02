@@ -71,6 +71,8 @@ const de = {
     editTitle: 'Film bearbeiten',
     addTitle: 'Film hinzufügen',
     addSubtitle: 'Neuen Film zur Sammlung hinzufügen',
+    addTitleSeries: 'Serie hinzufügen',
+    addSubtitleSeries: 'Neue Serie zur Sammlung hinzufügen',
     uploadCover: 'Eigenes Cover hochladen',
     uploadBackdrop: 'Eigenes Backdrop hochladen',
     fieldTitle: 'Titel *',

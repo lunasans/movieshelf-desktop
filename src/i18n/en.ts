@@ -72,6 +72,8 @@ const en = {
     editTitle: 'Edit movie',
     addTitle: 'Add movie',
     addSubtitle: 'Add a new movie to your collection',
+    addTitleSeries: 'Add series',
+    addSubtitleSeries: 'Add a new series to your collection',
     uploadCover: 'Upload custom cover',
     uploadBackdrop: 'Upload custom backdrop',
     fieldTitle: 'Title *',
