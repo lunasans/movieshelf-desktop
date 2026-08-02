@@ -216,6 +216,22 @@
                     <i class="bi bi-film text-[var(--text-muted)] opacity-20 text-2xl"></i>
                   </div>
                   <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+
+                  <!-- Watched badge -->
+                  <div v-if="child.is_watched" class="absolute top-2 left-2 z-20">
+                    <div class="bg-green-600/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md border border-green-500/30 flex items-center">
+                      <i class="bi bi-eye-fill text-[9px] text-white"></i>
+                    </div>
+                  </div>
+
+                  <!-- Gesehen-Toggle -->
+                  <button
+                    @click.stop.prevent="toggleChildWatched(child)"
+                    :class="['absolute bottom-2 right-2 z-20 w-8 h-8 rounded-lg flex items-center justify-center transition-colors text-sm', child.is_watched ? 'bg-green-600/80 hover:bg-green-600' : 'bg-blue-600/80 hover:bg-blue-600']"
+                    :title="$t('movies.toggleWatched')"
+                  >
+                    <i :class="child.is_watched ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill'" class="text-white"></i>
+                  </button>
                 </div>
                 <p class="mt-1.5 text-[11px] font-black text-[var(--text-main)] truncate uppercase tracking-tight opacity-90">{{ child.title }}</p>
                 <p class="text-[10px] text-[var(--text-muted)] font-bold">{{ child.year }}</p>
@@ -573,6 +589,11 @@ async function refreshSeasonsFromRemote(localId: number, remoteId: number) {
       await window.electron.db.seasons.pruneRemote(localId, remoteSeasonsData.seasons.map((s: any) => s.id))
     }
   } catch { /* offline oder kein Zugriff – ignorieren */ }
+}
+
+async function toggleChildWatched(child: any) {
+  const result = await window.electron.db.movies.toggleWatched(child.id)
+  child.is_watched = result.is_watched ? 1 : 0
 }
 
 async function loadMovie(id: number) {

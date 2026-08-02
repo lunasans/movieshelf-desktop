@@ -59,6 +59,8 @@ const de = {
     syncNow: 'Jetzt mit Shelf synchronisieren →',
     noneFound: 'Keine Filme gefunden.',
     boxset: 'Box-Set',
+    openBoxset: 'Box-Set öffnen',
+    noBoxsetChildren: 'Keine enthaltenen Filme.',
     toggleWatched: 'Gesehen-Status umschalten',
     selectedCount: '{count} ausgewählt',
     endSelection: 'Auswahl beenden',
