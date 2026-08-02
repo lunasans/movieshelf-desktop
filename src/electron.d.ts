@@ -153,6 +153,10 @@ interface Window {
 
     onNavigate: (callback: (path: string) => void) => void
 
+    tray: {
+      setUpdate: (version: string | null) => Promise<void>
+    }
+
     update: {
       check:      () => Promise<unknown>
       download:   () => Promise<void>

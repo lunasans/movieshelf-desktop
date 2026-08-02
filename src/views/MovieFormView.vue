@@ -3,9 +3,9 @@
     <div class="flex items-start justify-between mb-8">
       <div>
         <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">
-          {{ isEdit ? $t('movieForm.editTitle') : $t('movieForm.addTitle') }}
+          {{ headerTitle }}
         </h1>
-        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ isEdit ? form.title : $t('movieForm.addSubtitle') }}</p>
+        <p class="text-sm text-[var(--text-muted)] opacity-60">{{ isEdit ? form.title : headerSubtitle }}</p>
       </div>
     </div>
 
@@ -239,13 +239,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import FormRow from '@/components/ui/FormRow.vue'
 import ActorPickerModal from '@/components/movies/ActorPickerModal.vue'
 import { useMovieStore } from '@/stores/movies'
 import { useSettingsStore } from '@/stores/settings'
+import { t } from '@/i18n'
 
 const TMDB_BASE = 'https://api.themoviedb.org/3'
 
@@ -255,6 +256,17 @@ const movieStore  = useMovieStore()
 const settings    = useSettingsStore()
 
 const isEdit = computed(() => !!route.params.id)
+
+// Beim Anlegen sagt die Ueberschrift, ob gerade ein Film oder eine Serie
+// entsteht - sonst sehen die Tray-Eintraege "Film/Serie hinzufuegen" identisch aus.
+const isSeries = computed(() => form.value.collection_type === 'Serie')
+const headerTitle = computed(() => {
+  if (isEdit.value) return t('movieForm.editTitle')
+  return isSeries.value ? t('movieForm.addTitleSeries') : t('movieForm.addTitle')
+})
+const headerSubtitle = computed(() =>
+  isSeries.value ? t('movieForm.addSubtitleSeries') : t('movieForm.addSubtitle')
+)
 const saving = ref(false)
 const pickerOpen = ref(false)
 const actors = ref<any[]>([])
@@ -442,6 +454,15 @@ onMounted(async () => {
     await loadActors()
   }
 })
+
+// Vorbelegung aus dem Tray-Menü („Film/Serie hinzufügen"): nur die kanonischen
+// DB-Werte akzeptieren, sonst bleibt es beim Standard 'Film'. Als watch statt in
+// onMounted, weil der Wechsel Film -> Serie nur die Query aendert: vue-router
+// verwendet dieselbe Komponenteninstanz weiter, onMounted feuert kein zweites Mal.
+watch(() => route.query.type, (type) => {
+  if (isEdit.value) return
+  if (type === 'Film' || type === 'Serie') form.value.collection_type = type
+}, { immediate: true })
 
 async function save() {
   saving.value = true

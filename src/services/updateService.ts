@@ -33,11 +33,21 @@ export function useUpdateService() {
         settings.updateChangelog = await fetchChangelog(remoteVersion)
       }
 
+      // Tray spiegelt den Status: gepunktetes Icon, Tooltip und Menue-Eintrag
+      // sind auch sichtbar, wenn das Fenster geschlossen im Tray liegt.
+      notifyTray(settings.updateAvailable ? remoteVersion : null)
+
       return settings.updateAvailable
     } catch (error) {
       console.error('Update-Check fehlgeschlagen:', error)
       return false
     }
+  }
+
+  // Das Stats-Popup laeuft im selben Renderer-Bundle, hat aber kein Tray —
+  // der Aufruf ist trotzdem harmlos. Fehler hier duerfen den Check nicht kippen.
+  function notifyTray(version: string | null) {
+    window.electron?.tray?.setUpdate(version).catch(() => { /* Tray-Update ist optional */ })
   }
 
   async function fetchChangelog(version: string): Promise<string> {
