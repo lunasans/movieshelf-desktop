@@ -7,7 +7,7 @@ test('CSV-Import-Button ist in Einstellungen sichtbar', async ({ page }) => {
   // ?section=backup springt direkt in den Backup-Bereich (dasselbe Muster nutzt
   // das Tray-Menue). Vorher wurde blind auf einen Tab-Button geklickt, den es
   // so nicht gibt - der Button lag danach in einem anderen Bereich.
-  await navigate(page, '/settings?section=backup')
+  await navigate(page, { path: '/settings', query: { section: 'backup' } } as any)
 
   await expect(page.getByTestId('csv-import-button')).toBeVisible({ timeout: 10000 })
 })
