@@ -38,22 +38,21 @@ einen winget-Moderator übernimmt die CI alle weiteren Versionen automatisch.
 
 ## Logo / Icon im Manifest
 
-Ein Paket-Icon geht nur ueber das Feld `Icons` im **defaultLocale-Manifest**
-(`Lunasans.MovieShelf.locale.en-US.yaml`), verfuegbar ab Schema **1.6.0**. Die
-Installer- und Version-Manifeste haben kein Bildfeld.
+Ein Paket-Icon geht nur ueber das Feld `Icons` im **defaultLocale-Manifest**,
+verfuegbar ab Schema **1.6.0**. Die Installer- und Version-Manifeste haben kein
+Bildfeld. Default-Locale dieses Pakets ist **de-DE**, nicht en-US.
 
 Fertiger Block: [`icons-block.yaml`](icons-block.yaml) — die IconUrl zeigt auf
-`v0.24.0`, der Hash ist gegen die Datei geprueft. `ManifestVersion` im
-Locale-Manifest auf `1.6.0` (oder hoeher) anheben.
+`v0.24.0`, der Hash ist gegen die Datei geprueft.
 
 **Ablauf beim Release 0.24.0:**
 
 1. Tag `v0.24.0` pushen, Release-Workflow laeuft durch und der winget-Job
    oeffnet den PR gegen `microsoft/winget-pkgs`.
 2. In diesem PR die Datei
-   `manifests/l/Lunasans/MovieShelf/0.24.0/Lunasans.MovieShelf.locale.en-US.yaml`
-   bearbeiten: `ManifestVersion` auf `1.6.0` setzen und den Block aus
-   `icons-block.yaml` anhaengen.
+   `manifests/l/Lunasans/MovieShelf/0.24.0/Lunasans.MovieShelf.locale.de-DE.yaml`
+   bearbeiten und den Block aus `icons-block.yaml` anhaengen. `ManifestVersion`
+   muss nicht angefasst werden — komac schreibt dort bereits 1.12.0.
 3. Committen — die winget-Validierung prueft Erreichbarkeit und SHA256 der
    IconUrl.
 

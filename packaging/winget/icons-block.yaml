@@ -1,5 +1,6 @@
-# Zum Einfuegen in Lunasans.MovieShelf.locale.en-US.yaml im winget-pkgs-PR.
-# Voraussetzung: ManifestVersion dort auf mindestens 1.6.0 setzen.
+# Zum Einfuegen in Lunasans.MovieShelf.locale.de-DE.yaml im winget-pkgs-PR
+# (de-DE ist das defaultLocale dieses Pakets). ManifestVersion muss dort nicht
+# angehoben werden, komac schreibt bereits 1.12.0.
 #
 # Die URL zeigt fest auf v0.24.0 - dieses Tag enthaelt packaging/winget/icon-256.png.
 # Nicht auf "main" umstellen, Raw-URLs auf main aendern sich. Wird das Icon neu
