@@ -306,6 +306,7 @@
               : $t('settings.backup.csvResult', { imported: importResult.imported, skipped: importResult.skipped }) }}
           </div>
           <button
+            data-testid="csv-import-button"
             @click="importCsv"
             :disabled="importLoading"
             class="w-full bg-[var(--bg-elevated)] hover:bg-[var(--border-ui)] border border-[var(--border-ui)] text-[var(--text-main)] font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
