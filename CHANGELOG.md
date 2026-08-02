@@ -11,6 +11,10 @@
 - **Schauspielerbilder wurden nicht mehr angezeigt.** Die App gab beim Laden entfernter Medien ihren lokalen Dateipfad als Herkunft an, woraufhin der Hotlink-Schutz der Medien-Domain die Bilder abwies. Sie werden nun ohne Herkunftsangabe geladen; das betrifft alle entfernten Medien, nicht nur Schauspielerfotos. Nebenbei verlässt der lokale Dateipfad die App nicht mehr (#84).
 - **Unschärfe beim Überfahren einer Karte.** Das Cover wurde beim Hover vergrössert, wodurch Symbole und Badges verwaschen wirkten. Die Karte hebt sich jetzt an, statt zu wachsen (#84).
 
+### Intern
+
+- **winget:** Der `Icons`-Block zeigt jetzt fest auf das Tag `v0.24.0` und wird mit diesem Release einmalig in das defaultLocale-Manifest übernommen; der Ablauf steht in `packaging/winget/README.md` (#81).
+
 ---
 
 ## [0.23.0] - 2026-08-02

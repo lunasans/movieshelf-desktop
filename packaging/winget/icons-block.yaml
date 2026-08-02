@@ -1,12 +1,13 @@
 # Zum Einfuegen in Lunasans.MovieShelf.locale.en-US.yaml im winget-pkgs-PR.
 # Voraussetzung: ManifestVersion dort auf mindestens 1.6.0 setzen.
 #
-# <TAG> durch das Release-Tag ersetzen, das packaging/winget/icon-256.png
-# bereits enthaelt (nicht "main" verwenden - Raw-URLs auf main aendern sich).
-# Passt der SHA256 nicht zur ausgelieferten Datei, schlaegt die Validierung fehl.
+# Die URL zeigt fest auf v0.24.0 - dieses Tag enthaelt packaging/winget/icon-256.png.
+# Nicht auf "main" umstellen, Raw-URLs auf main aendern sich. Wird das Icon neu
+# erzeugt, muessen Tag und IconSha256 gemeinsam nachgezogen werden, sonst schlaegt
+# die Validierung in winget-pkgs fehl.
 
 Icons:
-  - IconUrl: https://raw.githubusercontent.com/lunasans/movieshelf-desktop/<TAG>/packaging/winget/icon-256.png
+  - IconUrl: https://raw.githubusercontent.com/lunasans/movieshelf-desktop/v0.24.0/packaging/winget/icon-256.png
     IconFileType: png
     IconResolution: '256x256'
     IconTheme: default
