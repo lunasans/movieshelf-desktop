@@ -1,5 +1,19 @@
 # Lessons
 
+## Medien-Requests mit den echten Browser-Bedingungen testen
+Beim Debuggen fehlender Bilder reicht ein `fetch`/HEAD aus Node nicht: der Server
+antwortete dort mit 200, im Renderer kam 403. Ursache war der Hotlink-Schutz, der
+auf den `Referer` reagiert (`vary: referer`) — Node schickt keinen, Chromium unter
+`file://` schon. Immer mit dem echten Referer/Origin gegentesten, bevor Serverseite
+als "in Ordnung" abgehakt wird. Und: `content-type: text/html` bei einer Bild-URL
+ist immer ein Fehlerseiten-Signal.
+Fix in der App: `<meta name="referrer" content="no-referrer">` in `index.html`.
+
+## Bei UI-Fehlern die DevTools-Ausgabe anfordern statt zu raten
+Datenlage, Dateien und CSP waren alle korrekt; erst der Statuscode aus dem
+Netzwerk-Tab hat den Fall entschieden. Wenn die App beim Nutzer laeuft (Single-
+Instance-Lock verhindert eine zweite Instanz), frueh nach Konsole/Netzwerk fragen.
+
 ## Keine Emojis in PR-Beschreibungen
 PR-Bodies und Commit-Messages ohne Emojis halten (auch kein 🤖-Footer) —
 der Nutzer empfindet das als unprofessionell. Sachlicher Text genügt.

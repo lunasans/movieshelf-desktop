@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Die App laeuft unter file://. Chromium sendet diesen Origin als Referer mit,
+      wodurch der Hotlink-Schutz der Medien-Domain die Bilder mit 403 blockt.
+      Ohne Referer liefert der Server normal aus.
+    -->
+    <meta name="referrer" content="no-referrer" />
     <title>MovieShelf</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
