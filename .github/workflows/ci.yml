@@ -1,0 +1,97 @@
+name: CI
+
+# Laeuft bei jedem PR und jedem Push auf main - also lange bevor ein Tag
+# gesetzt wird. release.yml prueft dieselben Jobs noch einmal als Gate,
+# damit ein Release nie an ungetestetem Stand haengt.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_call: {}
+
+# Aeltere Laeufe desselben Branches abbrechen - bei mehreren Pushes
+# hintereinander zaehlt nur der letzte Stand.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck & Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # --ignore-scripts: das postinstall baut better-sqlite3 gegen Electron.
+      # vitest laeuft aber unter Node - deshalb hier bewusst fuer Node bauen.
+      - name: Abhängigkeiten installieren
+        run: npm install --ignore-scripts
+
+      - name: Native Module bauen (für Node.js)
+        run: npm rebuild better-sqlite3
+
+      - name: Typecheck
+        run: npx vue-tsc --noEmit
+
+      - name: Unit-Tests
+        run: npm test
+
+  e2e:
+    name: E2E Tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm install
+
+      - name: Native Module neu bauen
+        run: npx @electron/rebuild -f -w better-sqlite3
+
+      - name: App bauen
+        run: npx vite build
+
+      # --dir statt deb: die Fixture sucht per findLatestBuild('release') das
+      # entpackte Verzeichnis, ein Installer wird dafuer nicht gebraucht.
+      - name: Electron-App entpacken bauen
+        run: npx electron-builder --linux dir --publish never
+
+      # Diagnose: die App einmal direkt starten und ihre Ausgabe zeigen.
+      # Startet sie hier nicht, sagt das mehr als ein Playwright-Timeout.
+      - name: App-Start pruefen
+        env:
+          ELECTRON_ENABLE_LOGGING: '1'
+        run: |
+          set +e
+          xvfb-run --auto-servernum timeout 20 ./release/linux-unpacked/movieshelf --no-sandbox
+          echo "exit=$?"
+
+      # xvfb: Electron braucht auch im Playwright-Headless-Modus ein Display.
+      - name: Playwright-Tests
+        env:
+          ELECTRON_ENABLE_LOGGING: '1'
+        run: xvfb-run --auto-servernum npx playwright test
+
+      - name: Report hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore

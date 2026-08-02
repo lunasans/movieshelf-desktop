@@ -8,30 +8,14 @@ on:
     types: [published]
 
 jobs:
-  test:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Node.js einrichten
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Abhängigkeiten installieren
-        run: npm install --ignore-scripts
-
-      - name: Native Module bauen (für Node.js)
-        run: npm rebuild better-sqlite3
-
-      - name: Tests ausführen
-        run: npm test
+  # Typecheck, Unit- und E2E-Tests laufen exakt so wie bei jedem PR -
+  # ci.yml ist die einzige Definition, hier nur wiederverwendet.
+  ci:
+    uses: ./.github/workflows/ci.yml
 
   build-linux:
     name: Build Linux (.deb)
-    needs: [test]
+    needs: [ci]
     if: "!contains(github.ref_name, '-win')"
     runs-on: ubuntu-latest
     steps:
@@ -65,7 +49,7 @@ jobs:
 
   build-windows:
     name: Build Windows (.exe)
-    needs: [test]
+    needs: [ci]
     if: "!contains(github.ref_name, '-linux')"
     runs-on: windows-latest
     steps:
