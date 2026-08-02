@@ -26,6 +26,10 @@ export const test = base.extend<AppFixtures>({
   page: async ({ app }, use) => {
     const page = await app.firstWindow()
     await page.waitForLoadState('domcontentloaded')
+    // Ein frisches Profil ist standalone, ohne TMDb-Key und leer - der Guard in
+    // router/index.ts leitet dann jede Route auf /onboarding um, weshalb keine
+    // Zielansicht je erreichbar war. Wie ein Nutzer, der das hinter sich hat.
+    await page.evaluate(() => localStorage.setItem('onboarding_done', '1'))
     await use(page)
   },
 })
