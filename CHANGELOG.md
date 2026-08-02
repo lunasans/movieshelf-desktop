@@ -1,3 +1,18 @@
+## [0.24.0] - 2026-08-02
+
+### Neu
+
+- **Box-Sets lassen sich direkt in der Filmliste aufklappen.** Ein Klick auf das Box-Set-Badge dreht die Karte um und zeigt die enthaltenen Filme mit Jahr und Gesehen-Markierung - jeder Eintrag springt direkt zum Film, ohne Umweg über die Detailseite (#84).
+- **Gesehen-Status für Box-Set-Inhalte.** Enthaltene Filme sind in der Filmliste ausgeblendet, dadurch liess sich ihr Gesehen-Status bisher nirgends umschalten. Das geht jetzt sowohl auf der Kartenrückseite als auch in der Detailansicht des Box-Sets (#84).
+- **Aufgeräumte Filmkarte.** Der Hover-Effekt zeigt die Aktionen als einheitliche Icon-Reihe statt einer breiten Schaltflächenleiste, das Medienformat steht in einem eigenen Badge mit passendem Symbol statt in der gedrehten Ecke - dadurch verschwindet die Bewertung nicht mehr darunter - und die Angabe "Film" beziehungsweise "Serie" entfällt, weil sie sich aus der Ansicht ergibt (#84).
+
+### Behoben
+
+- **Schauspielerbilder wurden nicht mehr angezeigt.** Die App gab beim Laden entfernter Medien ihren lokalen Dateipfad als Herkunft an, woraufhin der Hotlink-Schutz der Medien-Domain die Bilder abwies. Sie werden nun ohne Herkunftsangabe geladen; das betrifft alle entfernten Medien, nicht nur Schauspielerfotos. Nebenbei verlässt der lokale Dateipfad die App nicht mehr (#84).
+- **Unschärfe beim Überfahren einer Karte.** Das Cover wurde beim Hover vergrössert, wodurch Symbole und Badges verwaschen wirkten. Die Karte hebt sich jetzt an, statt zu wachsen (#84).
+
+---
+
 ## [0.23.0] - 2026-08-02
 
 ### Neu
