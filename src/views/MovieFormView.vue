@@ -440,6 +440,11 @@ onMounted(async () => {
     if (form.value.rating != null) form.value.rating = Math.round((form.value.rating as number) * 10) / 10
     if (form.value.created_at) form.value.created_at = (form.value.created_at as string).slice(0, 10)
     await loadActors()
+  } else {
+    // Vorbelegung aus dem Tray-Menü („Film/Serie hinzufügen"): nur die
+    // kanonischen DB-Werte akzeptieren, sonst bleibt es beim Standard 'Film'.
+    const type = route.query.type
+    if (type === 'Film' || type === 'Serie') form.value.collection_type = type
   }
 })
 

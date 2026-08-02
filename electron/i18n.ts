@@ -7,6 +7,8 @@ import { getSetting } from './handlers/settings'
 const messages = {
   de: {
     trayOpen: 'MovieShelf öffnen',
+    trayAddMovie: 'Film hinzufügen',
+    trayAddSeries: 'Serie hinzufügen',
     trayQuit: 'Beenden',
     quitTitle: 'Nicht synchronisierte Änderungen',
     quitMessage: 'Du hast {count} Filme noch nicht synchronisiert.',
@@ -24,6 +26,8 @@ const messages = {
   },
   en: {
     trayOpen: 'Open MovieShelf',
+    trayAddMovie: 'Add movie',
+    trayAddSeries: 'Add series',
     trayQuit: 'Quit',
     quitTitle: 'Unsynced changes',
     quitMessage: 'You have {count} movies that are not synced yet.',

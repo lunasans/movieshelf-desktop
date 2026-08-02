@@ -130,10 +130,27 @@ function showMainWindow() {
   mainWindow.focus()
 }
 
+// Fenster holen und dorthin navigieren. Wurde das Fenster gerade erst erzeugt
+// (App lief nur im Tray), ist der Renderer noch nicht bereit — dann erst nach
+// 'did-finish-load' senden, sonst geht das Event ins Leere.
+function showAndNavigate(path: string) {
+  showMainWindow()
+  const win = mainWindow
+  if (!win) return
+  if (win.webContents.isLoading()) {
+    win.webContents.once('did-finish-load', () => win.webContents.send('navigate-to', path))
+  } else {
+    win.webContents.send('navigate-to', path)
+  }
+}
+
 function buildTrayMenu() {
   const db = getDb()
   return Menu.buildFromTemplate([
     { label: tMain(db, 'trayOpen'), click: () => showMainWindow() },
+    { type: 'separator' },
+    { label: tMain(db, 'trayAddMovie'),  click: () => showAndNavigate('/movies/new?type=Film') },
+    { label: tMain(db, 'trayAddSeries'), click: () => showAndNavigate('/movies/new?type=Serie') },
     { type: 'separator' },
     { label: tMain(db, 'trayQuit'), click: () => quitApp() },
   ])
