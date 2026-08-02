@@ -13,7 +13,7 @@
 
 ### Intern
 
-- **winget:** Der `Icons`-Block zeigt jetzt fest auf das Tag `v0.24.0` und wird mit diesem Release einmalig in das defaultLocale-Manifest übernommen; der Ablauf steht in `packaging/winget/README.md` (#81).
+- **winget:** Der Versuch, ein Paket-Logo ins Manifest aufzunehmen, wurde von der winget-Validierung abgelehnt - das Feld `Icons` ist verifizierten Herausgebern vorbehalten. Der vorbereitete Block bleibt für später liegen, der Hintergrund steht in `packaging/winget/README.md` (#81).
 
 ---
 

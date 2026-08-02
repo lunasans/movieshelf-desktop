@@ -36,38 +36,39 @@ SHA256, erzeugt die drei Manifest-Dateien (version / installer / locale) und öf
 den Pull Request. Nach der Freigabe durch
 einen winget-Moderator übernimmt die CI alle weiteren Versionen automatisch.
 
-## Logo / Icon im Manifest
+## Logo / Icon im Manifest — derzeit nicht moeglich
 
-Ein Paket-Icon geht nur ueber das Feld `Icons` im **defaultLocale-Manifest**,
-verfuegbar ab Schema **1.6.0**. Die Installer- und Version-Manifeste haben kein
-Bildfeld. Default-Locale dieses Pakets ist **de-DE**, nicht en-US.
+**Nicht erneut versuchen, solange `Lunasans` kein verifizierter Publisher ist.**
 
-Fertiger Block: [`icons-block.yaml`](icons-block.yaml) — die IconUrl zeigt auf
-`v0.24.0`, der Hash ist gegen die Datei geprueft.
+Der Versuch beim Release 0.24.0 (winget-pkgs PR #411233) ist an der
+Manifest-Validierung gescheitert:
 
-**Ablauf beim Release 0.24.0:**
+```
+[Error] FieldRequireVerifiedPublisher: Field usage requires verified publishers. (Icons)
+```
 
-1. Tag `v0.24.0` pushen, Release-Workflow laeuft durch und der winget-Job
-   oeffnet den PR gegen `microsoft/winget-pkgs`.
-2. In diesem PR die Datei
-   `manifests/l/Lunasans/MovieShelf/0.24.0/Lunasans.MovieShelf.locale.de-DE.yaml`
-   bearbeiten und den Block aus `icons-block.yaml` anhaengen. `ManifestVersion`
-   muss nicht angefasst werden — komac schreibt dort bereits 1.12.0.
-3. Committen — die winget-Validierung prueft Erreichbarkeit und SHA256 der
-   IconUrl.
+Das Feld `Icons` ist verifizierten Publishern vorbehalten. Am Block selbst lag
+es nicht: IconUrl lieferte HTTP 200 als `image/png`, exakt 256x256 (RGBA), und
+der `IconSha256` stimmte mit der ausgelieferten Datei ueberein — geprueft. Ein
+korrekter Block wird trotzdem abgelehnt.
 
-Ab dann wird das Locale-Manifest von `winget-releaser` fortgeschrieben, der
-Block bleibt also erhalten und muss nur dieses eine Mal eingefuegt werden.
+Der vorbereitete Block liegt weiter unter [`icons-block.yaml`](icons-block.yaml),
+falls sich das durch eine Publisher-Verifizierung einmal aendert. Dann gilt:
 
+- Ziel ist das **defaultLocale-Manifest**, hier `Lunasans.MovieShelf.locale.de-DE.yaml`
+  (de-DE, nicht en-US). Installer- und Version-Manifest haben kein Bildfeld.
+- `ManifestVersion` nicht anfassen, komac schreibt bereits 1.12.0 (`Icons` gibt
+  es ab Schema 1.6.0).
+- `winget-releaser` schreibt pro Release nur Version und Installer-Block neu,
+  das Locale-Manifest wird fortgeschrieben — der Block muss also einmalig rein.
 - `icon-256.png` ist die auf 256x256 skalierte Variante von `public/icon.png`
-  (`IconResolution` kennt nur feste Groessen wie `256x256`, das Original mit
-  1254x1254 passt in keine davon).
-- Wird das Icon neu erzeugt, muss der `IconSha256` in `icons-block.yaml`
-  mitgezogen werden: `(Get-FileHash packaging/winget/icon-256.png -Algorithm SHA256).Hash`
-- `winget-releaser` schreibt pro Release nur Version und Installer-Block neu, das
-  Locale-Manifest wird fortgeschrieben — der Block muss also **einmalig** rein.
-- Die winget-CLI selbst rendert kein Logo; genutzt wird es von GUI-Frontends und
-  Katalogseiten.
+  (`IconResolution` kennt nur feste Groessen, das Original mit 1254x1254 passt
+  in keine davon).
+- Wird das Icon neu erzeugt, muessen Tag in der IconUrl und `IconSha256`
+  gemeinsam nachgezogen werden:
+  `(Get-FileHash packaging/winget/icon-256.png -Algorithm SHA256).Hash`
+- Die winget-CLI selbst rendert ohnehin kein Logo; genutzt wird es von
+  GUI-Frontends und Katalogseiten.
 
 ## Hinweis zu Updates
 

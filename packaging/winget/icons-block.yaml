@@ -1,6 +1,11 @@
-# Zum Einfuegen in Lunasans.MovieShelf.locale.de-DE.yaml im winget-pkgs-PR
-# (de-DE ist das defaultLocale dieses Pakets). ManifestVersion muss dort nicht
-# angehoben werden, komac schreibt bereits 1.12.0.
+# ACHTUNG: Derzeit NICHT einreichbar. Die winget-Validierung lehnt das Feld ab:
+#   [Error] FieldRequireVerifiedPublisher: Field usage requires verified publishers. (Icons)
+# Gescheitert beim Release 0.24.0 (winget-pkgs PR #411233), obwohl URL, Groesse
+# und Hash korrekt sind. Details in README.md.
+#
+# Falls Lunasans einmal verifizierter Publisher ist: einfuegen in
+# Lunasans.MovieShelf.locale.de-DE.yaml (de-DE ist das defaultLocale).
+# ManifestVersion nicht anfassen, komac schreibt bereits 1.12.0.
 #
 # Die URL zeigt fest auf v0.24.0 - dieses Tag enthaelt packaging/winget/icon-256.png.
 # Nicht auf "main" umstellen, Raw-URLs auf main aendern sich. Wird das Icon neu
