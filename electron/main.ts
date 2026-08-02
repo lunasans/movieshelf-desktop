@@ -152,6 +152,8 @@ function buildTrayMenu() {
     { label: tMain(db, 'trayAddMovie'),  click: () => showAndNavigate('/movies/new?type=Film') },
     { label: tMain(db, 'trayAddSeries'), click: () => showAndNavigate('/movies/new?type=Serie') },
     { type: 'separator' },
+    { label: tMain(db, 'traySettings'), click: () => showAndNavigate('/settings') },
+    { type: 'separator' },
     { label: tMain(db, 'trayQuit'), click: () => quitApp() },
   ])
 }
