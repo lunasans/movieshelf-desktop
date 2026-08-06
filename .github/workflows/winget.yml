@@ -26,36 +26,32 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      # TEMPORAER: schreibender Test mit demselben Secret, das komac bekommt.
-      - name: Schreibtest im Fork (temporaer)
+      # komac direkt statt vedantmgoyal9/winget-releaser: die Action scheitert
+      # reproduzierbar an "lunasans does not have the correct permissions to
+      # execute CreateRef/UpdateRef", obwohl dasselbe Secret im selben Runner
+      # nachweislich Branches im Fork anlegen darf (per REST und per GraphQL).
+      # komac zieht dort offenbar den ambienten GITHUB_TOKEN des Workflows statt
+      # des uebergebenen Tokens. Hier wird es mit --token explizit uebergeben.
+      - name: komac installieren
+        uses: cargo-bins/cargo-binstall@main
+      - run: cargo-binstall komac -y
+
+      - name: Fork mit winget-pkgs abgleichen
+        run: komac sync-fork --token "$TOKEN"
         env:
           TOKEN: ${{ secrets.WINGET_TOKEN }}
-        run: |
-          OID=$(curl -s https://api.github.com/repos/lunasans/winget-pkgs/git/ref/heads/master | grep -m1 '"sha"' | cut -d'"' -f4)
-          echo "--- GraphQL createRef:"
-          curl -s -H "Authorization: bearer $TOKEN" https://api.github.com/graphql \
-            -d "{\"query\":\"mutation{createRef(input:{repositoryId:\\\"R_kgDOTG3oCA\\\",name:\\\"refs/heads/ci-writetest\\\",oid:\\\"$OID\\\"}){ref{name}}}\"}"
-          echo
-          echo "--- REST createRef:"
-          curl -s -X POST -H "Authorization: token $TOKEN" \
-            https://api.github.com/repos/lunasans/winget-pkgs/git/refs \
-            -d "{\"ref\":\"refs/heads/ci-writetest-rest\",\"sha\":\"$OID\"}" | head -c 300
-          echo
-          for b in ci-writetest ci-writetest-rest; do
-            curl -s -X DELETE -H "Authorization: token $TOKEN" \
-              https://api.github.com/repos/lunasans/winget-pkgs/git/refs/heads/$b
-          done
+          KOMAC_FORK_OWNER: lunasans
 
-      # Auf den Stand von main gepinnt (b3a5dae, 28.07.2026) statt Tag v2:
-      # v2 installiert komac 2.16.0 fest und scheitert damit beim Anlegen des
-      # Branches im Fork ("lunasans does not have the correct permissions to
-      # execute CreateRef"), obwohl das Token dort Admin ist. main installiert
-      # die aktuelle komac-Version und gleicht den Fork vorher per
-      # `komac sync-fork` mit dem Upstream ab.
       - name: winget-Manifest aktualisieren & einreichen
-        uses: vedantmgoyal9/winget-releaser@b3a5dae0047c6180023acba3f548c55fdf6b7193
-        with:
-          identifier: Lunasans.MovieShelf
-          installers-regex: 'MovieShelf-Setup-.*\.exe$'
-          release-tag: ${{ inputs.release-tag }}
-          token: ${{ secrets.WINGET_TOKEN }}
+        env:
+          TOKEN: ${{ secrets.WINGET_TOKEN }}
+          KOMAC_FORK_OWNER: lunasans
+          KOMAC_CREATED_WITH: MovieShelf Release
+          KOMAC_CREATED_WITH_URL: https://github.com/lunasans/movieshelf-desktop
+        run: |
+          TAG='${{ inputs.release-tag }}'
+          komac update 'Lunasans.MovieShelf' \
+            --version "${TAG#v}" \
+            --urls "https://github.com/lunasans/movieshelf-desktop/releases/download/$TAG/MovieShelf-Setup-${TAG#v}.exe" \
+            --submit \
+            --token "$TOKEN"
