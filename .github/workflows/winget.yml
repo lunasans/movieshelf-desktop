@@ -26,6 +26,26 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # TEMPORAER: schreibender Test mit demselben Secret, das komac bekommt.
+      - name: Schreibtest im Fork (temporaer)
+        env:
+          TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          OID=$(curl -s https://api.github.com/repos/lunasans/winget-pkgs/git/ref/heads/master | grep -m1 '"sha"' | cut -d'"' -f4)
+          echo "--- GraphQL createRef:"
+          curl -s -H "Authorization: bearer $TOKEN" https://api.github.com/graphql \
+            -d "{\"query\":\"mutation{createRef(input:{repositoryId:\\\"R_kgDOTG3oCA\\\",name:\\\"refs/heads/ci-writetest\\\",oid:\\\"$OID\\\"}){ref{name}}}\"}"
+          echo
+          echo "--- REST createRef:"
+          curl -s -X POST -H "Authorization: token $TOKEN" \
+            https://api.github.com/repos/lunasans/winget-pkgs/git/refs \
+            -d "{\"ref\":\"refs/heads/ci-writetest-rest\",\"sha\":\"$OID\"}" | head -c 300
+          echo
+          for b in ci-writetest ci-writetest-rest; do
+            curl -s -X DELETE -H "Authorization: token $TOKEN" \
+              https://api.github.com/repos/lunasans/winget-pkgs/git/refs/heads/$b
+          done
+
       # Auf den Stand von main gepinnt (b3a5dae, 28.07.2026) statt Tag v2:
       # v2 installiert komac 2.16.0 fest und scheitert damit beim Anlegen des
       # Branches im Fork ("lunasans does not have the correct permissions to
