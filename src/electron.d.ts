@@ -202,7 +202,7 @@ interface Window {
       login:     (creds: { url: string; username: string; password: string }) => Promise<{ success: boolean; user?: string; error?: string }>
       logout:    () => Promise<{ success: boolean }>
       libraries: () => Promise<{ success: boolean; error?: string; libraries: { id: string; name: string; type: string }[] }>
-      import:    (libraryIds: string[], options?: { verifyWithTmdb?: boolean }) => Promise<{ success: boolean; error?: string; imported: number; skipped: number; failed: number; errors: string[] }>
+      import:    (libraryIds: string[], options?: { verifyWithTmdb?: boolean; reimportDeleted?: boolean }) => Promise<{ success: boolean; error?: string; imported: number; skipped: number; failed: number; errors: string[] }>
       onProgress: (callback: (progress: JellyfinProgress) => void) => void
     }
 

@@ -46,6 +46,10 @@ const en = {
     resultImported: '{count} imported',
     resultSkipped: '{count} skipped (already present)',
     resultFailed: '{count} failed',
+    reimportLabel: 'Import deleted titles again',
+    reimportHint: 'Otherwise a deleted film is skipped permanently, even if it is still in Jellyfin.',
+    onlineHint: 'The import stores titles locally. In online mode they only show up in your collection after you sync them to the shelf.',
+    goToSync: 'Sync now',
   },
   dashboard: {
     title: 'Dashboard',

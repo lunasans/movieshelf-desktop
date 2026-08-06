@@ -45,6 +45,10 @@ const de = {
     resultImported: '{count} übernommen',
     resultSkipped: '{count} übersprungen (bereits vorhanden)',
     resultFailed: '{count} fehlgeschlagen',
+    reimportLabel: 'Gelöschte Titel erneut übernehmen',
+    reimportHint: 'Ein gelöschter Film wird sonst dauerhaft übersprungen, auch wenn er in Jellyfin noch vorhanden ist.',
+    onlineHint: 'Der Import legt die Titel lokal an. Im Online-Modus erscheinen sie erst in deiner Sammlung, nachdem du sie zur Shelf synchronisiert hast.',
+    goToSync: 'Jetzt synchronisieren',
   },
   dashboard: {
     title: 'Dashboard',

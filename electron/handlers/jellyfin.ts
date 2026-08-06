@@ -8,6 +8,7 @@ import { getDb } from '../database'
 import { getSetting, setSetting } from './settings'
 import { COVERS_DIR, MAX_IMAGE_BYTES } from './media'
 import { createMovie } from './movies'
+import { upsertActor, linkActor } from './actors'
 import { upsertSeason, upsertEpisode } from './seasons'
 
 // Jellyfin liefert Laufzeiten in "Ticks" (100-Nanosekunden-Einheiten).
@@ -28,7 +29,8 @@ export interface JellyfinItem {
   CommunityRating?: number | null
   RunTimeTicks?: number | null
   ProviderIds?: Record<string, string>
-  People?: { Name?: string; Type?: string }[]
+  People?: { Id?: string; Name?: string; Type?: string; Role?: string; PrimaryImageTag?: string }[]
+  RemoteTrailers?: { Url?: string; Name?: string }[]
   ImageTags?: Record<string, string>
   BackdropImageTags?: string[]
   UserData?: { Played?: boolean; PlayCount?: number }
@@ -76,6 +78,17 @@ export function tmdbIdOf(item: JellyfinItem): number | null {
   return Number.isInteger(n) && n > 0 ? n : null
 }
 
+/**
+ * Trailer aus Jellyfins RemoteTrailers. Der Player der App spielt YouTube ab,
+ * andere Anbieter werden übergangen statt als toter Link gespeichert.
+ */
+export function jellyfinTrailerUrl(item: JellyfinItem): string | null {
+  const url = (item.RemoteTrailers ?? [])
+    .map(t => String(t?.Url ?? ''))
+    .find(u => /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(u))
+  return url || null
+}
+
 /** Jellyfin-Item → Zeile für die `movies`-Tabelle. */
 export function mapJellyfinItem(item: JellyfinItem): Record<string, unknown> {
   const people = item.People ?? []
@@ -93,6 +106,7 @@ export function mapJellyfinItem(item: JellyfinItem): Record<string, unknown> {
     rating_age: parseRatingAge(item.OfficialRating),
     overview: item.Overview || null,
     tmdb_id: tmdbIdOf(item),
+    trailer_url: jellyfinTrailerUrl(item),
     collection_type: item.Type === 'Series' ? 'Serie' : 'Film',
     tag: IMPORT_TAG,
     is_watched: item.UserData?.Played ? 1 : 0,
@@ -108,15 +122,15 @@ export function normalizeTitle(title: unknown): string {
 
 /**
  * Bereits vorhandener Film? Erst über die TMDb-ID (eindeutig), sonst über
- * Titel + Jahr. Auch soft-gelöschte Zeilen zählen als Treffer – sonst käme ein
- * bewusst gelöschter Film bei jedem Import zurück.
+ * Titel + Jahr. Gelöschte Zeilen zählen mit – ob sie den Import blockieren oder
+ * wieder aufgenommen werden, entscheidet der Aufrufer über `is_deleted`.
  */
 export function findDuplicate(
   db: Database.Database,
   candidate: { tmdb_id?: number | null; title?: unknown; year?: number | null },
-): { id: number } | null {
+): { id: number; is_deleted: number } | null {
   if (candidate.tmdb_id != null) {
-    const byTmdb = db.prepare('SELECT id FROM movies WHERE tmdb_id = ?').get(candidate.tmdb_id) as { id: number } | undefined
+    const byTmdb = db.prepare('SELECT id, is_deleted FROM movies WHERE tmdb_id = ?').get(candidate.tmdb_id) as { id: number; is_deleted: number } | undefined
     if (byTmdb) return byTmdb
   }
 
@@ -125,11 +139,32 @@ export function findDuplicate(
 
   const rows = db.prepare(
     candidate.year != null
-      ? 'SELECT id, title FROM movies WHERE year = ?'
-      : 'SELECT id, title FROM movies WHERE year IS NULL',
-  ).all(...(candidate.year != null ? [candidate.year] : [])) as { id: number; title: string }[]
+      ? 'SELECT id, title, is_deleted FROM movies WHERE year = ?'
+      : 'SELECT id, title, is_deleted FROM movies WHERE year IS NULL',
+  ).all(...(candidate.year != null ? [candidate.year] : [])) as { id: number; title: string; is_deleted: number }[]
 
   return rows.find(r => normalizeTitle(r.title) === title) ?? null
+}
+
+/**
+ * Einen gelöschten Film wieder aufnehmen. `updateMovie` kommt dafür nicht in Frage:
+ * seine Spaltenliste enthält `is_deleted` bewusst nicht.
+ */
+export function restoreMovie(db: Database.Database, id: number, data: Record<string, unknown>): void {
+  db.prepare(`
+    UPDATE movies SET
+      is_deleted = 0, title = @title, year = @year, genre = @genre, director = @director,
+      runtime = @runtime, rating = @rating, rating_age = @rating_age, overview = @overview,
+      actors_names = @actors_names, trailer_url = @trailer_url, tmdb_id = @tmdb_id,
+      collection_type = @collection_type, tag = @tag, in_collection = @in_collection,
+      is_watched = @is_watched, view_count = @view_count, updated_at = @updated_at
+    WHERE id = @id
+  `).run({
+    title: null, year: null, genre: null, director: null, runtime: null, rating: null,
+    rating_age: null, overview: null, actors_names: null, trailer_url: null, tmdb_id: null,
+    collection_type: 'Film', tag: null, in_collection: 1, is_watched: 0, view_count: 0,
+    ...data, updated_at: new Date().toISOString(), id,
+  })
 }
 
 /** Basis-URL normalisieren (ohne abschließenden Schrägstrich). */
@@ -194,7 +229,13 @@ async function jfGet(s: Session, path: string, params: Record<string, unknown> =
 }
 
 /** Bild von Jellyfin in den Cover-Ordner laden. Gibt den Dateinamen zurück. */
-async function downloadImage(s: Session, itemId: string, type: 'Primary' | 'Backdrop', fileName: string): Promise<string | null> {
+async function downloadImage(
+  s: Session,
+  itemId: string,
+  type: 'Primary' | 'Backdrop',
+  fileName: string,
+  maxWidth = type === 'Primary' ? 600 : 1280,
+): Promise<string | null> {
   const url = `${s.baseUrl}/Items/${encodeURIComponent(itemId)}/Images/${type}`
   if (!isAllowedJellyfinHost(url, s.baseUrl)) return null
 
@@ -205,34 +246,14 @@ async function downloadImage(s: Session, itemId: string, type: 'Primary' | 'Back
     const response = await axios({
       url,
       method: 'GET',
-      params: { maxWidth: type === 'Primary' ? 600 : 1280, quality: 90 },
+      params: { maxWidth, quality: 90 },
       responseType: 'stream',
       headers: { Authorization: authHeader(s.token) },
       maxContentLength: MAX_IMAGE_BYTES,
       maxBodyLength: MAX_IMAGE_BYTES,
       timeout: 30_000,
     })
-    const writer = createWriteStream(filePath)
-    response.data.pipe(writer)
-
-    return await new Promise<string | null>((resolve) => {
-      let settled = false
-      const fail = () => {
-        if (settled) return
-        settled = true
-        writer.close(() => {
-          try { unlinkSync(filePath) } catch { /* ggf. nie angelegt */ }
-          resolve(null)
-        })
-      }
-      writer.on('finish', () => {
-        if (settled) return
-        settled = true
-        resolve(fileName)
-      })
-      writer.on('error', fail)
-      response.data.on('error', fail)
-    })
+    return await streamToFile(response, filePath, fileName)
   } catch {
     return null
   }
@@ -285,7 +306,17 @@ export interface TmdbDetails {
   vote_average?: number | null
   release_date?: string | null
   first_air_date?: string | null
-  credits?: { crew?: { name: string; job: string }[]; cast?: { name: string }[] }
+  credits?: {
+    crew?: { name: string; job: string }[]
+    cast?: { id?: number; name: string; character?: string | null; profile_path?: string | null }[]
+  }
+  videos?: { results?: { site?: string; type?: string; key?: string }[] }
+}
+
+/** YouTube-Trailer aus den TMDb-Videos – dieselbe Auswahl wie beim TMDb-Import. */
+export function extractTrailerUrl(videos: TmdbDetails['videos']): string | null {
+  const v = (videos?.results ?? []).find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'))
+  return v?.key ? `https://www.youtube.com/watch?v=${v.key}` : null
 }
 
 function yearOf(date: unknown): number | null {
@@ -318,6 +349,7 @@ export function mergeTmdbDetails(mapped: Record<string, unknown>, details: TmdbD
   take('year', year)
   take('director', directors.length ? directors.join(', ') : null)
   take('actors_names', cast.length ? cast.join(', ') : null)
+  take('trailer_url', extractTrailerUrl(details.videos))
 
   return merged
 }
@@ -346,7 +378,7 @@ interface TmdbConfig { apiKey: string; language: string }
 async function tmdbDetails(cfg: TmdbConfig, kind: 'movie' | 'tv', id: number): Promise<TmdbDetails | null> {
   try {
     const { data } = await axios.get(`${TMDB_BASE}/${kind}/${id}`, {
-      params: { api_key: cfg.apiKey, language: cfg.language, append_to_response: 'credits' },
+      params: { api_key: cfg.apiKey, language: cfg.language, append_to_response: 'credits,videos' },
       timeout: 20_000,
     })
     return data ?? null
@@ -377,7 +409,10 @@ async function tmdbFindByTitle(cfg: TmdbConfig, kind: 'movie' | 'tv', title: str
  * Jellyfin-Daten gegen TMDb prüfen. Schlägt der Abgleich fehl (kein Treffer,
  * Netzwerk, Rate-Limit), bleiben die Jellyfin-Daten stehen – der Import läuft weiter.
  */
-async function verifyAgainstTmdb(cfg: TmdbConfig, mapped: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function verifyAgainstTmdb(
+  cfg: TmdbConfig,
+  mapped: Record<string, unknown>,
+): Promise<{ mapped: Record<string, unknown>; details: TmdbDetails | null }> {
   const kind = mapped.collection_type === 'Serie' ? 'tv' : 'movie'
   const tmdbId = mapped.tmdb_id as number | null
 
@@ -385,7 +420,146 @@ async function verifyAgainstTmdb(cfg: TmdbConfig, mapped: Record<string, unknown
     ? await tmdbDetails(cfg, kind, tmdbId)
     : await tmdbFindByTitle(cfg, kind, String(mapped.title ?? ''), (mapped.year as number | null) ?? null)
 
-  return details ? mergeTmdbDetails(mapped, details) : mapped
+  return { mapped: details ? mergeTmdbDetails(mapped, details) : mapped, details }
+}
+
+// ── Besetzung ────────────────────────────────────────────────────────────────
+//
+// Die Detailansicht zeigt die Besetzung aus `film_actor`, nicht aus dem Textfeld
+// `actors_names`. Der Import legt die Schauspieler deshalb als echte Datensätze an –
+// bevorzugt aus den TMDb-Credits (mit tmdb_id sauber deduplizierbar), sonst aus
+// Jellyfins People.
+
+const MAX_CAST = 10
+// Die Anzeige sortiert nach is_main_role, dann alphabetisch. Ohne Markierung ginge
+// die Reihenfolge der Besetzungsliste verloren; die vorderen Namen bleiben so oben.
+const MAIN_ROLES = 5
+
+export interface CastEntry {
+  name: string
+  role: string | null
+  tmdb_id: number | null
+  imageUrl: string | null
+  jellyfinPersonId: string | null
+}
+
+export function castFromTmdb(details: TmdbDetails | null): CastEntry[] {
+  return (details?.credits?.cast ?? [])
+    .filter(c => c?.name)
+    .slice(0, MAX_CAST)
+    .map(c => ({
+      name: c.name,
+      role: c.character || null,
+      tmdb_id: Number.isInteger(c.id) ? (c.id as number) : null,
+      imageUrl: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
+      jellyfinPersonId: null,
+    }))
+}
+
+export function castFromJellyfin(item: JellyfinItem): CastEntry[] {
+  return (item.People ?? [])
+    .filter(p => p.Type === 'Actor' && p.Name)
+    .slice(0, MAX_CAST)
+    .map(p => ({
+      name: p.Name!,
+      role: p.Role || null,
+      tmdb_id: null,
+      imageUrl: null,
+      jellyfinPersonId: p.PrimaryImageTag && p.Id ? p.Id : null,
+    }))
+}
+
+/**
+ * Schauspieler ohne TMDb-Kennung lassen sich nur über den Namen wiedererkennen –
+ * sonst legte jeder Importlauf dieselbe Person erneut an.
+ */
+export function findActorByName(db: Database.Database, name: string): { id: number } | undefined {
+  const rows = db.prepare('SELECT id, name FROM actors').all() as { id: number; name: string }[]
+  return rows.find(r => normalizeTitle(r.name) === normalizeTitle(name))
+}
+
+/** Profilbild von TMDb laden. Nur der TMDb-Bildhost ist zulässig. */
+async function downloadTmdbImage(url: string, fileName: string): Promise<string | null> {
+  try {
+    if (new URL(url).origin !== 'https://image.tmdb.org') return null
+  } catch {
+    return null
+  }
+
+  if (!existsSync(COVERS_DIR)) mkdirSync(COVERS_DIR, { recursive: true })
+  const filePath = join(COVERS_DIR, fileName)
+
+  try {
+    const response = await axios({
+      url, method: 'GET', responseType: 'stream',
+      maxContentLength: MAX_IMAGE_BYTES, maxBodyLength: MAX_IMAGE_BYTES, timeout: 30_000,
+    })
+    return await streamToFile(response, filePath, fileName)
+  } catch {
+    return null
+  }
+}
+
+/** Antwort-Stream in die Datei schreiben; bei Abbruch bleibt kein Torso liegen. */
+function streamToFile(response: { data: NodeJS.ReadableStream }, filePath: string, fileName: string): Promise<string | null> {
+  const writer = createWriteStream(filePath)
+  response.data.pipe(writer)
+
+  return new Promise<string | null>((resolve) => {
+    let settled = false
+    const fail = () => {
+      if (settled) return
+      settled = true
+      writer.close(() => {
+        try { unlinkSync(filePath) } catch { /* ggf. nie angelegt */ }
+        resolve(null)
+      })
+    }
+    writer.on('finish', () => {
+      if (settled) return
+      settled = true
+      resolve(fileName)
+    })
+    writer.on('error', fail)
+    response.data.on('error', fail)
+  })
+}
+
+/**
+ * Besetzung eines importierten Films anlegen. Fehler bei einzelnen Personen
+ * beenden den Film-Import nicht – eine fehlende Person ist kein Grund, den
+ * ganzen Titel zu verlieren.
+ */
+async function importCast(
+  s: Session,
+  db: Database.Database,
+  movieId: number,
+  cast: CastEntry[],
+  onError: (message: string) => void,
+): Promise<void> {
+  for (const [index, entry] of cast.entries()) {
+    try {
+      const existing = entry.tmdb_id == null ? findActorByName(db, entry.name) : undefined
+      const actorId = existing?.id ?? upsertActor(db, { name: entry.name, tmdb_id: entry.tmdb_id })
+      if (actorId == null) continue
+
+      const hasImage = db.prepare('SELECT image_path FROM actors WHERE id = ?').get(actorId) as { image_path: string | null } | undefined
+      if (!hasImage?.image_path) {
+        const fileName = `jellyfin_actor_${actorId}.jpg`
+        const file = entry.imageUrl
+          ? await downloadTmdbImage(entry.imageUrl, fileName)
+          : entry.jellyfinPersonId
+            // Portraits erscheinen nur als kleine Kreise – Coverbreite waere Verschwendung.
+            ? await downloadImage(s, entry.jellyfinPersonId, 'Primary', fileName, 300)
+            : null
+        if (file) db.prepare('UPDATE actors SET image_path = ? WHERE id = ?').run(`movie-resource://${file}`, actorId)
+      }
+
+      linkActor(db, { film_id: movieId, actor_id: actorId, role: entry.role ?? undefined, is_main_role: index < MAIN_ROLES })
+    } catch (error: any) {
+      onError(`${entry.name}: ${error.message}`)
+    }
+  }
 }
 
 /** Alle Items einer Bibliothek einsammeln (seitenweise, damit große Server nicht hängen). */
@@ -398,7 +572,7 @@ async function fetchItems(s: Session, parentId: string): Promise<JellyfinItem[]>
       parentId,
       recursive: true,
       includeItemTypes: 'Movie,Series',
-      fields: 'Genres,Overview,ProviderIds,People,RunTimeTicks,OfficialRating',
+      fields: 'Genres,Overview,ProviderIds,People,RunTimeTicks,OfficialRating,RemoteTrailers',
       startIndex: start,
       limit: pageSize,
       sortBy: 'SortName',
@@ -503,7 +677,7 @@ export function registerJellyfinHandlers(): void {
     }
   })
 
-  ipcMain.handle('jellyfin:import', async (event, libraryIds: string[], options: { verifyWithTmdb?: boolean } = {}): Promise<ImportResult> => {
+  ipcMain.handle('jellyfin:import', async (event, libraryIds: string[], options: { verifyWithTmdb?: boolean; reimportDeleted?: boolean } = {}): Promise<ImportResult> => {
     const s = session()
     if (!s) return { success: false, error: 'Nicht angemeldet.', imported: 0, skipped: 0, failed: 0, errors: [] }
     if (!Array.isArray(libraryIds) || libraryIds.length === 0) {
@@ -540,42 +714,59 @@ export function registerJellyfinHandlers(): void {
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
       let mapped = mapJellyfinItem(item)
+      let details: TmdbDetails | null = null
       send({ phase: 'items', current: i + 1, total: items.length, title: String(mapped.title), imported, skipped, failed })
 
       try {
         // Vor der Duplikatprüfung: der Abgleich kann eine TMDb-ID nachliefern, mit
         // der ein bereits vorhandener Film überhaupt erst erkannt wird.
-        if (tmdbCfg) mapped = await verifyAgainstTmdb(tmdbCfg, mapped)
+        if (tmdbCfg) ({ mapped, details } = await verifyAgainstTmdb(tmdbCfg, mapped))
 
-        if (findDuplicate(db(), { tmdb_id: mapped.tmdb_id as number | null, title: mapped.title, year: mapped.year as number | null })) {
+        const existing = findDuplicate(db(), { tmdb_id: mapped.tmdb_id as number | null, title: mapped.title, year: mapped.year as number | null })
+        // Ein gelöschter Titel bleibt liegen, bis die Shelf die Löschung bestätigt –
+        // ohne Abgleich also für immer. Nur auf ausdrücklichen Wunsch wieder aufnehmen.
+        const restoring = !!existing && existing.is_deleted === 1 && options.reimportDeleted === true
+        if (existing && !restoring) {
           skipped++
           continue
         }
 
-        const created = createMovie(db(), mapped) as { id: number } | undefined
-        if (!created?.id) {
-          failed++
-          errors.push(`${mapped.title}: konnte nicht angelegt werden.`)
-          continue
+        let movieId: number
+        if (restoring) {
+          restoreMovie(db(), existing!.id, mapped)
+          movieId = existing!.id
+        } else {
+          const created = createMovie(db(), mapped) as { id: number } | undefined
+          if (!created?.id) {
+            failed++
+            errors.push(`${mapped.title}: konnte nicht angelegt werden.`)
+            continue
+          }
+          movieId = created.id
         }
 
         const media: Record<string, string> = {}
         if (item.ImageTags?.Primary) {
-          const file = await downloadImage(s, item.Id, 'Primary', jellyfinImageName(created.id, 'cover'))
+          const file = await downloadImage(s, item.Id, 'Primary', jellyfinImageName(movieId, 'cover'))
           if (file) media.cover_path = `movie-resource://${file}`
         }
         if (item.BackdropImageTags?.length) {
-          const file = await downloadImage(s, item.Id, 'Backdrop', jellyfinImageName(created.id, 'backdrop'))
+          const file = await downloadImage(s, item.Id, 'Backdrop', jellyfinImageName(movieId, 'backdrop'))
           if (file) media.backdrop_path = `movie-resource://${file}`
         }
         if (Object.keys(media).length) {
           db().prepare(
             `UPDATE movies SET ${Object.keys(media).map(k => `${k} = ?`).join(', ')} WHERE id = ?`,
-          ).run(...Object.values(media), created.id)
+          ).run(...Object.values(media), movieId)
         }
 
+        // TMDb liefert Rollennamen und Profilbilder; ohne Treffer bleibt Jellyfin die Quelle.
+        const cast = castFromTmdb(details)
+        await importCast(s, db(), movieId, cast.length ? cast : castFromJellyfin(item),
+          message => errors.push(`${mapped.title} – ${message}`))
+
         if (item.Type === 'Series') {
-          await importSeries(s, created.id, item.Id)
+          await importSeries(s, movieId, item.Id)
         }
 
         imported++

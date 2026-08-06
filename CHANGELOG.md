@@ -1,3 +1,16 @@
+## [0.25.1] - 2026-08-06
+
+### Behoben
+
+- **"Import starten" im Jellyfin-Bereich tat nichts.** Die Auswahl der Bibliotheken wurde unverändert an den Hintergrundprozess gereicht; dabei brach der Aufruf sofort ab, weil sich die Auswahlliste in dieser Form nicht übertragen lässt. Der Import startete deshalb nie - ohne Fortschritt, ohne Ergebnis und ohne Fehlermeldung. Die Auswahl wird jetzt als einfache Liste übergeben, und Fehler im verbundenen Bereich werden angezeigt, statt stillschweigend zu verschwinden.
+- **Importierte Titel hatten keine Besetzung.** Der Import schrieb die Schauspieler nur in das Namensfeld; die Detailansicht zeigt die Besetzung aber aus den verknüpften Personen. Jetzt legt der Import sie als richtige Datensätze samt Rollenname und Portrait an - mit hinterlegtem TMDb-Schlüssel aus den TMDb-Credits, sonst aus den Angaben des Jellyfin-Servers. Bereits bekannte Personen werden wiederverwendet statt doppelt angelegt.
+- **Importierte Titel hatten keinen Trailer.** Weder Jellyfins hinterlegte Trailer noch die Videos von TMDb wurden ausgewertet. Beide Quellen werden jetzt berücksichtigt, TMDb hat Vorrang.
+- **Gelöschte Titel liessen sich nicht erneut importieren.** Ein gelöschter Film bleibt in der Datenbank liegen, bis die Shelf die Löschung bestätigt - ohne Abgleich also dauerhaft. Der Import überging ihn deshalb bei jedem Lauf. Der Jellyfin-Bereich hat jetzt den Schalter "Gelöschte Titel erneut übernehmen": damit wird ein solcher Film wieder aufgenommen und mit frischen Daten, Bildern und Besetzung gefüllt. Ohne den Schalter bleibt es beim bisherigen Verhalten.
+- **Schauspieler ohne Shelf-Kennung liessen sich nicht speichern.** Das Anlegen brach mit einem Datenbankfehler ab, sobald ein Schauspieler nicht von der Shelf stammte.
+- **Kein Hinweis auf den nötigen Abgleich im Online-Modus.** Der Import legt die Titel in der lokalen Datenbank an. Wer die App mit einer Shelf verbindet, sah die übernommenen Filme deshalb nirgends. Der Jellyfin-Bereich weist jetzt darauf hin und verlinkt nach dem Import direkt auf den Abgleich.
+
+---
+
 ## [0.25.0] - 2026-08-06
 
 ### Neu
