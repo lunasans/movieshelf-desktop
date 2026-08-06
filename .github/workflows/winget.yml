@@ -10,10 +10,14 @@ name: Submit to winget
 #  1. Das Paket muss in winget-pkgs schon existieren — die ERSTE Version einmalig
 #     manuell einreichen (siehe packaging/winget/README.md).
 #  2. Ein Fork von microsoft/winget-pkgs unter dem eigenen Konto (existiert als
-#     lunasans/winget-pkgs). Die Action gleicht ihn vor jeder Einreichung selbst
-#     mit dem Upstream ab.
-#  3. Secret WINGET_TOKEN: ein klassischer GitHub-PAT mit Scope "public_repo"
-#     (legt im Fork den Branch an und öffnet den PR).
+#     lunasans/winget-pkgs). `komac sync-fork` zieht ihn vor jeder Einreichung
+#     auf den Upstream-Stand nach.
+#  3. Secret WINGET_TOKEN: ein klassischer GitHub-PAT mit den Scopes
+#     "public_repo" UND "workflow". Der zweite ist zwingend: beim Nachziehen des
+#     Forks kommen geaenderte Dateien unter .github/workflows/ mit, und GitHub
+#     lehnt solche Ref-Updates ohne diesen Scope ab - mit der irrefuehrenden
+#     Meldung "<user> does not have the correct permissions to execute
+#     CreateRef/UpdateRef".
 
 on:
   workflow_dispatch:
