@@ -9,8 +9,11 @@ name: Submit to winget
 # Voraussetzungen (einmalig):
 #  1. Das Paket muss in winget-pkgs schon existieren — die ERSTE Version einmalig
 #     manuell einreichen (siehe packaging/winget/README.md).
-#  2. Secret WINGET_TOKEN: ein klassischer GitHub-PAT mit Scope "public_repo"
-#     (forkt winget-pkgs und öffnet den PR).
+#  2. Ein Fork von microsoft/winget-pkgs unter dem eigenen Konto (existiert als
+#     lunasans/winget-pkgs). Die Action gleicht ihn vor jeder Einreichung selbst
+#     mit dem Upstream ab.
+#  3. Secret WINGET_TOKEN: ein klassischer GitHub-PAT mit Scope "public_repo"
+#     (legt im Fork den Branch an und öffnet den PR).
 
 on:
   workflow_dispatch:
@@ -23,8 +26,14 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # Auf den Stand von main gepinnt (b3a5dae, 28.07.2026) statt Tag v2:
+      # v2 installiert komac 2.16.0 fest und scheitert damit beim Anlegen des
+      # Branches im Fork ("lunasans does not have the correct permissions to
+      # execute CreateRef"), obwohl das Token dort Admin ist. main installiert
+      # die aktuelle komac-Version und gleicht den Fork vorher per
+      # `komac sync-fork` mit dem Upstream ab.
       - name: winget-Manifest aktualisieren & einreichen
-        uses: vedantmgoyal9/winget-releaser@v2
+        uses: vedantmgoyal9/winget-releaser@b3a5dae0047c6180023acba3f548c55fdf6b7193
         with:
           identifier: Lunasans.MovieShelf
           installers-regex: 'MovieShelf-Setup-.*\.exe$'
