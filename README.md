@@ -27,6 +27,7 @@ Im Standalone-Modus verlassen deine Daten den Rechner nicht. Die Datenbank liegt
 - **Serien-Details** – Staffeln und Episoden
 - **Boxsets** – Sammlungen mit untergeordneten Filmen abbilden
 - **TMDb-Import** – suchen, Formular vorbefüllen lassen, Bilder herunterladen
+- **Jellyfin-Import** – Bibliotheken vom eigenen Jellyfin-Server übernehmen, samt Staffeln, Episoden, Covern, Besetzung, Trailern und Gesehen-Status; auf Wunsch mit TMDb abgeglichen
 - **Schauspieler** mit Rollen, Hauptrollen-Kennzeichnung und eigener Detailseite
 - **Physische Sammlung** – Edition, Regalstandort, Kaufdatum und Zustand
 - **Listen** – eigene Zusammenstellungen quer durch die Sammlung
@@ -104,6 +105,8 @@ Renderer und Hauptprozess reden ausschließlich über die in `preload.ts` freige
 ## Konfiguration
 
 Für den TMDb-Import brauchst du einen eigenen API-Schlüssel von [themoviedb.org](https://www.themoviedb.org/settings/api); eingetragen wird er in den Einstellungen. Für den Online-Modus kommen die URL deiner MovieShelf-Instanz und ein Zugriffstoken dazu.
+
+Der Jellyfin-Import fragt nach Server-Adresse, Benutzername und Passwort; die Anmeldung wird als Token verschlüsselt abgelegt. Im Online-Modus schreibt er in die lokale Datenbank – die übernommenen Titel erscheinen in der Sammlung erst nach einem Abgleich unter `/sync`.
 
 ## Mitmachen
 
