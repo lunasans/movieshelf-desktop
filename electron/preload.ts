@@ -3,6 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('electron', {
   getIsDev: () => ipcRenderer.invoke('get-is-dev'),
   getVersion: () => ipcRenderer.invoke('app:get-version'),
+  getInfo: () => ipcRenderer.invoke('app:get-info'),
+  openDataFolder: () => ipcRenderer.invoke('app:open-data-folder'),
   getAutostart: () => ipcRenderer.invoke('app:get-autostart'),
   setAutostart: (enabled: boolean) => ipcRenderer.invoke('app:set-autostart', enabled),
   // Window controls
@@ -143,6 +145,19 @@ contextBridge.exposeInMainWorld('electron', {
     onCallback:  (cb: (payload: { code: string; state: string }) => void) => {
       ipcRenderer.removeAllListeners('oauth:callback')
       ipcRenderer.on('oauth:callback', (_event, payload) => cb(payload))
+    },
+  },
+
+  // Jellyfin
+  jellyfin: {
+    status:    ()                                                          => ipcRenderer.invoke('jellyfin:status'),
+    login:     (creds: { url: string; username: string; password: string }) => ipcRenderer.invoke('jellyfin:login', creds),
+    logout:    ()                                                          => ipcRenderer.invoke('jellyfin:logout'),
+    libraries: ()                                                          => ipcRenderer.invoke('jellyfin:libraries'),
+    import:    (libraryIds: string[], options?: { verifyWithTmdb?: boolean }) => ipcRenderer.invoke('jellyfin:import', libraryIds, options ?? {}),
+    onProgress: (callback: (progress: any) => void) => {
+      ipcRenderer.removeAllListeners('jellyfin:progress')
+      ipcRenderer.on('jellyfin:progress', (_event, progress) => callback(progress))
     },
   },
 

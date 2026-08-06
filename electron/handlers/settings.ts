@@ -2,9 +2,13 @@ import { ipcMain, safeStorage } from 'electron'
 import { getDb } from '../database'
 import type Database from 'better-sqlite3'
 
-export const ALLOWED_SETTINGS_KEYS = new Set(['mode', 'theme', 'shelf_url', 'shelf_token', 'tmdb_api_key', 'last_sync_at', 'language'])
+export const ALLOWED_SETTINGS_KEYS = new Set([
+  'mode', 'theme', 'shelf_url', 'shelf_token', 'tmdb_api_key', 'last_sync_at', 'language',
+  'jellyfin_url', 'jellyfin_user', 'jellyfin_token', 'jellyfin_user_id',
+  'jellyfin_device_id', 'jellyfin_libraries', 'jellyfin_last_import_at',
+])
 
-export const SENSITIVE_KEYS = new Set(['shelf_token', 'tmdb_api_key'])
+export const SENSITIVE_KEYS = new Set(['shelf_token', 'tmdb_api_key', 'jellyfin_token'])
 const ENC_PREFIX = 'enc:v1:'
 
 function decryptIfNeeded(raw: string | null): string | null {

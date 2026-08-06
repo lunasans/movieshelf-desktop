@@ -31,6 +31,28 @@ type SeasonWithEpisodes = {
   }>
 }
 
+type AppInfo = {
+  version: string
+  electron: string
+  chrome: string
+  node: string
+  v8: string
+  platform: string
+  arch: string
+  dataPath: string
+  dbPath: string
+}
+
+type JellyfinProgress = {
+  phase: 'libraries' | 'items' | 'done'
+  current: number
+  total: number
+  title: string
+  imported: number
+  skipped: number
+  failed: number
+}
+
 type StatsResult = {
   totalMovies:   number
   totalSeries:   number
@@ -50,6 +72,8 @@ interface Window {
   electron: {
     getIsDev:      () => Promise<boolean>
     getVersion:    () => Promise<string>
+    getInfo:       () => Promise<AppInfo>
+    openDataFolder:() => Promise<void>
     getAutostart:  () => Promise<boolean>
     setAutostart:  (enabled: boolean) => Promise<boolean>
 
@@ -171,6 +195,15 @@ interface Window {
       get:    (key: string) => Promise<string | null>
       set:    (key: string, value: unknown) => Promise<boolean>
       getAll: () => Promise<Record<string, string>>
+    }
+
+    jellyfin: {
+      status:    () => Promise<{ url: string; user: string; connected: boolean; lastImportAt: string | null }>
+      login:     (creds: { url: string; username: string; password: string }) => Promise<{ success: boolean; user?: string; error?: string }>
+      logout:    () => Promise<{ success: boolean }>
+      libraries: () => Promise<{ success: boolean; error?: string; libraries: { id: string; name: string; type: string }[] }>
+      import:    (libraryIds: string[], options?: { verifyWithTmdb?: boolean }) => Promise<{ success: boolean; error?: string; imported: number; skipped: number; failed: number; errors: string[] }>
+      onProgress: (callback: (progress: JellyfinProgress) => void) => void
     }
 
     backup: {

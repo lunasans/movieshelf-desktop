@@ -25,6 +25,7 @@ import { registerStatsHandlers } from './handlers/stats'
 import { registerOAuthHandlers } from './handlers/oauth'
 import { registerBackupHandlers } from './handlers/backup'
 import { registerSeasonHandlers } from './handlers/seasons'
+import { registerJellyfinHandlers } from './handlers/jellyfin'
 
 const isDev = !app.isPackaged || process.env.NODE_ENV === 'development'
 
@@ -291,6 +292,7 @@ app.whenReady().then(() => {
   registerOAuthHandlers()
   registerBackupHandlers()
   registerSeasonHandlers()
+  registerJellyfinHandlers()
 
   // Register local resource protocol
   protocol.handle('movie-resource', (request) => {
@@ -410,6 +412,23 @@ ipcMain.handle('trailer:open', (_event, url: string) => {
 
 ipcMain.handle('get-is-dev', () => isDev)
 ipcMain.handle('app:get-version', () => app.getVersion())
+
+// ── Info-Seite ────────────────────────────────────────────────────────────────
+ipcMain.handle('app:get-info', () => ({
+  version:  app.getVersion(),
+  electron: process.versions.electron,
+  chrome:   process.versions.chrome,
+  node:     process.versions.node,
+  v8:       process.versions.v8,
+  platform: process.platform,
+  arch:     process.arch,
+  dataPath: app.getPath('userData'),
+  dbPath:   join(app.getPath('userData'), 'movieshelf.db'),
+}))
+
+ipcMain.handle('app:open-data-folder', () => {
+  shell.openPath(app.getPath('userData'))
+})
 
 // ── Protokolle ────────────────────────────────────────────────────────────────
 ipcMain.handle('logs:get', () => getLogs())
