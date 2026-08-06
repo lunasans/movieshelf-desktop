@@ -128,6 +128,8 @@
       <template v-if="active === 'tmdb'">
         <SectionHeader icon="film" :title="$t('settings.tmdb.title')" />
 
+        <img src="/tmdb.svg" alt="TMDb" class="h-4 w-auto mb-5" />
+
         <SettingsRow :label="$t('settings.tmdb.apiKeyLabel')" :hint="$t('settings.tmdb.apiKeyHint')">
           <a href="https://www.themoviedb.org/settings/api" target="_blank"
             class="text-xs text-[var(--status-red)] hover:underline font-bold">{{ $t('settings.tmdb.requestKey') }}</a>
@@ -143,6 +145,12 @@
         </div>
 
         <SaveButton @click="save" />
+      </template>
+
+      <!-- ── Jellyfin ── -->
+      <template v-if="active === 'jellyfin'">
+        <SectionHeader icon="hdd-network" :title="$t('jellyfin.title')" />
+        <JellyfinPanel />
       </template>
 
       <!-- ── Updates ── -->
@@ -317,6 +325,82 @@
         </div>
       </template>
 
+      <!-- ── Info ── -->
+      <template v-if="active === 'about'">
+        <SectionHeader icon="info-circle" :title="$t('settings.about.title')" />
+
+        <!-- App -->
+        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4 flex items-center gap-4">
+          <img src="/icon.png" alt="" class="w-14 h-14 rounded-xl" />
+          <div>
+            <p class="text-lg font-black text-[var(--text-main)]">MovieShelf Desktop</p>
+            <p class="text-xs text-[var(--text-muted)] opacity-70">v{{ settings.appVersion }} · {{ $t('settings.about.license') }}</p>
+            <p class="text-xs text-[var(--text-muted)] opacity-70 mt-0.5">{{ $t('settings.about.author') }}</p>
+          </div>
+        </div>
+
+        <!-- Technik -->
+        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+          <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-3">
+            {{ $t('settings.about.technical') }}
+          </p>
+          <dl class="grid grid-cols-2 gap-y-2 text-xs">
+            <template v-for="row in infoRows" :key="row.label">
+              <dt class="text-[var(--text-muted)] opacity-70">{{ row.label }}</dt>
+              <dd class="text-[var(--text-main)] font-mono">{{ row.value }}</dd>
+            </template>
+          </dl>
+        </div>
+
+        <!-- Speicherort -->
+        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-[var(--text-main)]">{{ $t('settings.about.dataTitle') }}</p>
+              <p class="text-xs text-[var(--text-muted)] opacity-60 mt-0.5 font-mono break-all">{{ appInfo?.dataPath }}</p>
+            </div>
+            <button
+              @click="openDataFolder"
+              class="flex-shrink-0 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-ui)] rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5"
+            >
+              <i class="bi bi-folder2-open"></i> {{ $t('settings.about.openFolder') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Links -->
+        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4 space-y-2">
+          <a v-for="link in aboutLinks" :key="link.url" :href="link.url" target="_blank"
+            class="flex items-center gap-3 text-sm text-[var(--text-main)] hover:text-[var(--status-red)] transition-colors">
+            <i :class="`bi bi-${link.icon} text-[var(--text-muted)]`"></i>
+            <span class="font-medium">{{ $t(link.labelKey) }}</span>
+            <i class="bi bi-box-arrow-up-right text-[10px] text-[var(--text-muted)] opacity-50 ml-auto"></i>
+          </a>
+        </div>
+
+        <!-- Danksagung / Attribution -->
+        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5">
+          <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-3">
+            {{ $t('settings.about.creditsTitle') }}
+          </p>
+          <div class="mb-5">
+            <a href="https://www.themoviedb.org" target="_blank" class="flex justify-center mb-3">
+              <img src="/tmdb.svg" alt="TMDb" class="h-4 w-auto" />
+            </a>
+            <p class="text-xs text-[var(--text-main)] opacity-80">{{ $t('settings.about.tmdbCredit') }}</p>
+          </div>
+          <div>
+            <a href="https://jellyfin.org" target="_blank" class="flex justify-center mb-3">
+              <img src="/jellyfin.svg" alt="Jellyfin" class="h-7 w-7" />
+            </a>
+            <p class="text-xs text-[var(--text-main)] opacity-80">
+              {{ $t('settings.about.jellyfinCredit') }}
+              <span class="opacity-60">{{ $t('settings.about.jellyfinLogoLicense') }}</span>
+            </p>
+          </div>
+        </div>
+      </template>
+
       <!-- ── Entwickler ── -->
       <template v-if="active === 'dev'">
         <SectionHeader icon="bug" :title="$t('settings.dev.title')" />
@@ -379,6 +463,7 @@ import { useApi } from '@/composables/useApi'
 import { useUpdateService } from '@/services/updateService'
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher.vue'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher.vue'
+import JellyfinPanel from '@/components/settings/JellyfinPanel.vue'
 
 const { t } = useI18n()
 
@@ -512,9 +597,39 @@ const sections = [
   { id: 'dev',        icon: 'bug',           labelKey: 'settings.sections.dev',  dev: true },
   { id: 'appearance', icon: 'palette',      labelKey: 'settings.sections.appearance' },
   { id: 'tmdb',       icon: 'film',          labelKey: 'settings.sections.tmdb'       },
+  { id: 'jellyfin',   icon: 'hdd-network',   labelKey: 'settings.sections.jellyfin'   },
   { id: 'updates',    icon: 'arrow-repeat',  labelKey: 'settings.sections.updates'    },
   { id: 'connection', icon: 'cloud',         labelKey: 'settings.sections.connection' },
+  { id: 'about',      icon: 'info-circle',   labelKey: 'settings.sections.about'      },
 ]
+
+// ── Info-Seite ───────────────────────────────────────────────────────────────
+
+const appInfo = ref<AppInfo | null>(null)
+
+const infoRows = computed(() => {
+  const i = appInfo.value
+  if (!i) return []
+  return [
+    { label: t('settings.about.version'), value: `v${i.version}` },
+    { label: 'Electron',                  value: i.electron },
+    { label: 'Chromium',                  value: i.chrome },
+    { label: 'Node.js',                   value: i.node },
+    { label: 'V8',                        value: i.v8 },
+    { label: t('settings.about.system'),  value: `${i.platform} ${i.arch}` },
+  ]
+})
+
+const aboutLinks = [
+  { url: 'https://movieshelf.info',                                          icon: 'globe',    labelKey: 'settings.about.website' },
+  { url: 'https://github.com/lunasans/movieshelf-desktop',                   icon: 'github',   labelKey: 'settings.about.sourceCode' },
+  { url: 'https://github.com/lunasans/movieshelf-desktop/releases',          icon: 'tag',      labelKey: 'settings.about.releases' },
+  { url: 'https://github.com/lunasans/movieshelf-desktop/issues/new',        icon: 'bug',      labelKey: 'settings.about.reportIssue' },
+]
+
+function openDataFolder() {
+  window.electron.openDataFolder()
+}
 
 const visibleSections = computed(() =>
   sections.filter(s => !s.dev || isDev.value)
@@ -538,6 +653,7 @@ watch(() => route.query.section, (section) => {
 onMounted(async () => {
   isDev.value = await window.electron.getIsDev()
   autostart.value = await window.electron.getAutostart()
+  appInfo.value = await window.electron.getInfo()
   await settings.load()
 
   window.electron.update.onProgress((percent: number) => {

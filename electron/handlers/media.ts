@@ -5,10 +5,10 @@ import axios from 'axios'
 import { getDb } from '../database'
 import { getSetting } from './settings'
 
-const COVERS_DIR = join(app.getPath('userData'), 'covers')
+export const COVERS_DIR = join(app.getPath('userData'), 'covers')
 
 // Maximalgröße eines heruntergeladenen Bildes (Schutz gegen volllaufende Platte)
-const MAX_IMAGE_BYTES = 15 * 1024 * 1024 // 15 MB
+export const MAX_IMAGE_BYTES = 15 * 1024 * 1024 // 15 MB
 
 /** Konfigurierte Master-Server-URL als URL-Objekt – oder null, wenn keiner gesetzt ist. */
 function getShelfUrl(): URL | null {

@@ -143,7 +143,7 @@ The `isOnline` computed in `useSettingsStore` (`src/stores/settings.ts`) gates w
 | `movies` | Main film/series records; includes boxset hierarchy (`is_boxset`, `boxset_parent_id`), sync fields (`remote_id`, `synced_at`, `is_deleted`) |
 | `actors` | Actor records with optional TMDb data |
 | `film_actor` | Many-to-many join (role, is_main_role) |
-| `settings` | Key-value store; allowed keys: `mode`, `theme`, `shelf_url`, `shelf_token`, `tmdb_api_key`, `last_sync_at` |
+| `settings` | Key-value store; allowed keys: `mode`, `theme`, `shelf_url`, `shelf_token`, `tmdb_api_key`, `last_sync_at`, `language`, `jellyfin_url`, `jellyfin_user`, `jellyfin_token`, `jellyfin_user_id`, `jellyfin_device_id`, `jellyfin_libraries`, `jellyfin_last_import_at` |
 | `lists` | Custom user lists |
 | `list_movies` | Many-to-many join (list ↔ movie) |
 | `seasons` | TV season records (unique on `remote_id`) |
@@ -163,6 +163,7 @@ The `isOnline` computed in `useSettingsStore` (`src/stores/settings.ts`) gates w
 | `electron/handlers/stats.ts` | Aggregate stats (genres, runtime buckets, top actors, by year) |
 | `electron/handlers/oauth.ts` | OAuth popup window + deep-link callback (`movieshelf://`) |
 | `electron/handlers/backup.ts` | Export/import `.ms` ZIP (DB tables + media files) |
+| `electron/handlers/jellyfin.ts` | Jellyfin-Login, Bibliotheken, Voll-Import von Filmen/Serien inkl. Bildern |
 
 ### Media / cover images
 
