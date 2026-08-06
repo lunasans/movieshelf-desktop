@@ -171,10 +171,29 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') && endsWith(github.ref_name, '.0') && !contains(github.ref_name, '-linux')
     runs-on: ubuntu-latest
     steps:
+      # komac direkt statt vedantmgoyal9/winget-releaser — gleiche Schritte wie
+      # in winget.yml, dort steht auch die Begruendung. WINGET_TOKEN braucht die
+      # Scopes public_repo UND workflow.
+      - name: komac installieren
+        uses: cargo-bins/cargo-binstall@main
+      - run: cargo-binstall komac -y
+
+      - name: Fork mit winget-pkgs abgleichen
+        run: komac sync-fork --token "$TOKEN"
+        env:
+          TOKEN: ${{ secrets.WINGET_TOKEN }}
+          KOMAC_FORK_OWNER: lunasans
+
       - name: winget-Manifest aktualisieren & einreichen
-        uses: vedantmgoyal9/winget-releaser@v2
-        with:
-          identifier: Lunasans.MovieShelf
-          installers-regex: 'MovieShelf-Setup-.*\.exe$'
-          release-tag: ${{ github.ref_name }}
-          token: ${{ secrets.WINGET_TOKEN }}
+        env:
+          TOKEN: ${{ secrets.WINGET_TOKEN }}
+          KOMAC_FORK_OWNER: lunasans
+          KOMAC_CREATED_WITH: MovieShelf Release
+          KOMAC_CREATED_WITH_URL: https://github.com/lunasans/movieshelf-desktop
+        run: |
+          TAG='${{ github.ref_name }}'
+          komac update 'Lunasans.MovieShelf' \
+            --version "${TAG#v}" \
+            --urls "https://github.com/lunasans/movieshelf-desktop/releases/download/$TAG/MovieShelf-Setup-${TAG#v}.exe" \
+            --submit \
+            --token "$TOKEN"

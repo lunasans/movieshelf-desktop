@@ -9,8 +9,15 @@ name: Submit to winget
 # Voraussetzungen (einmalig):
 #  1. Das Paket muss in winget-pkgs schon existieren — die ERSTE Version einmalig
 #     manuell einreichen (siehe packaging/winget/README.md).
-#  2. Secret WINGET_TOKEN: ein klassischer GitHub-PAT mit Scope "public_repo"
-#     (forkt winget-pkgs und öffnet den PR).
+#  2. Ein Fork von microsoft/winget-pkgs unter dem eigenen Konto (existiert als
+#     lunasans/winget-pkgs). `komac sync-fork` zieht ihn vor jeder Einreichung
+#     auf den Upstream-Stand nach.
+#  3. Secret WINGET_TOKEN: ein klassischer GitHub-PAT mit den Scopes
+#     "public_repo" UND "workflow". Der zweite ist zwingend: beim Nachziehen des
+#     Forks kommen geaenderte Dateien unter .github/workflows/ mit, und GitHub
+#     lehnt solche Ref-Updates ohne diesen Scope ab - mit der irrefuehrenden
+#     Meldung "<user> does not have the correct permissions to execute
+#     CreateRef/UpdateRef".
 
 on:
   workflow_dispatch:
@@ -23,10 +30,32 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # komac direkt statt vedantmgoyal9/winget-releaser: die Action scheitert
+      # reproduzierbar an "lunasans does not have the correct permissions to
+      # execute CreateRef/UpdateRef", obwohl dasselbe Secret im selben Runner
+      # nachweislich Branches im Fork anlegen darf (per REST und per GraphQL).
+      # komac zieht dort offenbar den ambienten GITHUB_TOKEN des Workflows statt
+      # des uebergebenen Tokens. Hier wird es mit --token explizit uebergeben.
+      - name: komac installieren
+        uses: cargo-bins/cargo-binstall@main
+      - run: cargo-binstall komac -y
+
+      - name: Fork mit winget-pkgs abgleichen
+        run: komac sync-fork --token "$TOKEN"
+        env:
+          TOKEN: ${{ secrets.WINGET_TOKEN }}
+          KOMAC_FORK_OWNER: lunasans
+
       - name: winget-Manifest aktualisieren & einreichen
-        uses: vedantmgoyal9/winget-releaser@v2
-        with:
-          identifier: Lunasans.MovieShelf
-          installers-regex: 'MovieShelf-Setup-.*\.exe$'
-          release-tag: ${{ inputs.release-tag }}
-          token: ${{ secrets.WINGET_TOKEN }}
+        env:
+          TOKEN: ${{ secrets.WINGET_TOKEN }}
+          KOMAC_FORK_OWNER: lunasans
+          KOMAC_CREATED_WITH: MovieShelf Release
+          KOMAC_CREATED_WITH_URL: https://github.com/lunasans/movieshelf-desktop
+        run: |
+          TAG='${{ inputs.release-tag }}'
+          komac update 'Lunasans.MovieShelf' \
+            --version "${TAG#v}" \
+            --urls "https://github.com/lunasans/movieshelf-desktop/releases/download/$TAG/MovieShelf-Setup-${TAG#v}.exe" \
+            --submit \
+            --token "$TOKEN"
