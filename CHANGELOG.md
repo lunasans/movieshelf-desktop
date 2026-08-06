@@ -1,3 +1,18 @@
+## [0.25.0] - 2026-08-06
+
+### Neu
+
+- **Filme und Serien aus Jellyfin übernehmen.** Die Einstellungen haben einen neuen Bereich "Jellyfin": Server-Adresse, Benutzer und Passwort eintragen, Bibliotheken auswählen, Import starten. Übernommen werden Filme und Serien samt Staffeln, Episoden, Covern, Hintergrundbildern und dem Gesehen-Status aus Jellyfin. Titel, die bereits in der Sammlung stehen, werden übersprungen - erkannt an der TMDb-Kennung, ersatzweise an Titel und Jahr. Ein zweiter Durchlauf legt also nichts doppelt an (#88).
+- **Abgleich der Jellyfin-Daten mit TMDb.** Jellyfin liefert seine Metadaten in der Sprache des Servers und mitunter selbst überschrieben. Auf Wunsch holt die App deshalb beim Import den Datensatz von TMDb in der Sprache der App nach und ordnet Titel, denen Jellyfin keine TMDb-Kennung mitgibt, über Titel und Jahr zu - damit landen sie später auch auf der Shelf als vollwertiger TMDb-Eintrag. Felder, zu denen TMDb nichts liefert, behalten den Wert aus Jellyfin. Die Option lässt sich abschalten und setzt einen hinterlegten TMDb-Schlüssel voraus (#88).
+- **Info-Bereich in den Einstellungen.** Zeigt Version, die verwendeten Electron-, Chromium- und Node-Versionen, das System, den Speicherort der Daten samt Schaltfläche zum Öffnen des Ordners sowie Verweise auf Webseite, Quellcode, Versionsübersicht und Fehlermeldung. Dazu die Herkunftsangaben zu TMDb und Jellyfin (#88).
+
+### Intern
+
+- **Sicherheitshinweise der Abhängigkeiten abgearbeitet.** Fünf offene Meldungen zu `brace-expansion`, `fast-uri` und `undici` betrafen ausschliesslich Werkzeuge des Bau- und Testvorgangs, nicht die App selbst; sie sind über die Sperrdatei geschlossen (#89).
+- **Testwerkzeuge nicht mehr im Installationspaket.** `@playwright/test` und `electron-playwright-helpers` standen unter den Produktionsabhängigkeiten und wurden dadurch mit ausgeliefert. Sie sind jetzt Entwicklungsabhängigkeiten (#90).
+
+---
+
 ## [0.24.1] - 2026-08-02
 
 ### Behoben
