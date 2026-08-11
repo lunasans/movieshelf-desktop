@@ -1,3 +1,11 @@
+## [0.25.2] - 2026-08-11
+
+### Neu
+
+- **Möglichkeit, die Entwicklung zu unterstützen.** Der Info-Bereich in den Einstellungen hat eine eigene Karte mit Verweis auf Buy Me a Coffee. Die App bleibt kostenlos und quelloffen - der Hinweis ist rein freiwillig und taucht an keiner anderen Stelle auf.
+
+---
+
 ## [0.25.1] - 2026-08-06
 
 ### Behoben

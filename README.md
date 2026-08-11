@@ -6,6 +6,7 @@ Eine Desktop-App für alle, die ihre physische DVD-/Blu-ray-Sammlung im Blick be
 
 [![Website](https://img.shields.io/badge/Website-movieshelf.info-blue)](https://movieshelf.info)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-yellow)](https://buymeacoffee.com/adminzdr)
 
 ---
 
@@ -111,6 +112,10 @@ Der Jellyfin-Import fragt nach Server-Adresse, Benutzername und Passwort; die An
 ## Mitmachen
 
 Fehlerberichte und Vorschläge sind willkommen – bitte über die [Issues](https://github.com/lunasans/movieshelf-desktop/issues). Sicherheitslücken bitte nicht öffentlich melden, sondern wie in [SECURITY.md](SECURITY.md) beschrieben.
+
+## Unterstützen
+
+MovieShelf Desktop ist kostenlos und quelloffen. Wer die Weiterentwicklung unterstützen möchte, kann das über [Buy Me a Coffee](https://buymeacoffee.com/adminzdr) tun – der Link findet sich auch in der App unter *Einstellungen → Info*.
 
 ## Lizenz
 

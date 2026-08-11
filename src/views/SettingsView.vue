@@ -378,6 +378,27 @@
           </a>
         </div>
 
+        <!-- Unterstuetzen -->
+        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-[var(--status-yellow-bg)] flex items-center justify-center">
+              <i class="bi bi-cup-hot text-lg text-[var(--status-yellow)]"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-bold text-[var(--text-main)]">{{ $t('settings.about.donateTitle') }}</p>
+              <p class="text-xs text-[var(--text-muted)] opacity-70 mt-0.5">{{ $t('settings.about.donateHint') }}</p>
+            </div>
+            <a
+              href="https://buymeacoffee.com/adminzdr"
+              target="_blank"
+              class="flex-shrink-0 text-xs font-bold text-[var(--text-main)] hover:text-[var(--status-red)] border border-[var(--border-ui)] rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5"
+            >
+              {{ $t('settings.about.donateAction') }}
+              <i class="bi bi-box-arrow-up-right text-[10px] opacity-50"></i>
+            </a>
+          </div>
+        </div>
+
         <!-- Danksagung / Attribution -->
         <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5">
           <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-3">
