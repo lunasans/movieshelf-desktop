@@ -41,6 +41,9 @@ contextBridge.exposeInMainWorld('electron', {
         dirty:      () => ipcRenderer.invoke('db:sync:dirty'),
         markSynced: (p: any) => ipcRenderer.invoke('db:sync:mark-synced', p),
         hardDelete: (id: number) => ipcRenderer.invoke('db:sync:hard-delete', id),
+        pendingWatched:    () => ipcRenderer.invoke('db:sync:pending-watched'),
+        markWatchedSynced: (id: number, isWatched: boolean) =>
+          ipcRenderer.invoke('db:sync:mark-watched-synced', { id, isWatched }),
       },
       children:     (id: number)        => ipcRenderer.invoke('db:movies:children', id),
       resolveBoxsets: ()                => ipcRenderer.invoke('db:movies:resolve-boxsets'),

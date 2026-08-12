@@ -142,13 +142,22 @@ export function useSyncEngine() {
     }
   }
 
-  async function loadPreview() {
+  /**
+   * Was ein Abgleich tun würde.
+   *
+   * `full` muss zu dem Lauf passen, der danach folgt. Eine Delta-Vorschau vor
+   * einem Voll-Abgleich zeigt nur, was sich seit dem letzten Mal geändert hat
+   * — bei aktuellem Wasserzeichen also nichts. Es sah dann aus, als gäbe es
+   * gar keine Vorschau, und bestätigt wurde etwas anderes als das, was
+   * anschliessend lief.
+   */
+  async function loadPreview(full = false) {
     previewLoading.value = true
     preview.value = null
     result.value  = null
 
     try {
-      const since = await window.electron.settings.get('last_sync_at') as string | null
+      const since = full ? null : await window.electron.settings.get('last_sync_at') as string | null
       const data   = await apiGet('/admin/export', since ? { since } : {})
       const movies = data.movies as any[]
 
@@ -464,8 +473,74 @@ export function useSyncEngine() {
       pushErrors++
     }
 
+    const watched = await pushWatched()
+    pushed += watched.pushed
+    pushErrors += watched.errors
+
     progressPct.value = 100
     return { pushed, pushErrors, deleted }
+  }
+
+  /**
+   * Einen Zielzustand über einen Umschalter durchsetzen.
+   *
+   * Die Shelf kennt für "gesehen" nur ein Umschalten. Wer damit einen Wert
+   * setzen will, muss prüfen, wo er herausgekommen ist: stand die Gegenseite
+   * bereits auf dem Zielwert, dreht der erste Aufruf davon **weg** - quittiert
+   * mit 200 und "Movie marked as unwatched", von einem Erfolg also nicht zu
+   * unterscheiden. Ein zweiter Aufruf bringt ihn zurück; mehr braucht es nie,
+   * weil danach der Stand der Gegenseite bekannt ist.
+   */
+  async function applyWatchedState(remoteId: number, desired: boolean): Promise<boolean> {
+    const toggle = async (assumed: boolean) => {
+      const res = await apiPost(`/movies/${remoteId}/watched`, {}) as { is_watched?: boolean }
+
+      return typeof res?.is_watched === 'boolean' ? res.is_watched : assumed
+    }
+
+    const afterFirst = await toggle(!desired)
+    if (afterFirst === desired) return afterFirst
+
+    return toggle(desired)
+  }
+
+  /**
+   * Offene "gesehen"-Markierungen zur Shelf bringen.
+   *
+   * Eigener Schritt, weil "gesehen" am Benutzer hängt und nicht am Film: es hat
+   * einen eigenen Endpunkt und steht in keinem der Felder, die der Push oben
+   * überträgt. Ohne ihn blieb jede hier gesetzte Markierung für immer auf
+   * diesem Rechner.
+   *
+   * Bei einem Boxset stehen die Teile einzeln in der Liste - die Shelf kennt
+   * keinen Sammelaufruf, und ihr Stand bestimmt ohnehin den der Hülle.
+   */
+  async function pushWatched(): Promise<{ pushed: number; errors: number }> {
+    let pushed = 0
+    let failed = 0
+
+    const pending = await window.electron.db.movies.sync.pendingWatched()
+    if (pending.length === 0) return { pushed: 0, errors: 0 }
+
+    for (let i = 0; i < pending.length; i++) {
+      const row = pending[i]
+      phaseDetail.value = row.title
+      progressPct.value = Math.round((i / pending.length) * 100)
+
+      try {
+        const desired = row.is_watched === 1
+        const serverState = await applyWatchedState(row.remote_id, desired)
+        await window.electron.db.movies.sync.markWatchedSynced(row.id, serverState)
+        pushed++
+      } catch (e: any) {
+        // Nicht verschlucken: eine Markierung, die niemand loswird, sah bisher
+        // genauso aus wie ein erfolgreicher Abgleich.
+        errors.value.push(`${t('dashboard.watched')} "${row.title}": ${e?.response?.data?.message ?? e.message}`)
+        failed++
+      }
+    }
+
+    return { pushed, errors: failed }
   }
 
   /** Löscht ganze Filme, die der Nutzer in der Vorschau explizit als "nur auf
