@@ -95,6 +95,14 @@ function runMigrations(instance: Database.Database = db): void {
   try { instance.exec('ALTER TABLE movies ADD COLUMN boxset_parent_id INTEGER') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN view_count INTEGER DEFAULT 0') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN is_watched INTEGER DEFAULT 0') } catch (e) {}
+  // Der zuletzt von der Shelf bestätigte Gesehen-Stand. Weicht is_watched
+  // davon ab, wartet die Markierung auf ihre Übertragung. Ohne diesen Merker
+  // liesse sich "steht noch aus" nicht von "längst übertragen" unterscheiden -
+  // der Gesehen-Stand blieb deshalb für immer auf diesem Rechner.
+  try { instance.exec('ALTER TABLE movies ADD COLUMN synced_watched INTEGER') } catch (e) {}
+  // Bestand: was schon da war, gilt als übertragen. Sonst schöbe der erste
+  // Abgleich die halbe Sammlung als vermeintliche Änderung zur Shelf.
+  try { instance.exec('UPDATE movies SET synced_watched = is_watched WHERE synced_watched IS NULL') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN in_collection INTEGER DEFAULT 1') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN collection_no INTEGER') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN edition TEXT') } catch (e) {}

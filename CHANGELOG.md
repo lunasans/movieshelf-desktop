@@ -1,3 +1,13 @@
+## [0.25.4] - 2026-08-12
+
+### Behoben
+
+- **Der Gesehen-Stand kam nie bei der Shelf an.** Was hier als gesehen markiert wurde, blieb dauerhaft auf diesem Rechner: Der Abgleich überträgt eine feste Liste von Feldern, und "gesehen" ist keines davon - es hängt am Benutzer, nicht am Film, und hat einen eigenen Endpunkt. Der Abgleich bringt offene Markierungen jetzt einzeln zur Shelf und merkt sich den bestätigten Stand, sodass nichts doppelt übertragen wird und nichts liegenbleibt. Bei einem Boxset gehen seine Teile einzeln hinaus, denn ihr Stand bestimmt den der Hülle. Schlägt eine Übertragung fehl, steht sie im Fehlerprotokoll statt stillschweigend zu verschwinden.
+- **Die Vorschau des Vollabgleichs zeigte das Falsche.** Sie holte nur die Änderungen seit dem letzten Abgleich, während anschliessend ein Vollabgleich lief - war das Wasserzeichen aktuell, blieb sie leer und es sah aus, als gäbe es gar keine Vorschau. Bestätigt wurde damit etwas anderes als das, was dann geschah.
+- **Die Statistik wies keinen Gesehen-Stand aus.** Die Zahl wurde längst berechnet, aber nirgends angezeigt. Die Übersicht zeigt jetzt "Gesehen" samt Anteil und "Serien" - im selben Format wie die Weboberfläche.
+
+---
+
 ## [0.25.3] - 2026-08-12
 
 ### Behoben
