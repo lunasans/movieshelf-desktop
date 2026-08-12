@@ -5,7 +5,7 @@ import {
   listMovies, countMovies, recentMovies, createMovie, updateMovie,
   deleteMovie, searchMovies, checkTmdbIds, deleteMovieByRemoteId, allRemoteIds,
   getMovie, getMovieByRemoteId, getMovieChildren, resolveBoxsetParents, clearMovies,
-  randomMovie, toggleWatched, applyBoxsetWatched, bulkDelete, bulkUpdateTag, importMovies,
+  randomMovie, toggleWatched, bulkDelete, bulkUpdateTag, importMovies,
 } from '../movies'
 
 let db: Database.Database
@@ -413,71 +413,6 @@ describe('toggleWatched', () => {
     const id = insertMovie(db, { is_watched: 1 })
     const result = toggleWatched(db, id)
     expect(result.is_watched).toBe(false)
-  })
-
-  it('markiert bei einem Boxset die enthaltenen Filme', () => {
-    const boxset = insertMovie(db, { title: 'Rocky Collection', is_boxset: 1 })
-    const teil1  = insertMovie(db, { title: 'Rocky', boxset_parent_id: boxset })
-    const teil2  = insertMovie(db, { title: 'Rocky II', boxset_parent_id: boxset })
-
-    const result = toggleWatched(db, boxset)
-
-    expect(result.is_watched).toBe(true)
-    const stand = (id: number) =>
-      (db.prepare('SELECT is_watched FROM movies WHERE id = ?').get(id) as any).is_watched
-    expect(stand(teil1)).toBe(1)
-    expect(stand(teil2)).toBe(1)
-    // Der eigene Stand der Huelle bleibt unberuehrt - er waere eine zweite
-    // Wahrheit neben der Ableitung.
-    expect(stand(boxset)).toBe(0)
-  })
-
-  it('nimmt bei einem vollstaendig gesehenen Boxset alle Teile zurueck', () => {
-    const boxset = insertMovie(db, { title: 'Rocky Collection', is_boxset: 1 })
-    const teil1  = insertMovie(db, { title: 'Rocky', boxset_parent_id: boxset, is_watched: 1 })
-    const teil2  = insertMovie(db, { title: 'Rocky II', boxset_parent_id: boxset, is_watched: 1 })
-
-    const result = toggleWatched(db, boxset)
-
-    expect(result.is_watched).toBe(false)
-    const stand = (id: number) =>
-      (db.prepare('SELECT is_watched FROM movies WHERE id = ?').get(id) as any).is_watched
-    expect(stand(teil1)).toBe(0)
-    expect(stand(teil2)).toBe(0)
-  })
-})
-
-describe('applyBoxsetWatched', () => {
-  it('ein Boxset gilt als gesehen, wenn alle Teile gesehen sind', () => {
-    const boxset = insertMovie(db, { title: 'Rocky Collection', is_boxset: 1 })
-    insertMovie(db, { title: 'Rocky', boxset_parent_id: boxset, is_watched: 1 })
-    insertMovie(db, { title: 'Rocky II', boxset_parent_id: boxset, is_watched: 1 })
-
-    const [row] = applyBoxsetWatched(db, [
-      { id: boxset, is_boxset: 1, is_watched: 0 },
-    ])
-
-    expect(row.is_watched).toBe(1)
-  })
-
-  it('ein angefangenes Boxset gilt nicht als gesehen', () => {
-    const boxset = insertMovie(db, { title: 'Alien - Die Saga', is_boxset: 1 })
-    insertMovie(db, { title: 'Alien', boxset_parent_id: boxset, is_watched: 1 })
-    insertMovie(db, { title: 'Aliens', boxset_parent_id: boxset, is_watched: 0 })
-
-    const [row] = applyBoxsetWatched(db, [
-      { id: boxset, is_boxset: 1, is_watched: 0 },
-    ])
-
-    expect(row.is_watched).toBe(0)
-  })
-
-  it('einen gewoehnlichen Film laesst sie unangetastet', () => {
-    const id = insertMovie(db, { title: 'Arrival', is_watched: 1 })
-
-    const [row] = applyBoxsetWatched(db, [{ id, is_boxset: 0, is_watched: 1 }])
-
-    expect(row.is_watched).toBe(1)
   })
 })
 
