@@ -142,13 +142,22 @@ export function useSyncEngine() {
     }
   }
 
-  async function loadPreview() {
+  /**
+   * Was ein Abgleich tun würde.
+   *
+   * `full` muss zu dem Lauf passen, der danach folgt. Eine Delta-Vorschau vor
+   * einem Voll-Abgleich zeigt nur, was sich seit dem letzten Mal geändert hat
+   * — bei aktuellem Wasserzeichen also nichts. Es sah dann aus, als gäbe es
+   * gar keine Vorschau, und bestätigt wurde etwas anderes als das, was
+   * anschliessend lief.
+   */
+  async function loadPreview(full = false) {
     previewLoading.value = true
     preview.value = null
     result.value  = null
 
     try {
-      const since = await window.electron.settings.get('last_sync_at') as string | null
+      const since = full ? null : await window.electron.settings.get('last_sync_at') as string | null
       const data   = await apiGet('/admin/export', since ? { since } : {})
       const movies = data.movies as any[]
 
