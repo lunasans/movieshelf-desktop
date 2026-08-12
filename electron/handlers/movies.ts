@@ -241,16 +241,7 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
       purchase_price = EXCLUDED.purchase_price, condition = EXCLUDED.condition,
       is_boxset = EXCLUDED.is_boxset, boxset_parent_id = EXCLUDED.boxset_parent_id,
       boxset_parent_remote_id = EXCLUDED.boxset_parent_remote_id,
-      view_count = EXCLUDED.view_count,
-      -- Eine noch nicht übertragene Markierung überlebt den Pull: steht sie
-      -- offen (is_watched weicht von synced_watched ab), behält der lokale
-      -- Wert recht, sonst ginge sie still verloren, bevor sie hinausging.
-      is_watched = CASE
-        WHEN COALESCE(movies.is_watched, 0) IS NOT COALESCE(movies.synced_watched, 0)
-        THEN movies.is_watched ELSE EXCLUDED.is_watched END,
-      synced_watched = CASE
-        WHEN COALESCE(movies.is_watched, 0) IS NOT COALESCE(movies.synced_watched, 0)
-        THEN movies.synced_watched ELSE EXCLUDED.is_watched END,
+      view_count = EXCLUDED.view_count, is_watched = EXCLUDED.is_watched,
       in_collection = EXCLUDED.in_collection,
       collection_no = COALESCE(EXCLUDED.collection_no, movies.collection_no),
       updated_at = EXCLUDED.updated_at
@@ -272,16 +263,8 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     // Gleicher „lokal neuer gewinnt"-Guard wie im Upsert: sonst überschreibt der
     // Pull hier is_watched/view_count am Konflikt-Guard vorbei mit Server-Werten.
     db.prepare(
-      'UPDATE movies SET is_boxset = ?, boxset_parent_id = ?, boxset_parent_remote_id = ?, view_count = ?, created_at = COALESCE(?, created_at) WHERE remote_id = ? AND updated_at <= ?'
-    ).run(data.is_boxset ?? 0, data.boxset_parent_id ?? null, data.boxset_parent_remote_id ?? null, data.view_count ?? 0, data.created_at ?? null, data.remote_id, data.updated_at || now)
-
-    // "Gesehen" eigens, mit eigener Bedingung: eine offene Markierung darf der
-    // Pull nicht überschreiben, sie wartet noch auf ihre Übertragung.
-    db.prepare(`
-      UPDATE movies SET is_watched = ?, synced_watched = ?
-      WHERE remote_id = ? AND updated_at <= ?
-        AND COALESCE(is_watched, 0) IS COALESCE(synced_watched, 0)
-    `).run(data.is_watched ?? 0, data.is_watched ?? 0, data.remote_id, data.updated_at || now)
+      'UPDATE movies SET is_boxset = ?, boxset_parent_id = ?, boxset_parent_remote_id = ?, view_count = ?, is_watched = ?, created_at = COALESCE(?, created_at) WHERE remote_id = ? AND updated_at <= ?'
+    ).run(data.is_boxset ?? 0, data.boxset_parent_id ?? null, data.boxset_parent_remote_id ?? null, data.view_count ?? 0, data.is_watched ?? 0, data.created_at ?? null, data.remote_id, data.updated_at || now)
     return db.prepare('SELECT * FROM movies WHERE remote_id = ?').get(data.remote_id)
   }
   return db.prepare('SELECT * FROM movies WHERE id = ?').get(result.lastInsertRowid)

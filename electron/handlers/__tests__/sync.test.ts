@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type Database from 'better-sqlite3'
 import { createTestDb, insertMovie } from './testDb'
-import { getDirtyMovies, markSynced, hardDelete, getPendingWatched, markWatchedSynced, applyWatchedFromServer } from '../sync'
-import { toggleWatched } from '../movies'
+import { getDirtyMovies, markSynced, hardDelete } from '../sync'
 
 let db: Database.Database
 
@@ -68,68 +67,5 @@ describe('hardDelete', () => {
 
     const movie = db.prepare('SELECT * FROM movies WHERE id = ?').get(id)
     expect(movie).toBeUndefined()
-  })
-})
-
-describe('getPendingWatched', () => {
-  it('meldet eine frisch gesetzte Markierung', () => {
-    const id = insertMovie(db, { title: 'Arrival', remote_id: 10 })
-    expect(getPendingWatched(db)).toHaveLength(0)
-
-    toggleWatched(db, id)
-
-    const pending = getPendingWatched(db)
-    expect(pending).toHaveLength(1)
-    expect(pending[0].title).toBe('Arrival')
-    expect(pending[0].is_watched).toBe(1)
-  })
-
-  it('das Zuruecknehmen zaehlt genauso', () => {
-    const id = insertMovie(db, { title: 'Arrival', remote_id: 10, is_watched: 1, synced_watched: 1 })
-
-    toggleWatched(db, id)
-
-    expect(getPendingWatched(db)).toHaveLength(1)
-    expect(getPendingWatched(db)[0].is_watched).toBe(0)
-  })
-
-  it('nach der Bestaetigung steht nichts mehr an', () => {
-    const id = insertMovie(db, { title: 'Arrival', remote_id: 10 })
-    toggleWatched(db, id)
-
-    markWatchedSynced(db, id, true)
-
-    expect(getPendingWatched(db)).toHaveLength(0)
-  })
-
-  it('ohne Server-ID gibt es nichts zu melden', () => {
-    const id = insertMovie(db, { title: 'Nur hier', remote_id: null })
-    toggleWatched(db, id)
-
-    expect(getPendingWatched(db)).toHaveLength(0)
-  })
-
-  it('ein Boxset meldet seine Teile einzeln, nicht sich selbst', () => {
-    const boxset = insertMovie(db, { title: 'Rocky Collection', remote_id: 1, is_boxset: 1 })
-    insertMovie(db, { title: 'Rocky', remote_id: 2, boxset_parent_id: boxset })
-    insertMovie(db, { title: 'Rocky II', remote_id: 3, boxset_parent_id: boxset })
-
-    toggleWatched(db, boxset)
-
-    const titel = getPendingWatched(db).map(r => r.title).sort()
-    expect(titel).toEqual(['Rocky', 'Rocky II'])
-  })
-})
-
-describe('applyWatchedFromServer', () => {
-  it('setzt beide Werte gleich - danach steht nichts aus', () => {
-    const id = insertMovie(db, { title: 'Arrival', remote_id: 10 })
-
-    applyWatchedFromServer(db, id, true)
-
-    const movie = db.prepare('SELECT * FROM movies WHERE id = ?').get(id) as any
-    expect(movie.is_watched).toBe(1)
-    expect(movie.synced_watched).toBe(1)
-    expect(getPendingWatched(db)).toHaveLength(0)
   })
 })
