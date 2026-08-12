@@ -61,13 +61,8 @@
 
       <!-- Tab: Übersicht -->
       <div v-if="activeTab === 'overview'" class="p-8 space-y-6">
-        <!-- Gesehen und Serien standen hier bisher nicht, obwohl getStats()
-             beides liefert: die Übersicht wies damit als einzige der drei
-             Oberflächen keinen Gesehen-Stand aus. -->
         <div class="grid grid-cols-3 gap-4">
           <StatCard icon="film"       :label="$t('dashboard.totalMovies')"  :value="stats.totalMovies" />
-          <StatCard icon="eye-fill"   :label="$t('dashboard.watched')"      :value="watchedLabel" />
-          <StatCard icon="tv"         :label="$t('dashboard.totalSeries')"  :value="stats.totalSeries" />
           <StatCard icon="clock-fill" :label="$t('stats.totalRuntime')"     :value="formattedRuntime" />
           <StatCard icon="calendar3"  :label="$t('stats.yearRange')"        :value="yearRange" />
         </div>
@@ -284,20 +279,6 @@ const formattedRuntime = computed(() => {
   const m = total % 60
   if (h === 0) return `${m} min`
   return `${h}h ${m}m`
-})
-
-/**
- * Gesehene Filme samt Anteil - dieselbe Aussage wie in der Shelf
- * ("551 · 93.2% gesehen"). Bezugsgröße sind nur die Filme, nicht die Serien:
- * `watchedMovies` und `totalMovies` zählen beide ohne sie.
- */
-const watchedLabel = computed(() => {
-  if (!stats.value) return '—'
-  const { watchedMovies, totalMovies } = stats.value
-  if (!totalMovies) return String(watchedMovies ?? 0)
-  const pct = Math.round((watchedMovies / totalMovies) * 1000) / 10
-
-  return `${watchedMovies} · ${pct}%`
 })
 
 const yearRange = computed(() => {

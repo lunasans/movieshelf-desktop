@@ -125,9 +125,6 @@ interface Window {
           dirty:      () => Promise<unknown[]>
           markSynced: (p: { id: number; remote_id: number; synced_at: string }) => Promise<unknown>
           hardDelete: (id: number) => Promise<unknown>
-          /** Filme, deren Gesehen-Markierung noch nicht bei der Shelf ist. */
-          pendingWatched:    () => Promise<{ id: number; remote_id: number; title: string; is_watched: number }[]>
-          markWatchedSynced: (id: number, isWatched: boolean) => Promise<void>
         }
       }
       seasons: {

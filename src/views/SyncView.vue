@@ -25,9 +25,7 @@
 
       <!-- Action buttons -->
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <!-- Klammern zwingend: ohne sie reicht Vue das MouseEvent als ersten
-             Parameter durch, und `full` waere immer wahr. -->
-        <button @click="loadPreview()" :disabled="phase !== 'idle' || previewLoading"
+        <button @click="loadPreview" :disabled="phase !== 'idle' || previewLoading"
           class="bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] disabled:opacity-40 text-[var(--text-main)] text-sm font-bold px-4 py-4 rounded-2xl transition-all flex flex-col items-center gap-2">
           <i class="bi text-xl text-[var(--status-red)]" :class="previewLoading ? 'bi-hourglass-split animate-spin' : 'bi-cloud-download'"></i>
           <span>{{ $t('sync.shelfToDesktop') }}</span>
@@ -77,10 +75,7 @@ const fullSyncPending = ref(false)
 
 function startFullSync() {
   fullSyncPending.value = true
-  // Vollstand, nicht Delta: sonst zeigt die Vorschau nur die Änderungen seit
-  // dem letzten Abgleich - bei aktuellem Wasserzeichen also nichts -, während
-  // danach ein Voll-Abgleich läuft.
-  loadPreview(true)
+  loadPreview()
 }
 
 function handleApply() {
@@ -107,10 +102,8 @@ function cancelPreview() {
 async function handleMirrorDelete({ pushIds, pullIds }: { pushIds: number[]; pullIds: number[] }) {
   if (pushIds.length === 0 && pullIds.length === 0) return
   await applyMirrorDeletions(pushIds, pullIds)
-  // Vorschau neu laden, damit bestätigte Einträge aus der Liste verschwinden —
-  // in derselben Betriebsart, sonst wechselt sie unter der Hand von Vollstand
-  // auf Delta.
-  await loadPreview(fullSyncPending.value)
+  // Vorschau neu laden, damit bestätigte Einträge aus der Liste verschwinden.
+  await loadPreview()
 }
 
 onMounted(loadStats)
