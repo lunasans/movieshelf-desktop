@@ -4,6 +4,10 @@
 
 - **Boxsets standen dauerhaft als ungesehen da.** Ein Boxset schaut niemand - man schaut die Filme darin, und deshalb bekam die Hülle nie eine eigene Markierung. In der Übersicht stand eine Sammlung damit für immer als ungesehen, auch wenn längst jeder Teil geschaut war. Der Stand eines Boxsets wird jetzt aus seinen Teilen abgeleitet: gesehen ist es erst, wenn wirklich alle enthaltenen Filme gesehen sind - ein halb geschautes Boxset als "gesehen" auszuweisen wäre die unangenehmere Unwahrheit. Passend dazu markiert das Auge am Boxset nun alle enthaltenen Filme statt der Hülle; ihr eigener Wert bleibt unberührt, er stünde sonst als zweite Wahrheit neben der Ableitung. Web-Oberfläche und Android-App verhalten sich ab sofort genauso.
 
+### Intern
+
+- **Sicherheitsmeldung zu nanoid behoben.** Die Bibliothek kam über postcss als indirekte Abhängigkeit herein und konnte bei benutzerdefinierten Generatoren mit Größe 0 endlos laufen. Betroffen war damit nur die Aufbereitung der Stile beim Bauen, nicht die laufende Anwendung - aktualisiert wurde trotzdem (3.3.16 auf 3.3.18).
+
 ---
 
 ## [0.25.2] - 2026-08-11
