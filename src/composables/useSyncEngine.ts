@@ -184,6 +184,14 @@ export function useSyncEngine() {
           for (const [field, label] of Object.entries(FIELD_LABELS)) {
             if (String(movie[field] ?? null) !== String((local as any)[field] ?? null)) changed.push(t(label))
           }
+          // "Gesehen" eigens vergleichen, nicht über FIELD_LABELS: der Server
+          // liefert true/false, lokal steht 0/1 — der String-Vergleich oben
+          // hielte damit jede einzelne Zeile für geändert. Ohne diese Prüfung
+          // blieb ein Film, an dem sich nur der Gesehen-Stand geändert hat, in
+          // der Vorschau unsichtbar, obwohl der Abgleich ihn überträgt.
+          if (Boolean(movie.is_watched) !== Boolean((local as any).is_watched)) {
+            changed.push(t('dashboard.watched'))
+          }
           if (movie.collection_type === 'Serie' && await seasonsDiffer((local as any).id, movie.seasons)) {
             changed.push(t('sync.fields.seasons'))
           }
