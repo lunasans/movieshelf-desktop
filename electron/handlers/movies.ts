@@ -14,6 +14,47 @@ const ALLOWED_MOVIE_COLUMNS = new Set([
 
 const ALLOWED_SORT = new Set(['title', 'year', 'runtime', 'rating', 'created_at'])
 
+/**
+ * Den Gesehen-Stand von Boxsets aus ihren Teilen ableiten.
+ *
+ * Ein Boxset schaut niemand — man schaut die Filme darin. Seine eigene
+ * Markierung wird deshalb nie gesetzt, und ohne diese Ableitung stünde jede
+ * Sammlung für immer als ungesehen in der Liste, auch wenn längst jeder Teil
+ * geschaut ist.
+ *
+ * Abgeleitet wird streng: erst wenn wirklich jeder Teil gesehen ist. Ein halb
+ * geschautes Boxset als "gesehen" auszuweisen wäre die unangenehmere Unwahrheit.
+ *
+ * Eine Abfrage für alle Boxsets zusammen, nicht eine je Zeile — die Liste kann
+ * einige hundert Einträge lang sein.
+ */
+export function applyBoxsetWatched<T extends Record<string, unknown>>(
+  db: Database.Database,
+  rows: T[],
+): T[] {
+  const boxsets = rows.filter(row => row.is_boxset === 1)
+  if (boxsets.length === 0) return rows
+
+  const states = db.prepare(`
+    SELECT boxset_parent_id AS parentId,
+           COUNT(*) AS total,
+           SUM(CASE WHEN is_watched = 1 THEN 1 ELSE 0 END) AS watched
+    FROM movies
+    WHERE is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NOT NULL
+    GROUP BY boxset_parent_id
+  `).all() as { parentId: number; total: number; watched: number }[]
+
+  const byParent = new Map(states.map(state => [state.parentId, state]))
+
+  return rows.map(row => {
+    if (row.is_boxset !== 1) return row
+    const state = byParent.get(row.id as number)
+    if (!state || state.total === 0) return row
+
+    return { ...row, is_watched: state.watched === state.total ? 1 : 0 }
+  })
+}
+
 export function listMovies(db: Database.Database, params: {
   page?: number; perPage?: number; q?: string; collectionType?: string; excludeType?: string
   sortBy?: 'title' | 'year' | 'runtime' | 'rating' | 'created_at'
@@ -69,11 +110,11 @@ export function listMovies(db: Database.Database, params: {
 
   const rows = db.prepare(
     `SELECT * FROM movies WHERE ${listWhere} ORDER BY ${col} ${dir} LIMIT ? OFFSET ?`
-  ).all(...listArgs, perPage, offset)
+  ).all(...listArgs, perPage, offset) as Record<string, unknown>[]
   const total = (db.prepare(
     `SELECT COUNT(*) as count FROM movies WHERE ${countWhere}`
   ).get(...countArgs) as { count: number }).count
-  return { data: rows, total, page, perPage }
+  return { data: applyBoxsetWatched(db, rows), total, page, perPage }
 }
 
 export function countMovies(db: Database.Database): number {
@@ -120,8 +161,11 @@ export function resolveBoxsetParents(db: Database.Database): { updated: number }
 }
 
 export function getMovie(db: Database.Database, id: number): unknown {
-  return db.prepare('SELECT * FROM movies WHERE id = ? AND is_deleted = 0').get(id)
-      ?? db.prepare('SELECT * FROM movies WHERE remote_id = ? AND is_deleted = 0').get(id)
+  const row = (db.prepare('SELECT * FROM movies WHERE id = ? AND is_deleted = 0').get(id)
+      ?? db.prepare('SELECT * FROM movies WHERE remote_id = ? AND is_deleted = 0').get(id)) as
+      Record<string, unknown> | undefined
+
+  return row ? applyBoxsetWatched(db, [row])[0] : row
 }
 
 export function getMovieByRemoteId(db: Database.Database, remoteId: number): Record<string, unknown> | null {
@@ -244,11 +288,13 @@ export function deleteMovie(db: Database.Database, id: number): { success: boole
 
 export function searchMovies(db: Database.Database, query: string): unknown[] {
   const like = `%${query}%`
-  return db.prepare(`
+  const rows = db.prepare(`
     SELECT * FROM movies
     WHERE is_deleted = 0 AND in_collection = 1 AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)
     ORDER BY title ASC LIMIT 50
-  `).all(like, like, like)
+  `).all(like, like, like) as Record<string, unknown>[]
+
+  return applyBoxsetWatched(db, rows)
 }
 
 export function checkTmdbIds(db: Database.Database, tmdbIds: number[]): number[] {
@@ -295,9 +341,35 @@ export function randomMovie(db: Database.Database, filters?: { collectionType?: 
   return db.prepare(`SELECT * FROM movies WHERE ${where} ORDER BY RANDOM() LIMIT 1`).get(...args) ?? null
 }
 
+/**
+ * Bei einem Boxset gehört die Markierung an die enthaltenen Filme: sein
+ * eigener Stand wird aus ihnen abgeleitet (siehe applyBoxsetWatched), ihn zu
+ * setzen bliebe wirkungslos.
+ */
 export function toggleWatched(db: Database.Database, id: number): { is_watched: boolean } {
+  const now = new Date().toISOString()
+
+  const children = db.prepare(
+    'SELECT id, is_watched FROM movies WHERE boxset_parent_id = ? AND is_deleted = 0 AND in_collection = 1'
+  ).all(id) as { id: number; is_watched: number }[]
+
+  if (children.length > 0) {
+    const alleGesehen = children.every(child => child.is_watched === 1)
+    const ziel = alleGesehen ? 0 : 1
+
+    const setzen = db.prepare('UPDATE movies SET is_watched = ?, updated_at = ? WHERE id = ?')
+    const alle = db.transaction((rows: { id: number; is_watched: number }[]) => {
+      for (const child of rows) {
+        if (child.is_watched !== ziel) setzen.run(ziel, now, child.id)
+      }
+    })
+    alle(children)
+
+    return { is_watched: ziel === 1 }
+  }
+
   db.prepare('UPDATE movies SET is_watched = 1 - is_watched, updated_at = ? WHERE id = ?')
-    .run(new Date().toISOString(), id)
+    .run(now, id)
   const row = db.prepare('SELECT is_watched FROM movies WHERE id = ?').get(id) as { is_watched: number }
   return { is_watched: row.is_watched === 1 }
 }
