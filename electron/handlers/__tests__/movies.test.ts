@@ -293,14 +293,17 @@ describe('createMovie', () => {
     expect(all[0].title).toBe('Update')
   })
 
-  it('überschreibt lokal neuere Änderungen nicht (Guard, auch für is_watched)', () => {
-    createMovie(db, { title: 'Original', remote_id: 42, is_watched: 1, view_count: 5, updated_at: '2024-06-01T00:00:00.000Z' })
-    // Server liefert älteren Stand (is_watched: 0) – darf lokal nichts zurücksetzen
-    createMovie(db, { title: 'Server-Alt', remote_id: 42, is_watched: 0, view_count: 0, updated_at: '2024-01-01T00:00:00.000Z' })
+  // "gesehen" ist hier bewusst nicht mehr Teil der Zusicherung: es haengt seit
+  // 0.25.5 nicht mehr am Zeitvergleich, sondern an synced_watched. Eine offene
+  // Markierung schuetzt der Fall bei remote_id 46, und genau diese Trennung war
+  // noetig, damit der Stand aus der Shelf ueberhaupt ankommt.
+  it('überschreibt lokal neuere Änderungen nicht (Guard)', () => {
+    createMovie(db, { title: 'Original', remote_id: 42, view_count: 5, updated_at: '2024-06-01T00:00:00.000Z' })
+    // Server liefert älteren Stand – darf lokal nichts zurücksetzen
+    createMovie(db, { title: 'Server-Alt', remote_id: 42, view_count: 0, updated_at: '2024-01-01T00:00:00.000Z' })
 
     const row = db.prepare('SELECT * FROM movies WHERE remote_id = 42').get() as any
     expect(row.title).toBe('Original')
-    expect(row.is_watched).toBe(1)
     expect(row.view_count).toBe(5)
   })
 
@@ -349,6 +352,21 @@ describe('createMovie', () => {
     const row = db.prepare('SELECT * FROM movies WHERE remote_id = 46').get() as any
     expect(row.is_watched).toBe(1)
     expect(row.synced_watched).toBe(0)
+  })
+
+  it('haelt einen frisch gepullten Film nicht faelschlich fuer offen', () => {
+    createMovie(db, { title: 'Vom Server', remote_id: 47, is_watched: 1, updated_at: '2024-01-01T00:00:00.000Z' })
+
+    const row = db.prepare('SELECT * FROM movies WHERE remote_id = 47').get() as any
+    expect(row.is_watched).toBe(1)
+    expect(row.synced_watched).toBe(1)
+  })
+
+  it('laesst synced_watched bei rein lokalen Filmen offen', () => {
+    createMovie(db, { title: 'Nur hier', is_watched: 1 })
+
+    const row = db.prepare('SELECT * FROM movies WHERE title = ?').get('Nur hier') as any
+    expect(row.synced_watched).toBeNull()
   })
 
   it('merged lokalen Film mit gleichem tmdb_id beim ersten Sync', () => {
