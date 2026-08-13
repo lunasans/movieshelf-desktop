@@ -263,6 +263,7 @@ const en = {
       collectionType: 'Type',
       tag: 'Format',
       trailer: 'Trailer',
+      watched: 'Watched',
       seasons: 'Seasons',
     },
     phases: {

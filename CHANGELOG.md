@@ -1,3 +1,16 @@
+## [0.25.5] - 2026-08-13
+
+### Behoben
+
+- **Der in der Shelf gesetzte Gesehen-Stand kam nie hier an.** Die Gegenrichtung funktionierte seit 0.25.4, der Rückweg nicht: Die Übernahme hing an einem Zeitvergleich zwischen dem lokalen Änderungsdatum und dem der Shelf. Wer hier einen Film umschaltet, setzt damit das lokale Datum auf jetzt - liegt es danach vor dem der Shelf, war deren Stand für genau diesen Film dauerhaft ausgesperrt, auch beim Vollabgleich. Der Schutz davor, eine noch nicht übertragene Markierung zu überschreiben, kommt jetzt allein aus dem gemerkten Stand der letzten Übertragung. Der trägt die Aussage "steht noch aus" ohnehin genau; stimmt er mit dem lokalen Wert überein, gibt es hier nichts zu schützen und die Shelf gibt den Ton an. Die Android-App handhabt es seit jeher so.
+- **Die Abgleich-Vorschau verschwieg Gesehen-Änderungen.** Sie vergleicht eine feste Liste von Feldern, und "gesehen" war keines davon. Ein Film, an dem sich nur der Gesehen-Stand geändert hatte, erschien deshalb als "keine Änderung" - obwohl der Abgleich ihn sehr wohl übernommen hätte. Die Vorschau meldete "nichts zu tun", während etwas anstand.
+
+### Intern
+
+- **Toter Pfad für die Gegenrichtung entfernt.** `applyWatchedFromServer()` war seit 0.25.4 vorhanden, aber nie verdrahtet - weder als IPC-Kanal noch als Aufruf. Der Pull läuft vollständig über das Einspielen des Films; ein zweiter Weg für dieselbe Sache hätte nur die Frage aufgeworfen, welcher von beiden gilt.
+
+---
+
 ## [0.25.4] - 2026-08-12
 
 ### Behoben
