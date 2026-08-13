@@ -275,20 +275,13 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
       'UPDATE movies SET is_boxset = ?, boxset_parent_id = ?, boxset_parent_remote_id = ?, view_count = ?, created_at = COALESCE(?, created_at) WHERE remote_id = ? AND updated_at <= ?'
     ).run(data.is_boxset ?? 0, data.boxset_parent_id ?? null, data.boxset_parent_remote_id ?? null, data.view_count ?? 0, data.created_at ?? null, data.remote_id, data.updated_at || now)
 
-    // "Gesehen" eigens, und bewusst OHNE Zeitvergleich: der Schutz kommt allein
-    // aus synced_watched. Weicht es von is_watched ab, wartet die Markierung
-    // noch auf ihre Übertragung und darf nicht überschrieben werden; stimmen
-    // beide überein, gibt es lokal nichts zu schützen.
-    //
-    // Ein "updated_at <= ?" waere hier falsch: Umschalten setzt lokal die Zeit
-    // auf jetzt, die Shelf fuehrt ihre eigene. Liegt die lokale danach vorn,
-    // bliebe der Serverstand fuer diesen Film dauerhaft ausgesperrt - der Grund,
-    // warum "gesehen" aus der Shelf nie in der App ankam.
+    // "Gesehen" eigens, mit eigener Bedingung: eine offene Markierung darf der
+    // Pull nicht überschreiben, sie wartet noch auf ihre Übertragung.
     db.prepare(`
       UPDATE movies SET is_watched = ?, synced_watched = ?
-      WHERE remote_id = ?
+      WHERE remote_id = ? AND updated_at <= ?
         AND COALESCE(is_watched, 0) IS COALESCE(synced_watched, 0)
-    `).run(data.is_watched ?? 0, data.is_watched ?? 0, data.remote_id)
+    `).run(data.is_watched ?? 0, data.is_watched ?? 0, data.remote_id, data.updated_at || now)
     return db.prepare('SELECT * FROM movies WHERE remote_id = ?').get(data.remote_id)
   }
   return db.prepare('SELECT * FROM movies WHERE id = ?').get(result.lastInsertRowid)

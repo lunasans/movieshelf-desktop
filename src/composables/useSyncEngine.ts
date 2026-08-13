@@ -55,14 +55,6 @@ const FIELD_LABELS: Record<string, string> = {
   trailer_url: 'sync.fields.trailer',
 }
 
-// "Gesehen" liegt als 0/1 lokal und als true/false im Export - ein reiner
-// String-Vergleich wie bei den Feldern oben meldete deshalb dauerhaft einen
-// Unterschied. Fehlte es dagegen ganz, sah ein Film, bei dem sich nur der
-// Gesehen-Stand geaendert hat, in der Vorschau nach "keine Aenderung" aus.
-function watchedDiffers(remote: any, local: any): boolean {
-  return Boolean(remote.is_watched) !== Boolean(local.is_watched)
-}
-
 export function useSyncEngine() {
   const { apiGet, apiPost, apiPut, apiDelete, resolveMediaUrl } = useApi()
   const settings = useSettingsStore()
@@ -192,7 +184,6 @@ export function useSyncEngine() {
           for (const [field, label] of Object.entries(FIELD_LABELS)) {
             if (String(movie[field] ?? null) !== String((local as any)[field] ?? null)) changed.push(t(label))
           }
-          if (watchedDiffers(movie, local)) changed.push(t('sync.fields.watched'))
           if (movie.collection_type === 'Serie' && await seasonsDiffer((local as any).id, movie.seasons)) {
             changed.push(t('sync.fields.seasons'))
           }

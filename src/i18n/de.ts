@@ -262,7 +262,6 @@ const de = {
       collectionType: 'Typ',
       tag: 'Format',
       trailer: 'Trailer',
-      watched: 'Gesehen',
       seasons: 'Staffeln',
     },
     phases: {
