@@ -1,13 +1,11 @@
 import { ref, computed } from 'vue'
-import axios from 'axios'
 import { t } from '@/i18n'
 import { useApi } from '@/composables/useApi'
+import { useTmdb } from '@/composables/useTmdb'
 import { useSeasonImport } from '@/composables/useSeasonImport'
 import { useSettingsStore } from '@/stores/settings'
 import { useListStore } from '@/stores/lists'
 import { useMovieStore } from '@/stores/movies'
-
-const TMDB_BASE = 'https://api.themoviedb.org/3'
 
 export interface TmdbResult {
   id: number
@@ -29,7 +27,8 @@ export function useTmdbSearch() {
   const settings   = useSettingsStore()
   const listStore  = useListStore()
   const movieStore = useMovieStore()
-  const { apiGet, isOnline } = useApi()
+  const { isOnline } = useApi()
+  const tmdb = useTmdb()
   const { mapSeasons, fetchTvSeasons, importSeasonsLocally } = useSeasonImport()
 
   const query              = ref('')
@@ -107,10 +106,8 @@ export function useTmdbSearch() {
     importedIds.value = new Set()
     try {
       if (searchMode.value === 'tv') {
-        // TV search always goes directly to TMDb (server API only supports movies)
-        const { data } = await axios.get(`${TMDB_BASE}/search/tv`, {
-          params: { api_key: settings.tmdbApiKey, query: query.value, language: settings.tmdbLanguage }
-        })
+        const data = await tmdb.search('tv', query.value)
+        // TMDb nennt die Felder bei Serien anders als bei Filmen.
         results.value = (data.results ?? []).map((r: any) => ({
           id: r.id,
           title: r.name,
@@ -118,13 +115,8 @@ export function useTmdbSearch() {
           release_date: r.first_air_date ?? '',
           media_type: 'tv' as const,
         }))
-      } else if (isOnline.value) {
-        const data = await apiGet('/tmdb/search', { query: query.value })
-        results.value = data.results ?? []
       } else {
-        const { data } = await axios.get(`${TMDB_BASE}/search/movie`, {
-          params: { api_key: settings.tmdbApiKey, query: query.value, language: settings.tmdbLanguage }
-        })
+        const data = await tmdb.search('movie', query.value)
         results.value = data.results ?? []
       }
       if (results.value.length > 0) {
@@ -148,7 +140,10 @@ export function useTmdbSearch() {
 
     const isTv = result.media_type === 'tv' || searchMode.value === 'tv'
 
-    if (!settings.tmdbApiKey) {
+    // Ohne Shelf und ohne eigenen Schlüssel bleibt nur, was die Trefferliste
+    // schon hergibt: Titel, Jahr und Poster. Details, Besetzung und Trailer
+    // fehlen dann.
+    if (!tmdb.canQuery()) {
       previewForm.value = {
         title: result.title,
         year: result.release_date ? parseInt(result.release_date.slice(0, 4)) : null,
@@ -165,10 +160,7 @@ export function useTmdbSearch() {
     previewLoading.value = true
     try {
       if (isTv) {
-        const detailRes = await axios.get(`${TMDB_BASE}/tv/${result.id}`, {
-          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits,videos,content_ratings' }
-        })
-        const m = detailRes.data
+        const m = await tmdb.details('tv', result.id)
         const creator = (m.created_by ?? [])[0]?.name ?? ''
 
         seriesForm.value = {
@@ -197,11 +189,7 @@ export function useTmdbSearch() {
         selectedSeasons.value = []
 
       } else {
-        // Wie die Shelf: ein Detail-Request mit videos + release_dates (FSK)
-        const detailRes = await axios.get(`${TMDB_BASE}/movie/${result.id}`, {
-          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits,videos,release_dates' }
-        })
-        const m        = detailRes.data
+        const m        = await tmdb.details('movie', result.id)
         const director = (m.credits?.crew ?? []).find((c: any) => c.job === 'Director')?.name ?? ''
         previewForm.value = {
           title:           m.title,
@@ -290,7 +278,7 @@ export function useTmdbSearch() {
 
       // Falls der Typ im Formular auf "Serie" umgestellt wurde: alle Staffeln
       // nachladen (der eigene Serien-Flow läuft über confirmSeriesImport).
-      if (previewForm.value.collection_type === 'Serie' && previewForm.value.tmdb_id && settings.tmdbApiKey) {
+      if (previewForm.value.collection_type === 'Serie' && previewForm.value.tmdb_id && tmdb.canQuery()) {
         await importSeasons(movie.id, previewForm.value.tmdb_id)
       }
 
