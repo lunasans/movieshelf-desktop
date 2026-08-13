@@ -110,6 +110,43 @@ describe('createMovie', () => {
     expect(row.view_count).toBe(3)
   })
 
+  // Regression: der Gesehen-Stand aus der Shelf kam nie an. Umschalten setzt
+  // lokal updated_at auf jetzt; lag die lokale Zeit danach vor der des Servers,
+  // sperrte ein Zeitvergleich den Serverstand fuer diesen Film dauerhaft aus.
+  it('übernimmt "gesehen" vom Server auch bei lokal neuerem updated_at', () => {
+    createMovie(db, { title: 'Alt', remote_id: 44, is_watched: 0, updated_at: '2024-01-01T00:00:00.000Z' })
+    db.prepare('UPDATE movies SET synced_watched = 0, updated_at = ? WHERE remote_id = 44')
+      .run('2024-12-31T23:59:59.000Z')
+
+    createMovie(db, { title: 'Server', remote_id: 44, is_watched: 1, updated_at: '2024-06-01T00:00:00.000Z' })
+
+    const row = db.prepare('SELECT * FROM movies WHERE remote_id = 44').get() as any
+    expect(row.is_watched).toBe(1)
+    expect(row.synced_watched).toBe(1)
+  })
+
+  it('übernimmt die Rücknahme in der Shelf', () => {
+    createMovie(db, { title: 'Gesehen', remote_id: 45, is_watched: 1, updated_at: '2024-01-01T00:00:00.000Z' })
+    db.prepare('UPDATE movies SET synced_watched = 1 WHERE remote_id = 45').run()
+
+    createMovie(db, { title: 'Gesehen', remote_id: 45, is_watched: 0, updated_at: '2024-06-01T00:00:00.000Z' })
+
+    const row = db.prepare('SELECT * FROM movies WHERE remote_id = 45').get() as any
+    expect(row.is_watched).toBe(0)
+    expect(row.synced_watched).toBe(0)
+  })
+
+  it('laesst eine noch nicht uebertragene Markierung unangetastet', () => {
+    createMovie(db, { title: 'Lokal markiert', remote_id: 46, is_watched: 1, updated_at: '2024-01-01T00:00:00.000Z' })
+    db.prepare('UPDATE movies SET synced_watched = 0 WHERE remote_id = 46').run()
+
+    createMovie(db, { title: 'Lokal markiert', remote_id: 46, is_watched: 0, updated_at: '2024-06-01T00:00:00.000Z' })
+
+    const row = db.prepare('SELECT * FROM movies WHERE remote_id = 46').get() as any
+    expect(row.is_watched).toBe(1)
+    expect(row.synced_watched).toBe(0)
+  })
+
   it('merged lokalen Film mit gleichem tmdb_id beim ersten Sync', () => {
     const local = createMovie(db, { title: 'Lokal', tmdb_id: 99 }) as any
     createMovie(db, { title: 'Vom Server', tmdb_id: 99, remote_id: 10 })

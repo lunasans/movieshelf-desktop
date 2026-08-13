@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type Database from 'better-sqlite3'
 import { createTestDb, insertMovie } from './testDb'
-import { getDirtyMovies, markSynced, hardDelete, getPendingWatched, markWatchedSynced, applyWatchedFromServer } from '../sync'
+import { getDirtyMovies, markSynced, hardDelete, getPendingWatched, markWatchedSynced } from '../sync'
 import { toggleWatched } from '../movies'
 
 let db: Database.Database
@@ -118,18 +118,5 @@ describe('getPendingWatched', () => {
 
     const titel = getPendingWatched(db).map(r => r.title).sort()
     expect(titel).toEqual(['Rocky', 'Rocky II'])
-  })
-})
-
-describe('applyWatchedFromServer', () => {
-  it('setzt beide Werte gleich - danach steht nichts aus', () => {
-    const id = insertMovie(db, { title: 'Arrival', remote_id: 10 })
-
-    applyWatchedFromServer(db, id, true)
-
-    const movie = db.prepare('SELECT * FROM movies WHERE id = ?').get(id) as any
-    expect(movie.is_watched).toBe(1)
-    expect(movie.synced_watched).toBe(1)
-    expect(getPendingWatched(db)).toHaveLength(0)
   })
 })
