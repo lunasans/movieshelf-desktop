@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import type Database from 'better-sqlite3'
 import { createTestDb, insertMovie } from './testDb'
 import {
-  listMovies, countMovies, recentMovies, createMovie, updateMovie,
+  listMovies, countMovies, recentMovies, featuredMovies, createMovie, updateMovie,
   deleteMovie, searchMovies, checkTmdbIds, deleteMovieByRemoteId, allRemoteIds,
   getMovie, getMovieByRemoteId, getMovieChildren, resolveBoxsetParents, clearMovies,
   randomMovie, toggleWatched, applyBoxsetWatched, bulkDelete, bulkUpdateTag, importMovies,
@@ -69,6 +69,53 @@ describe('recentMovies', () => {
 
     const result = recentMovies(db, 1) as any[]
     expect(result[0].title).toBe('Neu')
+  })
+})
+
+describe('featuredMovies', () => {
+  it('nimmt nur Filme mit Hintergrundbild', () => {
+    insertMovie(db, { title: 'Mit Backdrop', backdrop_path: 'bd.jpg' })
+    insertMovie(db, { title: 'Ohne Backdrop' })
+
+    const result = featuredMovies(db, 5) as any[]
+    expect(result).toHaveLength(1)
+    expect(result[0].title).toBe('Mit Backdrop')
+  })
+
+  it('behandelt einen leeren Backdrop-Pfad wie keinen', () => {
+    insertMovie(db, { title: 'Leer', backdrop_path: '' })
+    insertMovie(db, { title: 'Echt', backdrop_path: 'bd.jpg' })
+
+    const result = featuredMovies(db, 5) as any[]
+    expect(result.map(m => m.title)).toEqual(['Echt'])
+  })
+
+  it('lässt gelöschte, fremde und in Boxsets enthaltene Filme aus', () => {
+    insertMovie(db, { title: 'Sichtbar', backdrop_path: 'a.jpg' })
+    insertMovie(db, { title: 'Gelöscht', backdrop_path: 'b.jpg', is_deleted: 1 })
+    insertMovie(db, { title: 'Nicht in Sammlung', backdrop_path: 'c.jpg', in_collection: 0 })
+    insertMovie(db, { title: 'Im Boxset', backdrop_path: 'd.jpg', boxset_parent_id: 1 })
+
+    const result = featuredMovies(db, 10) as any[]
+    expect(result.map(m => m.title)).toEqual(['Sichtbar'])
+  })
+
+  it('hält die Obergrenze ein', () => {
+    for (let i = 0; i < 8; i++) insertMovie(db, { title: `F${i}`, backdrop_path: `${i}.jpg` })
+
+    expect((featuredMovies(db, 5) as any[])).toHaveLength(5)
+  })
+
+  it('fällt ohne Backdrops auf die neuesten Filme zurück', () => {
+    insertMovie(db, { title: 'Alt', created_at: '2020-01-01T00:00:00.000Z', updated_at: '2020-01-01T00:00:00.000Z' })
+    insertMovie(db, { title: 'Neu', created_at: '2024-01-01T00:00:00.000Z', updated_at: '2024-01-01T00:00:00.000Z' })
+
+    const result = featuredMovies(db, 1) as any[]
+    expect(result[0].title).toBe('Neu')
+  })
+
+  it('gibt eine leere Liste zurück, wenn die Sammlung leer ist', () => {
+    expect(featuredMovies(db, 5)).toEqual([])
   })
 })
 

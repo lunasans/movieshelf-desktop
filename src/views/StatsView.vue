@@ -1,17 +1,21 @@
 <template>
-  <div class="flex flex-col h-screen bg-[var(--bg-app)]">
+  <!-- Im eigenen Fenster trägt die Ansicht Fensterrahmen und volle Höhe selbst.
+       In der App liegt sie wie jede andere Seite durchsichtig auf dem Verlauf des
+       Bodys — eine deckende bg-app-Fläche würde das Theme des Hintergrunds
+       verdecken und die Seite wie herausgeschnitten wirken lassen. -->
+  <div :class="isPopup ? 'flex flex-col h-screen bg-[var(--bg-app)]' : 'flex flex-col min-h-full'">
 
-    <!-- Titlebar with Tab Navigation -->
+    <!-- Kopfzeile: im Fenster als Titelleiste zum Ziehen, in der App als
+         normale Reiterzeile mit Seitentitel. -->
     <div
-      class="flex items-center h-11 px-4 bg-[var(--bg-sidebar)] border-b border-[var(--border-ui)] select-none flex-shrink-0 gap-4"
+      v-if="isPopup"
+      class="flex items-center h-11 px-4 glass border-x-0 border-t-0 select-none flex-shrink-0 gap-4"
       style="-webkit-app-region: drag"
     >
-      <!-- Logo -->
       <div class="flex items-center gap-2 flex-shrink-0" style="-webkit-app-region: no-drag">
         <img src="/logo_small.png" alt="MovieShelf" class="h-4 w-auto opacity-50" />
       </div>
 
-      <!-- Tabs -->
       <div class="flex items-center gap-1 flex-1" style="-webkit-app-region: no-drag">
         <button
           v-for="tab in tabs"
@@ -20,17 +24,35 @@
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all"
           :class="activeTab === tab.id
             ? 'bg-red-600/10 text-red-500 border border-red-500/20'
-            : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-ui)] border border-transparent'"
+            : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/10 border border-transparent'"
         >
           <i :class="`bi bi-${tab.icon} text-xs`"></i>
           {{ tab.label }}
         </button>
       </div>
 
-      <!-- Close -->
       <div style="-webkit-app-region: no-drag">
         <button @click="close" class="w-8 h-8 rounded-lg hover:bg-red-500/80 flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors">
           <i class="bi bi-x-lg text-sm"></i>
+        </button>
+      </div>
+    </div>
+
+    <div v-else class="flex items-center justify-between gap-4 px-8 pt-8 pb-6 flex-shrink-0">
+      <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight">{{ $t('nav.stats') }}</h1>
+
+      <div class="flex items-center gap-1">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          @click="activeTab = tab.id"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all"
+          :class="activeTab === tab.id
+            ? 'bg-red-600/10 text-red-500 border border-red-500/20'
+            : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/10 border border-transparent'"
+        >
+          <i :class="`bi bi-${tab.icon} text-xs`"></i>
+          {{ tab.label }}
         </button>
       </div>
     </div>
@@ -57,7 +79,9 @@
       <p class="text-xs text-[var(--text-muted)] opacity-50 max-w-xs">{{ $t('stats.emptyHint') }}</p>
     </div>
 
-    <div v-else-if="stats" class="flex-1 overflow-y-auto">
+    <!-- Nur im eigenen Fenster scrollt die Ansicht selbst; in der App übernimmt
+         das <main>, sonst entstünden zwei Bildlaufleisten ineinander. -->
+    <div v-else-if="stats" :class="isPopup ? 'flex-1 overflow-y-auto' : 'flex-1'">
 
       <!-- Tab: Übersicht -->
       <div v-if="activeTab === 'overview'" class="p-8 space-y-6">
@@ -259,6 +283,10 @@ import { useI18n } from 'vue-i18n'
 import StatCard from '@/components/ui/StatCard.vue'
 
 const { t } = useI18n()
+
+// Gleiche Erkennung wie in App.vue: die Ansicht läuft entweder in einem eigenen
+// Fenster (stats:open-window) oder als Seite in der App.
+const isPopup = new URLSearchParams(window.location.search).get('popup') === '1'
 
 type Stats = Awaited<ReturnType<typeof window.electron.stats.get>>
 

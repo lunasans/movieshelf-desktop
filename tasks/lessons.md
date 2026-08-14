@@ -114,3 +114,19 @@ Für Build-Jobs (native Linux/Windows Runner) bleibt `npm ci --omit=optional`.
 `vite-plugin-electron` hinkt beim Vite-Versionssupport oft hinterher.
 Beim Upgrade immer zuerst Vite 6 testen (nicht direkt auf 8 springen).
 Erst wenn build + dev-Start grün sind → nächste Major-Version versuchen.
+
+## Renderer-Typ ist nicht das DB-Schema
+`Movie` in `src/stores/movies.ts` führt `backdrop_url`/`cover_url` als optionale
+Felder — die kommen aus der Online-API und existieren in SQLite **nicht**. Eine
+Abfrage darauf stirbt mit `no such column`. Für Handler immer `electron/database.ts`
+als Quelle nehmen, nicht das Renderer-Interface.
+
+## Ein Fehler in einer Zusatzabfrage darf nicht die ganze Ansicht leeren
+Der Hero wurde zusammen mit Filmliste und Kennzahlen in einem `Promise.all` geladen.
+Als seine Abfrage warf, blieb das komplette Dashboard leer. Beiwerk gehört in einen
+eigenen `try`, damit ein Fehler dort nur das Beiwerk kostet.
+
+## Test-Helfer schlucken Spalten, die nicht in der INSERT-Liste stehen
+`insertMovie` in `testDb.ts` führt die Spalten einzeln auf. Ein Override für eine
+Spalte, die dort fehlt (`backdrop_path`), wird stillschweigend ignoriert — der Test
+prüft dann etwas anderes als gedacht und schlägt scheinbar wegen der Abfrage fehl.
