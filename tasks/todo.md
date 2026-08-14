@@ -250,3 +250,43 @@ Entspricht `duplicates()` im MovieController der Shelf, dort über Titel und Jah
 
 - `npm run build` grün, `npm test` grün (220)
 - Gegen die echte Sammlung laufen lassen und in den Einstellungen angesehen
+
+---
+
+# Episoden- und Staffel-Tracking
+
+Die größte Datenlücke gegenüber der Shelf: die hat
+`episodes.watched.toggle` und `seasons.watched.toggle`, die `episodes`-Tabelle
+des Desktops hatte **gar keine** `is_watched`-Spalte. Staffeln und Folgen wurden
+importiert, ein Fortschritt liess sich aber nicht festhalten — und konnte damit
+auch nicht zurück in die Shelf laufen.
+
+- [x] Spalte `is_watched INTEGER DEFAULT 0` auf `episodes` (additive Migration)
+- [x] `toggleEpisodeWatched()` — eine Folge umschalten
+- [x] `setSeasonWatched()` — ganze Staffel. Ohne ausdrückliches Ziel wird
+      umgeschaltet: eine vollständig gesehene Staffel wird zurückgesetzt, jede
+      andere komplett markiert. **Halb geschaut gilt als ungesehen** — der Klick
+      soll fertig markieren, nicht das Erreichte verwerfen
+- [x] `getSeasonsForMovie()` liefert `watched_count` je Staffel mit; die
+      Oberfläche müsste es sonst selbst zusammenzählen
+- [x] Detailansicht: Häkchen je Folge, Fortschritt „3/8" statt blosser
+      Folgenzahl, Knopf zum Markieren der ganzen Staffel
+- [x] Eine Staffel gilt erst als gesehen, wenn **jede** Folge markiert ist —
+      dieselbe strenge Regel wie bei Boxsets in `applyBoxsetWatched`
+- [x] 15 Tests
+
+Die „Weiterschauen"-Reihe im Dashboard wäre damit möglich, ist auf Wunsch des
+Nutzers aber ausdrücklich nicht Teil dieser Arbeit.
+
+## Offen
+
+- Der Abgleich mit der Shelf überträgt den Folgenstand noch nicht. Die Spalte
+  ist da, die Sync-Anbindung wäre ein eigener Schritt.
+
+### Beim Testen gefunden
+
+- **Die Migration stand vor der Tabelle.** `ALTER TABLE episodes` lag im Block
+  der `movies`-Migrationen — dort gibt es `episodes` noch gar nicht. Der Befehl
+  warf, das leere `catch` verschluckte es, und auf einer frischen Datenbank
+  fehlte die Spalte stillschweigend. Bestehende Installationen hätten sie erst
+  beim zweiten Start bekommen. Jetzt steht sie nach der `CREATE TABLE`.

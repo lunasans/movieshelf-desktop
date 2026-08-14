@@ -186,6 +186,8 @@ const en = {
     noSeasonChanges: 'No changes',
     removeSeasonsWarning: 'Warning: removing also deletes all episodes of the unchecked season(s).',
     episodeFallback: 'Episode {number}',
+    toggleEpisodeWatched: 'Mark episode as watched',
+    toggleSeasonWatched: 'Mark whole season',
     noEpisodes: 'No episodes available.',
     editMovie: 'Edit movie',
     lists: 'Lists',

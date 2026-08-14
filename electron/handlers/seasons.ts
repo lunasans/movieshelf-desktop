@@ -11,9 +11,54 @@ export function getSeasonsForMovie(db: Database.Database, movieId: number) {
     season.episodes = db.prepare(
       'SELECT * FROM episodes WHERE season_id = ? ORDER BY episode_number ASC'
     ).all(season.id)
+    // Fortschritt gleich mitliefern — die Oberfläche braucht ihn für jede
+    // Staffelzeile und müsste ihn sonst selbst zusammenzählen.
+    season.watched_count = season.episodes.filter((e: any) => e.is_watched === 1).length
   }
 
   return seasons
+}
+
+/**
+ * Gesehen-Stand einer Folge umschalten — entspricht `episodes.watched.toggle`
+ * der Shelf.
+ */
+export function toggleEpisodeWatched(db: Database.Database, id: number): { is_watched: boolean } {
+  const vorher = db.prepare('SELECT is_watched FROM episodes WHERE id = ?').get(id) as
+    { is_watched: number | null } | undefined
+  if (!vorher) return { is_watched: false }
+
+  const ziel = vorher.is_watched === 1 ? 0 : 1
+  db.prepare('UPDATE episodes SET is_watched = ?, updated_at = ? WHERE id = ?')
+    .run(ziel, new Date().toISOString(), id)
+
+  return { is_watched: ziel === 1 }
+}
+
+/**
+ * Ganze Staffel markieren — entspricht `seasons.watched.toggle` der Shelf.
+ *
+ * Ohne ausdrückliches Ziel wird umgeschaltet: eine vollständig gesehene
+ * Staffel wird zurückgesetzt, jede andere komplett markiert. Eine halb
+ * geschaute Staffel gilt dabei als ungesehen — der Klick soll sie fertig
+ * markieren, nicht das Erreichte verwerfen.
+ */
+export function setSeasonWatched(
+  db: Database.Database,
+  seasonId: number,
+  watched?: boolean,
+): { is_watched: boolean; count: number } {
+  const folgen = db.prepare('SELECT id, is_watched FROM episodes WHERE season_id = ?')
+    .all(seasonId) as { id: number; is_watched: number | null }[]
+  if (folgen.length === 0) return { is_watched: false, count: 0 }
+
+  const alleGesehen = folgen.every(f => f.is_watched === 1)
+  const ziel = (watched ?? !alleGesehen) ? 1 : 0
+
+  db.prepare('UPDATE episodes SET is_watched = ?, updated_at = ? WHERE season_id = ?')
+    .run(ziel, new Date().toISOString(), seasonId)
+
+  return { is_watched: ziel === 1, count: ziel === 1 ? folgen.length : 0 }
 }
 
 export function upsertSeason(db: Database.Database, data: Record<string, unknown>): number | undefined {
@@ -150,4 +195,6 @@ export function registerSeasonHandlers(): void {
   ipcMain.handle('db:seasons:remove',   (_event, movieId: number, seasonNumbers: number[]) => removeSeasonsByNumbers(db(), movieId, seasonNumbers))
   ipcMain.handle('db:seasons:pruneRemote', (_event, movieId: number, keepRemoteIds: number[]) => pruneSeasonsMissingRemote(db(), movieId, keepRemoteIds))
   ipcMain.handle('db:episodes:upsert',  (_event, data) => upsertEpisode(db(), data))
+  ipcMain.handle('db:episodes:toggle-watched', (_event, id: number) => toggleEpisodeWatched(db(), id))
+  ipcMain.handle('db:seasons:set-watched',     (_event, seasonId: number, watched?: boolean) => setSeasonWatched(db(), seasonId, watched))
 }

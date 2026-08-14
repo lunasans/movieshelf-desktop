@@ -240,6 +240,15 @@ function runMigrations(instance: Database.Database = db): void {
     instance.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_episodes_season_ep ON episodes(season_id, episode_number)')
   } catch (e) {}
 
+  // Gesehen-Stand je Folge. Die Shelf führt ihn über episodes.watched.toggle;
+  // der Desktop importierte Staffeln und Folgen bisher, konnte aber keinen
+  // Fortschritt festhalten.
+  //
+  // Muss NACH der Tabelle stehen: weiter oben bei den movies-Migrationen gibt es
+  // `episodes` noch nicht, der ALTER wirft dort und das leere catch verschluckt
+  // es — auf einer frischen Datenbank fehlte die Spalte damit stillschweigend.
+  try { instance.exec('ALTER TABLE episodes ADD COLUMN is_watched INTEGER DEFAULT 0') } catch (e) {}
+
   // ── Datenmodell-Split: externe Filme (nicht in Sammlung) + polymorpher Listen-Pivot ──
   instance.exec(`
     CREATE TABLE IF NOT EXISTS external_movies (

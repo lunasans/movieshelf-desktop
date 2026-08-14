@@ -138,9 +138,11 @@ interface Window {
         upsert:   (data: Record<string, unknown>) => Promise<number | undefined>
         remove:   (movieId: number, seasonNumbers: number[]) => Promise<number>
         pruneRemote: (movieId: number, keepRemoteIds: number[]) => Promise<number>
+        setWatched: (seasonId: number, watched?: boolean) => Promise<{ is_watched: boolean; count: number }>
       }
       episodes: {
         upsert: (data: Record<string, unknown>) => Promise<void>
+        toggleWatched: (id: number) => Promise<{ is_watched: boolean }>
       }
       lists: {
         list:            () => Promise<unknown[]>
