@@ -112,7 +112,7 @@ describe('createMovie', () => {
 
   // Regression: der Gesehen-Stand aus der Shelf kam nie an. Umschalten setzt
   // lokal updated_at auf jetzt; lag die lokale Zeit danach vor der des Servers,
-  // sperrte ein Zeitvergleich den Serverstand fuer diesen Film dauerhaft aus.
+  // sperrte ein Zeitvergleich den Serverstand für diesen Film dauerhaft aus.
   it('übernimmt "gesehen" vom Server auch bei lokal neuerem updated_at', () => {
     createMovie(db, { title: 'Alt', remote_id: 44, is_watched: 0, updated_at: '2024-01-01T00:00:00.000Z' })
     db.prepare('UPDATE movies SET synced_watched = 0, updated_at = ? WHERE remote_id = 44')
@@ -136,7 +136,7 @@ describe('createMovie', () => {
     expect(row.synced_watched).toBe(0)
   })
 
-  it('laesst eine noch nicht uebertragene Markierung unangetastet', () => {
+  it('lässt eine noch nicht übertragene Markierung unangetastet', () => {
     createMovie(db, { title: 'Lokal markiert', remote_id: 46, is_watched: 1, updated_at: '2024-01-01T00:00:00.000Z' })
     db.prepare('UPDATE movies SET synced_watched = 0 WHERE remote_id = 46').run()
 
@@ -306,7 +306,7 @@ describe('getMovieChildren', () => {
 })
 
 describe('resolveBoxsetParents', () => {
-  it('uebersetzt die Server-ID des Boxsets in die lokale id', () => {
+  it('übersetzt die Server-ID des Boxsets in die lokale id', () => {
     const boxset = insertMovie(db, { title: 'Boxset', is_boxset: 1, remote_id: 500 })
     const kind = insertMovie(db, { title: 'Kind', remote_id: 501, boxset_parent_remote_id: 500 })
 
@@ -330,7 +330,7 @@ describe('resolveBoxsetParents', () => {
     expect((getMovie(db, kind) as any).boxset_parent_id).toBeNull()
   })
 
-  it('laesst rein lokale Filme unberuehrt', () => {
+  it('lässt rein lokale Filme unberührt', () => {
     const boxset = insertMovie(db, { title: 'Lokales Boxset', is_boxset: 1 })
     const kind = insertMovie(db, { title: 'Lokales Kind', boxset_parent_id: boxset })
 
@@ -464,12 +464,12 @@ describe('toggleWatched', () => {
       (db.prepare('SELECT is_watched FROM movies WHERE id = ?').get(id) as any).is_watched
     expect(stand(teil1)).toBe(1)
     expect(stand(teil2)).toBe(1)
-    // Der eigene Stand der Huelle bleibt unberuehrt - er waere eine zweite
+    // Der eigene Stand der Hülle bleibt unberührt - er wäre eine zweite
     // Wahrheit neben der Ableitung.
     expect(stand(boxset)).toBe(0)
   })
 
-  it('nimmt bei einem vollstaendig gesehenen Boxset alle Teile zurueck', () => {
+  it('nimmt bei einem vollständig gesehenen Boxset alle Teile zurück', () => {
     const boxset = insertMovie(db, { title: 'Rocky Collection', is_boxset: 1 })
     const teil1  = insertMovie(db, { title: 'Rocky', boxset_parent_id: boxset, is_watched: 1 })
     const teil2  = insertMovie(db, { title: 'Rocky II', boxset_parent_id: boxset, is_watched: 1 })
@@ -509,7 +509,7 @@ describe('applyBoxsetWatched', () => {
     expect(row.is_watched).toBe(0)
   })
 
-  it('einen gewoehnlichen Film laesst sie unangetastet', () => {
+  it('einen gewöhnlichen Film lässt sie unangetastet', () => {
     const id = insertMovie(db, { title: 'Arrival', is_watched: 1 })
 
     const [row] = applyBoxsetWatched(db, [{ id, is_boxset: 0, is_watched: 1 }])

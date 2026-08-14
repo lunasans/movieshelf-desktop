@@ -19,8 +19,8 @@
               @click="mode = 'local'"
               class="flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
               :class="mode === 'local'
-                ? 'bg-[var(--status-red)] text-white'
-                : 'bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/40'"
+                ? 'bg-red-600 text-white'
+                : 'glass text-[var(--text-muted)] hover:border-red-500/40'"
             >
               <i class="bi bi-database mr-1.5"></i>{{ $t('actorPicker.local') }}
             </button>
@@ -28,8 +28,8 @@
               @click="mode = 'tmdb'"
               class="flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
               :class="mode === 'tmdb'
-                ? 'bg-[var(--status-red)] text-white'
-                : 'bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/40'"
+                ? 'bg-red-600 text-white'
+                : 'glass text-[var(--text-muted)] hover:border-red-500/40'"
             >
               <i class="bi bi-stars mr-1.5"></i>TMDb
             </button>
@@ -42,14 +42,14 @@
               @input="onQueryInput"
               type="text"
               :placeholder="mode === 'tmdb' ? $t('actorPicker.searchTmdbPlaceholder') : $t('actorPicker.searchLocalPlaceholder')"
-              class="w-full bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors"
+              class="w-full glass rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-colors"
             />
           </div>
 
           <!-- Results list -->
           <div class="overflow-y-auto flex-1 px-6 pb-3">
             <div v-if="searchLoading" class="flex justify-center py-8">
-              <div class="w-6 h-6 border-2 border-[var(--status-red)] border-t-transparent rounded-full animate-spin"></div>
+              <div class="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
 
             <div v-else-if="results.length === 0 && query.trim().length >= 2"
@@ -73,7 +73,7 @@
                   <p class="text-sm font-bold text-[var(--text-main)] truncate">{{ actor.name }}</p>
                   <p v-if="actor.known_for" class="text-xs text-[var(--text-muted)] opacity-50 truncate">{{ actor.known_for }}</p>
                 </div>
-                <i v-if="selected?.id === actor.id" class="bi bi-check-circle-fill text-[var(--status-red)] flex-shrink-0"></i>
+                <i v-if="selected?.id === actor.id" class="bi bi-check-circle-fill text-red-500 flex-shrink-0"></i>
               </button>
             </div>
           </div>
@@ -113,7 +113,7 @@
             </button>
             <button
               @click="emit('close')"
-              class="px-6 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
+              class="px-6 bg-white/5 hover:bg-white/10 border border-white/10 text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
             >
               {{ $t('common.cancel') }}
             </button>
@@ -265,6 +265,6 @@ async function confirm() {
   @apply block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60;
 }
 .picker-input {
-  @apply w-full bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors;
+  @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-colors;
 }
 </style>

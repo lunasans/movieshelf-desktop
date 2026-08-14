@@ -15,7 +15,7 @@
       <div class="flex-shrink-0">
         <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-2">Cover</p>
         <div
-          class="relative w-28 rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] aspect-[2/3] cursor-pointer group"
+          class="relative w-28 rounded-xl overflow-hidden glass aspect-[2/3] cursor-pointer group"
           @click="coverInput?.click()"
           :title="$t('movieForm.uploadCover')"
         >
@@ -35,7 +35,7 @@
       <div class="flex-1 min-w-0">
         <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-2">Backdrop</p>
         <div
-          class="relative w-full rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] aspect-video cursor-pointer group"
+          class="relative w-full rounded-xl overflow-hidden glass aspect-video cursor-pointer group"
           @click="backdropInput?.click()"
           :title="$t('movieForm.uploadBackdrop')"
         >
@@ -108,7 +108,7 @@
           <button
             type="button"
             @click="searchYouTube"
-            class="px-4 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-xs font-bold text-[var(--text-main)] transition-colors flex items-center gap-2 whitespace-nowrap"
+            class="px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-[var(--text-main)] transition-colors flex items-center gap-2 whitespace-nowrap"
           >
             <i class="bi bi-youtube text-red-500"></i>
             {{ $t('movieForm.youtubeSearch') }}
@@ -152,7 +152,7 @@
             type="button"
             @click="reloadFromTmdb"
             :disabled="reloadingTmdb"
-            class="px-4 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-xs font-bold text-[var(--text-main)] transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+            class="px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-[var(--text-main)] transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
           >
             <i class="bi bi-arrow-repeat" :class="{ 'animate-spin': reloadingTmdb }"></i>
             {{ reloadingTmdb ? $t('movieForm.reloading') : $t('movieForm.reloadFromTmdb') }}
@@ -172,7 +172,7 @@
           <button
             type="button"
             @click="pickerOpen = true"
-            class="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-xs font-bold text-[var(--text-main)] transition-colors"
+            class="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-[var(--text-main)] transition-colors"
           >
             <i class="bi bi-plus-lg text-red-500"></i>
             {{ $t('movieForm.addActor') }}
@@ -180,7 +180,7 @@
         </div>
 
         <div v-if="actors.length === 0"
-          class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl px-5 py-4 text-center">
+          class="glass rounded-2xl px-5 py-4 text-center">
           <p class="text-xs text-[var(--text-muted)] opacity-40">{{ $t('movieForm.noActors') }}</p>
         </div>
 
@@ -188,7 +188,7 @@
           <div
             v-for="actor in actors"
             :key="actor.id"
-            class="flex items-center gap-3 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl px-4 py-3"
+            class="flex items-center gap-3 glass rounded-2xl px-4 py-3"
           >
             <div class="w-9 h-9 rounded-full overflow-hidden bg-[var(--bg-elevated)] flex-shrink-0 flex items-center justify-center">
               <img v-if="actor.image_path" :src="resolveActorImage(actor)" class="w-full h-full object-cover" />
@@ -222,7 +222,7 @@
           {{ saving ? $t('movieForm.saving') : $t('common.save') }}
         </button>
         <router-link to="/movies"
-          class="flex-1 text-center bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2">
+          class="flex-1 text-center bg-white/5 hover:bg-white/10 border border-white/10 text-[var(--text-muted)] font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2">
           <i class="bi bi-x-lg"></i>
           {{ $t('common.cancel') }}
         </router-link>
@@ -257,8 +257,8 @@ const settings    = useSettingsStore()
 
 const isEdit = computed(() => !!route.params.id)
 
-// Beim Anlegen sagt die Ueberschrift, ob gerade ein Film oder eine Serie
-// entsteht - sonst sehen die Tray-Eintraege "Film/Serie hinzufuegen" identisch aus.
+// Beim Anlegen sagt die Überschrift, ob gerade ein Film oder eine Serie
+// entsteht - sonst sehen die Tray-Einträge "Film/Serie hinzufügen" identisch aus.
 const isSeries = computed(() => form.value.collection_type === 'Serie')
 const headerTitle = computed(() => {
   if (isEdit.value) return t('movieForm.editTitle')
@@ -457,7 +457,7 @@ onMounted(async () => {
 
 // Vorbelegung aus dem Tray-Menü („Film/Serie hinzufügen"): nur die kanonischen
 // DB-Werte akzeptieren, sonst bleibt es beim Standard 'Film'. Als watch statt in
-// onMounted, weil der Wechsel Film -> Serie nur die Query aendert: vue-router
+// onMounted, weil der Wechsel Film -> Serie nur die Query ändert: vue-router
 // verwendet dieselbe Komponenteninstanz weiter, onMounted feuert kein zweites Mal.
 watch(() => route.query.type, (type) => {
   if (isEdit.value) return
@@ -483,6 +483,6 @@ async function save() {
 <style scoped>
 @reference "tailwindcss";
 .input {
-  @apply w-full bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors;
+  @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-colors;
 }
 </style>

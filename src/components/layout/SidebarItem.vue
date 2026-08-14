@@ -4,8 +4,8 @@
     class="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
     :class="[
       isActive
-        ? 'bg-red-600/10 text-red-500 border border-red-500/20 shadow-sm'
-        : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--border-ui)] border border-transparent',
+        ? 'bg-white/10 text-red-400 border border-red-500/30 shadow-sm'
+        : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/10 border border-transparent',
       ui.isSidebarCollapsed ? 'justify-center px-0' : 'justify-start px-3'
     ]"
     :title="ui.isSidebarCollapsed ? label : ''"

@@ -1,16 +1,16 @@
 <template>
   <div
     class="grid items-center gap-3 px-3 h-full rounded-lg cursor-pointer transition-colors text-xs"
-    :class="[gridCols, selected ? 'bg-[var(--status-red)]/10 ring-1 ring-[var(--status-red)]/40' : 'hover:bg-[var(--border-ui)]']"
+    :class="[gridCols, selected ? 'bg-red-600/10 ring-1 ring-red-500/40' : 'hover:bg-[var(--border-ui)]']"
     @click="onClick"
   >
     <div class="flex items-center justify-center">
       <i
         v-if="bulkMode"
         class="bi text-base"
-        :class="selected ? 'bi-check-square-fill text-[var(--status-red)]' : 'bi-square text-[var(--text-muted)] opacity-50'"
+        :class="selected ? 'bi-check-square-fill text-red-500' : 'bi-square text-[var(--text-muted)] opacity-50'"
       ></i>
-      <div v-else class="h-8 aspect-[2/3] rounded overflow-hidden bg-[var(--bg-app)] border border-[var(--border-ui)]">
+      <div v-else class="h-8 aspect-[2/3] rounded overflow-hidden bg-white/5 border border-white/10">
         <img v-if="cover" :src="cover" :alt="movie.title" class="w-full h-full object-cover" />
         <div v-else class="w-full h-full flex items-center justify-center text-[var(--text-muted)] opacity-20 text-[9px]">🎬</div>
       </div>

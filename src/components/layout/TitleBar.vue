@@ -1,14 +1,14 @@
 <template>
   <div
     data-testid="titlebar"
-    class="flex items-center justify-between h-10 px-4 bg-[var(--bg-sidebar)] border-b border-[var(--border-ui)] select-none"
+    class="relative z-50 flex items-center justify-between h-10 px-4 glass border-x-0 border-t-0 select-none"
     style="-webkit-app-region: drag"
   >
     <!-- Logo & Toggle -->
     <div class="flex items-center gap-4" style="-webkit-app-region: no-drag">
       <button 
         @click="ui.toggleSidebar" 
-        class="w-8 h-8 rounded-lg hover:bg-[var(--border-ui)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+        class="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
         title="Sidebar umschalten"
       >
         <i class="bi bi-list text-lg"></i>
@@ -54,10 +54,10 @@
 
       <!-- Window controls -->
       <div class="flex items-center gap-1">
-        <button @click="minimize" class="w-8 h-8 rounded-lg hover:bg-[var(--border-ui)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
+        <button @click="minimize" class="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
           <i class="bi bi-dash-lg text-sm"></i>
         </button>
-        <button @click="maximize" class="w-8 h-8 rounded-lg hover:bg-[var(--border-ui)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
+        <button @click="maximize" class="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
           <i class="bi bi-app text-[10px]"></i>
         </button>
         <button @click="close" class="w-8 h-8 rounded-lg hover:bg-red-500/80 flex items-center justify-center text-[var(--text-muted)] hover:text-white transition-colors">

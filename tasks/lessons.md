@@ -11,8 +11,8 @@ Fix in der App: `<meta name="referrer" content="no-referrer">` in `index.html`.
 
 ## Bei UI-Fehlern die DevTools-Ausgabe anfordern statt zu raten
 Datenlage, Dateien und CSP waren alle korrekt; erst der Statuscode aus dem
-Netzwerk-Tab hat den Fall entschieden. Wenn die App beim Nutzer laeuft (Single-
-Instance-Lock verhindert eine zweite Instanz), frueh nach Konsole/Netzwerk fragen.
+Netzwerk-Tab hat den Fall entschieden. Wenn die App beim Nutzer läuft (Single-
+Instance-Lock verhindert eine zweite Instanz), früh nach Konsole/Netzwerk fragen.
 
 ## Keine Emojis in PR-Beschreibungen
 PR-Bodies und Commit-Messages ohne Emojis halten (auch kein 🤖-Footer) —
@@ -49,6 +49,58 @@ Die Allowlist schützt gegen unbeabsichtigte/böswillige Feldänderungen.
 - Vite-Integration über `@tailwindcss/vite` Plugin, PostCSS-Config entfällt
 - `bg-[var(--css-var)]` arbitrary-value Klassen funktionieren unverändert
 - Bestehende `.theme-dark`/`.theme-light` CSS-Variablen-Architektur bleibt erhalten
+
+## Theming: die Palette umdefinieren statt Fundstellen umschreiben
+Beim Angleichen an die Web Shelf war der erste Reflex, ~170 `red-*`-Stellen zu ersetzen.
+Richtig ist der Weg, den die Shelf selbst geht (`app.css`, Zeilen 163–175): Tailwind 4
+kompiliert Utilities zu `var(--color-red-NNN)`, also genügt es, die Skala per `color-mix`
+aus `--accent-primary` neu zu definieren. Alle Fundstellen folgen dann automatisch dem
+Theme, die Views bleiben unangetastet.
+
+## [data-theme="x"] ist NICHT spezifischer als [data-theme]
+Beide sind Attributselektoren mit Spezifität (0,1,0) — der Wertvergleich macht den
+Selektor nicht stärker. Bei gleicher Spezifität entscheidet die Reihenfolge, und der
+spätere Block gewinnt. Ein `--surface-tint` in `[data-theme="christmas"]` wurde deshalb
+still von einem `[data-theme] { --surface-tint: … }` weiter unten überschrieben.
+Standardwerte gehören nach `:root` **vor** die Theme-Blöcke.
+Erkannt nur durch Nachmessen von `getComputedStyle(...).getPropertyValue()` — im
+gebauten CSS stand die richtige Regel, sie verlor bloß die Kaskade.
+
+## Ein Theme braucht mehr als eine Akzentfarbe
+Weihnachten, Halloween und Sommer wirkten wie Varianten des Standard-Themes, weil nur
+`--accent-primary` in die Oberfläche floss und `--accent-secondary` nirgends benutzt
+wurde. Die Jahreszeit steckt im Farb**paar**: Rot braucht Tannengrün, Orange braucht
+Violett. Lösung: eigener `--surface-tint` für die Flächen, kräftiger gemischt
+(14–24 % statt 5–7 %), sonst bleibt auf Schwarz nichts übrig.
+
+## backdrop-filter erzeugt einen Stacking-Context
+Die `.glass`-Klasse bringt `backdrop-filter` mit. Damit wird das Element zum eigenen
+Stacking-Context, und ein `z-50` eines Kindes kommt da nicht mehr heraus — das Popover
+der Themenauswahl verschwand hinter dem Inhalt. Wer `glass` auf einen Container legt,
+aus dem etwas herausragen soll, muss dem Container selbst ein `z-index` geben.
+
+## Vor breiten CSS-Sweeps nach @apply suchen
+Ein `sed` über ein Klassenmuster traf auch eine `@apply`-Zeile in einem `<style>`-Block.
+Plain-CSS-Klassen wie `.glass` sind keine Tailwind-Utilities — `@apply glass` bricht den
+Build mit "Cannot apply unknown utility class".
+
+## Virtualisierte Listen: Zeilenhöhe mitziehen
+`MoviesView` gibt dem Virtualizer feste Höhen (`ROW_HEIGHTS`). Wird eine Kachel höher,
+muss die Konstante mit — sonst überlappen die absolut positionierten Zeilen. Und bei
+Inhalten mit Seitenverhältnis reicht keine Konstante: die Kachelhöhe wächst mit der
+Spaltenbreite, die Zeilenhöhe muss also gerechnet werden.
+
+## Layout-Änderungen gegen die E2E-Selektoren prüfen
+`MovieListRow` bekam beim Umbau `group cursor-pointer` — genau der Selektor, mit dem
+`movies.spec.ts` die Filmkacheln zählt. Klassenbasierte Selektoren brechen still, wenn
+eine andere Komponente dieselben Utilities bekommt. Nach Umbauten auf `data-testid`
+umstellen.
+
+## Der eigenen Messung glauben, nicht dem Screenshot-Eindruck
+Ein Knopf wirkte auf dem Screenshot grau. `getComputedStyle` sagte `rgb(241,245,249)`,
+`elementsFromPoint` zeigte ihn als oberstes Element mit `opacity: 1` — also kein Fehler.
+Trotzdem wurde weiter gesucht, über mehrere Läufe. Wenn eine gezielte Messung eine
+Vermutung widerlegt, ist die Vermutung erledigt.
 
 ## npm ci schlägt bei Linux-spezifischen Optional-Deps fehl (Cross-Platform Lock File)
 `npm ci` prüft die Lock-Datei IMMER vollständig — auch `--omit=optional` hilft nicht,

@@ -84,7 +84,7 @@ describe('getPendingWatched', () => {
     expect(pending[0].is_watched).toBe(1)
   })
 
-  it('das Zuruecknehmen zaehlt genauso', () => {
+  it('das Zurücknehmen zählt genauso', () => {
     const id = insertMovie(db, { title: 'Arrival', remote_id: 10, is_watched: 1, synced_watched: 1 })
 
     toggleWatched(db, id)
@@ -93,7 +93,7 @@ describe('getPendingWatched', () => {
     expect(getPendingWatched(db)[0].is_watched).toBe(0)
   })
 
-  it('nach der Bestaetigung steht nichts mehr an', () => {
+  it('nach der Bestätigung steht nichts mehr an', () => {
     const id = insertMovie(db, { title: 'Arrival', remote_id: 10 })
     toggleWatched(db, id)
 

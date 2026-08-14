@@ -44,13 +44,13 @@ useKeyboard({
   'r': () => router.push('/movies'),
 })
 
+// Themes laufen wie in der Web Shelf über data-theme auf <html>; style.css
+// leitet daraus Akzent, Palette und Flächen ab.
 const applyTheme = (theme: string) => {
-  let finalTheme = theme
-  if (theme === 'system') {
-    finalTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  }
-  document.documentElement.classList.remove('theme-light', 'theme-dark')
-  document.documentElement.classList.add(`theme-${finalTheme}`)
+  const finalTheme = theme === 'system'
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : theme
+  document.documentElement.setAttribute('data-theme', finalTheme)
 }
 
 // Theme sofort anwenden bevor Settings async geladen werden

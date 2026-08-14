@@ -4,7 +4,7 @@
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
       @click.self="$emit('close')"
     >
-      <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl shadow-2xl w-80 overflow-hidden">
+      <div class="glass rounded-2xl shadow-2xl w-80 overflow-hidden">
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--border-ui)]">
           <span class="text-sm font-black text-[var(--text-main)] uppercase tracking-widest">{{ $t('movies.randomTitle') }}</span>
@@ -15,7 +15,7 @@
 
         <!-- Loading -->
         <div v-if="loading" class="flex items-center justify-center py-16">
-          <div class="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+          <div class="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
         <!-- No result -->
@@ -54,7 +54,7 @@
             <div class="flex gap-2 pt-1">
               <button
                 @click="roll"
-                class="flex-1 flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-black uppercase tracking-widest py-2 rounded-xl transition-colors"
+                class="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white text-xs font-black uppercase tracking-widest py-2 rounded-xl transition-colors"
               >
                 <i class="bi bi-dice-6-fill"></i> {{ $t('movies.rollAgain') }}
               </button>

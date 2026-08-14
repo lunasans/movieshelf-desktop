@@ -1,14 +1,16 @@
 <template>
   <div class="p-8 max-w-3xl mx-auto">
-    <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">{{ $t('nav.sync') }}</h1>
-    <p class="text-sm text-[var(--text-muted)] opacity-60 mb-8">{{ $t('sync.subtitle') }}</p>
+    <div class="mb-8">
+      <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">{{ $t('nav.sync') }}</h1>
+      <p class="text-sm text-[var(--text-muted)] opacity-60">{{ $t('sync.subtitle') }}</p>
+    </div>
 
     <!-- Not connected -->
     <div v-if="!settings.isOnline" class="bg-[var(--status-yellow-bg)] border border-[var(--status-yellow)]/20 rounded-2xl p-8 text-center">
       <i class="bi bi-cloud-slash text-3xl text-[var(--status-yellow)] block mb-3"></i>
       <p class="text-[var(--status-yellow)] text-base font-black uppercase tracking-tight mb-2">{{ $t('sync.notConnected') }}</p>
       <p class="text-[var(--text-muted)] opacity-70 text-sm max-w-xs mx-auto mb-6">{{ $t('sync.notConnectedHint') }}</p>
-      <router-link to="/settings" class="inline-block px-6 py-3 bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-[var(--status-red)] text-sm font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">
+      <router-link to="/settings" class="inline-block px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-red-500 text-sm font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">
         {{ $t('tmdb.toSettings') }}
       </router-link>
     </div>
@@ -26,24 +28,24 @@
       <!-- Action buttons -->
       <div class="grid grid-cols-2 gap-4 mb-4">
         <!-- Klammern zwingend: ohne sie reicht Vue das MouseEvent als ersten
-             Parameter durch, und `full` waere immer wahr. -->
+             Parameter durch, und `full` wäre immer wahr. -->
         <button @click="loadPreview()" :disabled="phase !== 'idle' || previewLoading"
-          class="bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] disabled:opacity-40 text-[var(--text-main)] text-sm font-bold px-4 py-4 rounded-2xl transition-all flex flex-col items-center gap-2">
-          <i class="bi text-xl text-[var(--status-red)]" :class="previewLoading ? 'bi-hourglass-split animate-spin' : 'bi-cloud-download'"></i>
+          class="bg-white/5 hover:bg-white/10 border border-white/10 disabled:opacity-40 text-[var(--text-main)] text-sm font-bold px-4 py-4 rounded-2xl transition-all flex flex-col items-center gap-2">
+          <i class="bi text-xl text-red-500" :class="previewLoading ? 'bi-hourglass-split animate-spin' : 'bi-cloud-download'"></i>
           <span>{{ $t('sync.shelfToDesktop') }}</span>
           <span class="text-xs text-[var(--text-muted)] opacity-50">{{ previewLoading ? $t('sync.loadingPreview') : $t('sync.previewImport') }}</span>
         </button>
         <button @click="runPush" :disabled="phase !== 'idle'"
-          class="bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] disabled:opacity-40 text-[var(--text-main)] text-sm font-bold px-4 py-4 rounded-2xl transition-all flex flex-col items-center gap-2"
+          class="bg-white/5 hover:bg-white/10 border border-white/10 disabled:opacity-40 text-[var(--text-main)] text-sm font-bold px-4 py-4 rounded-2xl transition-all flex flex-col items-center gap-2"
           :class="dirtyCount > 0 ? 'border-[var(--status-yellow)]/30' : ''">
-          <i class="bi bi-cloud-upload text-xl text-[var(--status-red)]"></i>
+          <i class="bi bi-cloud-upload text-xl text-red-500"></i>
           <span>{{ $t('sync.desktopToShelf') }}</span>
           <span class="text-xs text-[var(--text-muted)] opacity-50">{{ dirtyCount > 0 ? $t('sync.changesCount', { count: dirtyCount }) : $t('sync.noChanges') }}</span>
         </button>
       </div>
 
       <button @click="startFullSync" :disabled="phase !== 'idle' || previewLoading"
-        class="w-full bg-[var(--status-red)] hover:opacity-90 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all text-sm flex items-center justify-center gap-3 shadow-lg shadow-red-600/10">
+        class="w-full bg-red-600 hover:opacity-90 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all text-sm flex items-center justify-center gap-3 shadow-lg shadow-red-600/10">
         <i class="bi text-lg" :class="phase !== 'idle' ? 'bi-arrow-repeat animate-spin' : previewLoading ? 'bi-hourglass-split animate-spin' : 'bi-arrow-repeat'"></i>
         {{ phase !== 'idle' ? phaseLabel : previewLoading ? $t('sync.loadingPreview') : $t('sync.fullSync') }}
       </button>

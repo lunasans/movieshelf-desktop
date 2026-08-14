@@ -24,7 +24,7 @@
       <div
         v-for="list in store.lists"
         :key="list.id"
-        class="group relative bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 cursor-pointer hover:border-red-500/50 hover:scale-[1.02] transition-all shadow-[var(--shadow-main)]"
+        class="group relative glass rounded-2xl p-5 cursor-pointer hover:border-red-500/50 hover:scale-[1.02] transition-all shadow-[var(--shadow-main)]"
         @click="router.push(`/lists/${list.id}`)"
       >
         <div class="flex items-start justify-between gap-3 mb-4">
@@ -63,14 +63,14 @@
 
     <!-- Create Modal -->
     <div v-if="showCreate" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="showCreate = false">
-      <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+      <div class="glass rounded-2xl p-6 w-full max-w-sm shadow-2xl">
         <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-4">{{ $t('lists.newList') }}</h2>
         <input
           v-model="newListName"
           @keyup.enter="submitCreate"
           type="text"
           :placeholder="$t('lists.namePlaceholder')"
-          class="w-full bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors mb-4"
+          class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-colors mb-4"
           autofocus
         />
         <div class="flex gap-2">
@@ -86,13 +86,13 @@
 
     <!-- Rename Modal -->
     <div v-if="renameTarget" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="renameTarget = null">
-      <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+      <div class="glass rounded-2xl p-6 w-full max-w-sm shadow-2xl">
         <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-4">{{ $t('lists.renameTitle') }}</h2>
         <input
           v-model="renameValue"
           @keyup.enter="submitRename"
           type="text"
-          class="w-full bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] focus:outline-none focus:border-red-500/50 transition-colors mb-4"
+          class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-colors mb-4"
           autofocus
         />
         <div class="flex gap-2">
@@ -108,7 +108,7 @@
 
     <!-- Delete Confirm Modal -->
     <div v-if="deleteTarget" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="deleteTarget = null">
-      <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+      <div class="glass rounded-2xl p-6 w-full max-w-sm shadow-2xl">
         <h2 class="text-lg font-black text-[var(--text-main)] uppercase tracking-tight mb-2">{{ $t('lists.deleteTitle') }}</h2>
         <p class="text-sm text-[var(--text-muted)] mb-6">„<span class="text-[var(--text-main)] font-bold">{{ deleteTarget.name }}</span>" {{ $t('lists.deleteText') }}</p>
         <div class="flex gap-2">

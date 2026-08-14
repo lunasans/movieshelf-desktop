@@ -58,7 +58,7 @@ const FIELD_LABELS: Record<string, string> = {
 // "Gesehen" liegt als 0/1 lokal und als true/false im Export - ein reiner
 // String-Vergleich wie bei den Feldern oben meldete deshalb dauerhaft einen
 // Unterschied. Fehlte es dagegen ganz, sah ein Film, bei dem sich nur der
-// Gesehen-Stand geaendert hat, in der Vorschau nach "keine Aenderung" aus.
+// Gesehen-Stand geändert hat, in der Vorschau nach "keine Änderung" aus.
 function watchedDiffers(remote: any, local: any): boolean {
   return Boolean(remote.is_watched) !== Boolean(local.is_watched)
 }
@@ -157,7 +157,7 @@ export function useSyncEngine() {
    * einem Voll-Abgleich zeigt nur, was sich seit dem letzten Mal geändert hat
    * — bei aktuellem Wasserzeichen also nichts. Es sah dann aus, als gäbe es
    * gar keine Vorschau, und bestätigt wurde etwas anderes als das, was
-   * anschliessend lief.
+   * anschließend lief.
    */
   async function loadPreview(full = false) {
     previewLoading.value = true
@@ -308,7 +308,7 @@ export function useSyncEngine() {
           purchase_price: movie.purchase_price ?? null, condition: movie.condition ?? null,
           created_at: movie.created_at, updated_at: movie.updated_at,
           // Der Server meint mit boxset_parent_id seine eigene ID - roh ablegen und
-          // nach dem Pull ueber resolveBoxsets() in die lokale id uebersetzen.
+          // nach dem Pull über resolveBoxsets() in die lokale id übersetzen.
           is_boxset: movie.is_boxset ? 1 : 0, boxset_parent_remote_id: movie.boxset_parent_id ?? null,
           view_count: movie.view_count ?? 0, is_watched: movie.is_watched ? 1 : 0,
           in_collection: movie.in_collection != null ? (movie.in_collection ? 1 : 0) : 1,
@@ -348,7 +348,7 @@ export function useSyncEngine() {
       }
     }
 
-    // Erst wenn alle Filme lokal liegen, sind die Boxset-Eltern aufloesbar - ein
+    // Erst wenn alle Filme lokal liegen, sind die Boxset-Eltern auflösbar - ein
     // Kind kann vor seinem Boxset ankommen.
     try {
       await window.electron.db.movies.resolveBoxsets()
@@ -610,7 +610,7 @@ export function useSyncEngine() {
     }) as { id: number } | null
     if (local?.id) {
       await window.electron.db.movies.sync.markSynced({ id: local.id, remote_id: m.id, synced_at: new Date().toISOString() })
-      // Einzelimport: das Boxset kann bereits lokal liegen, dann greift die Aufloesung sofort.
+      // Einzelimport: das Boxset kann bereits lokal liegen, dann greift die Auflösung sofort.
       try { await window.electron.db.movies.resolveBoxsets() } catch { /* nicht kritisch */ }
       const coverUrl = resolveMediaUrl(m.cover_url)
       if (coverUrl && !(await window.electron.db.movies.exists(m.id, 'cover'))) {

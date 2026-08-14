@@ -112,8 +112,8 @@ function runMigrations(instance: Database.Database = db): void {
   try { instance.exec('ALTER TABLE movies ADD COLUMN purchase_price REAL') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN condition TEXT') } catch (e) {}
   // Die Shelf liefert in boxset_parent_id ihre eigene ID. Sie wird beim Pull hier
-  // roh abgelegt und erst danach in die lokale id aufgeloest - in einer einzigen
-  // Spalte waere eine bereits aufgeloeste lokale id von einer remote id nicht zu
+  // roh abgelegt und erst danach in die lokale id aufgelöst - in einer einzigen
+  // Spalte wäre eine bereits aufgelöste lokale id von einer remote id nicht zu
   // unterscheiden.
   try { instance.exec('ALTER TABLE movies ADD COLUMN boxset_parent_remote_id INTEGER') } catch (e) {}
 
@@ -133,11 +133,11 @@ function runMigrations(instance: Database.Database = db): void {
     console.error('Migration failed:', e)
   }
 
-  // Einmalige Reparatur: Bis einschliesslich 0.24.0 hat der Pull die remote-ID des
+  // Einmalige Reparatur: Bis einschließlich 0.24.0 hat der Pull die remote-ID des
   // Boxsets direkt in boxset_parent_id geschrieben. Lokal wurde sie als lokale id
   // gelesen, wodurch Kinder an fremden Filmen hingen (siehe #85). Die bestehenden
-  // Werte werden als remote-ID gedeutet, in die neue Spalte uebernommen und dort
-  // aufgeloest; was sich keinem Boxset zuordnen laesst, wird geleert.
+  // Werte werden als remote-ID gedeutet, in die neue Spalte übernommen und dort
+  // aufgelöst; was sich keinem Boxset zuordnen lässt, wird geleert.
   try {
     const done = instance.prepare("SELECT value FROM settings WHERE key = 'boxset_parent_repaired'").get() as { value: string } | undefined
     if (!done) {

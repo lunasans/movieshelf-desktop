@@ -3,10 +3,6 @@
 @theme {
   --font-family-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-family-display: Outfit, ui-sans-serif, system-ui, sans-serif;
-  --color-shelf-bg: #0a0a0f;
-  --color-shelf-card: #12121a;
-  --color-shelf-border: #1e1e2e;
-  --color-shelf-accent: #667eea;
 }
 
 * {
@@ -14,24 +10,165 @@
   box-sizing: border-box;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Design-Tokens — 1:1 aus der Web Shelf (v2-saas/resources/css/app.css).
+   Rose ist die Markenfarbe; Glassmorphism und Radien sind identisch, damit
+   Desktop und Shelf nebeneinander gleich aussehen.
+   ───────────────────────────────────────────────────────────────────────── */
 :root {
-  --accent-primary: #667eea;
-  --accent-secondary: #764ba2;
+  --accent-primary: #e11d48;
+  --accent-secondary: #be123c;
   --gradient-primary: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  --gradient-bg: linear-gradient(135deg, #09090b 0%, #111114 100%);
 
-  /* Kept for backwards compatibility */
-  --movie-red: #dc2626;
-  --movie-red-hover: #ef4444;
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-bg-strong: rgba(255, 255, 255, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+
+  /* UI Defaults */
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Flächenton: standardmäßig die Akzentfarbe selbst, die saisonalen Themes
+     setzen hier ihre Begleitfarbe ein.
+     WICHTIG: Der Standard gehört hierher, nicht in den [data-theme]-Block
+     weiter unten. [data-theme="christmas"] und [data-theme] haben dieselbe
+     Spezifität (ein Attributselektor wird durch den Wertvergleich nicht
+     stärker) — es entscheidet die Reihenfolge, und der spätere gewinnt. */
+  --surface-tint: var(--accent-primary);
 }
 
-.theme-dark {
-  --bg-app: #0a0a0f;
-  --bg-sidebar: #0d0d14;
-  --bg-card: #12121a;
-  --bg-elevated: #1a1a25;
-  --text-main: #f1f5f9;
+/* ─────────────────────────────────────────────────────────────────────────
+   Themes — dieselben IDs wie in der Shelf.
+
+   "dark" ist der Standard: Rose auf Schwarz. Das frühere Indigo (#667eea)
+   ist bewusst entfallen, es passte zu nichts im Rest der Oberfläche.
+   "light" ist der Desktop-eigene Hellmodus (Rose auf Weiß) — in der Shelf
+   gibt es dafür kein Pendant, "summer" ist dort das einzige helle Theme.
+   ───────────────────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --accent-primary: #e11d48;
+  --accent-secondary: #be123c;
+  --gradient-bg: linear-gradient(135deg, #09090b 0%, #111114 100%);
+}
+
+[data-theme="light"] {
+  --accent-primary: #e11d48;
+  --accent-secondary: #be123c;
+  --gradient-bg: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+[data-theme="blue"] {
+  --accent-primary: #0284c7;
+  --accent-secondary: #0369a1;
+  --gradient-bg: linear-gradient(135deg, #001f3f 0%, #001020 100%);
+}
+
+[data-theme="green"] {
+  --accent-primary: #16a34a;
+  --accent-secondary: #15803d;
+  --gradient-bg: linear-gradient(135deg, #001a00 0%, #000d00 100%);
+}
+
+[data-theme="red"] {
+  --accent-primary: #dc2626;
+  --accent-secondary: #b91c1c;
+  --gradient-bg: linear-gradient(135deg, #1a0000 0%, #0d0000 100%);
+}
+
+[data-theme="purple"] {
+  --accent-primary: #9333ea;
+  --accent-secondary: #7e22ce;
+  --gradient-bg: linear-gradient(135deg, #1a001a 0%, #0d000d 100%);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Saisonale Themes
+
+   Eine einzelne Akzentfarbe reicht hier nicht: Weihnachten ohne Tannengrün
+   ist nur ein zweites Rot, Halloween ohne Violett nur ein Orange. Die
+   Jahreszeit steckt im Zusammenspiel zweier Farben, deshalb tragen diese drei
+   zusätzlich einen eigenen --surface-tint für die Flächen.
+   ───────────────────────────────────────────────────────────────────────── */
+[data-theme="christmas"] {
+  --accent-primary: #c41e3a;   /* Kerzenrot */
+  --accent-secondary: #165b33; /* Tannengrün */
+  --surface-tint: #0f4d2a;
+  --gradient-bg: linear-gradient(135deg, #2a0a10 0%, #071510 55%, #0a2a18 100%);
+}
+
+[data-theme="halloween"] {
+  --accent-primary: #ea580c;   /* Kürbisorange */
+  --accent-secondary: #7e22ce; /* Hexenviolett */
+  --surface-tint: #4c1d95;
+  --gradient-bg: linear-gradient(135deg, #1b0b2e 0%, #0a0410 55%, #1a0a02 100%);
+}
+
+[data-theme="summer"] {
+  --accent-primary: #db2777;   /* Sonnenschirm-Pink */
+  --accent-secondary: #0ea5e9; /* Himmelblau */
+  --surface-tint: #38bdf8;
+  --gradient-bg: linear-gradient(135deg, #fff1eb 0%, #ffe8d6 40%, #ace0f9 100%);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Markenpalette folgt dem Theme
+
+   Dieselbe Mechanik wie in der Shelf (dort über rose-*): Tailwind 4
+   kompiliert die Utilities zu var(--color-NNN), deshalb genügt es, die
+   Skala hier umzudefinieren — die Views bleiben unangetastet und folgen
+   automatisch der Akzentfarbe.
+
+   Der Desktop ist über red-* aufgebaut (rund 170 Stellen), die Shelf über
+   rose-*. Beide Skalen werden gesetzt, damit aus der Shelf portiertes
+   Markup ohne Umschreiben passt. Ankerpunkt ist 600, dort sitzt die
+   Markenfarbe selbst.
+   ───────────────────────────────────────────────────────────────────────── */
+[data-theme] {
+  --color-red-50:  color-mix(in oklab, var(--accent-primary)  8%, white);
+  --color-red-100: color-mix(in oklab, var(--accent-primary) 15%, white);
+  --color-red-200: color-mix(in oklab, var(--accent-primary) 30%, white);
+  --color-red-300: color-mix(in oklab, var(--accent-primary) 50%, white);
+  --color-red-400: color-mix(in oklab, var(--accent-primary) 72%, white);
+  --color-red-500: color-mix(in oklab, var(--accent-primary) 88%, white);
+  --color-red-600: var(--accent-primary);
+  --color-red-700: color-mix(in oklab, var(--accent-primary) 85%, black);
+  --color-red-800: color-mix(in oklab, var(--accent-primary) 70%, black);
+  --color-red-900: color-mix(in oklab, var(--accent-primary) 58%, black);
+  --color-red-950: color-mix(in oklab, var(--accent-primary) 35%, black);
+
+  --color-rose-50:  var(--color-red-50);
+  --color-rose-100: var(--color-red-100);
+  --color-rose-200: var(--color-red-200);
+  --color-rose-300: var(--color-red-300);
+  --color-rose-400: var(--color-red-400);
+  --color-rose-500: var(--color-red-500);
+  --color-rose-600: var(--color-red-600);
+  --color-rose-700: var(--color-red-700);
+  --color-rose-800: var(--color-red-800);
+  --color-rose-900: var(--color-red-900);
+  --color-rose-950: var(--color-red-950);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Flächen-Variablen
+
+   Die Views sprechen durchgängig var(--bg-card), var(--text-main) usw. an.
+   Diese Ebene bleibt erhalten, wird aber aus der Akzentfarbe abgeleitet —
+   so trägt jedes Theme seinen Ton bis in die Flächen, statt nur die Buttons
+   einzufärben. Die dunkle Variante gilt für alle Themes, "light" und
+   "summer" überschreiben sie.
+   ───────────────────────────────────────────────────────────────────────── */
+[data-theme] {
+  --bg-app:      color-mix(in oklab, var(--surface-tint)  6%, #08080b);
+  --bg-sidebar:  color-mix(in oklab, var(--surface-tint)  5%, #0a0a0e);
+  --bg-card:     color-mix(in oklab, var(--surface-tint)  7%, #101015);
+  --bg-elevated: color-mix(in oklab, var(--surface-tint) 10%, #16161d);
+  --text-main:  #f1f5f9;
   --text-muted: #94a3b8;
-  --border-ui: rgba(255, 255, 255, 0.05);
+  --border-ui:  rgba(255, 255, 255, 0.05);
   --shadow-main: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   --status-green: #4ade80;
   --status-green-bg: rgba(74, 222, 128, 0.1);
@@ -41,14 +178,26 @@
   --status-red-bg: rgba(239, 68, 68, 0.1);
 }
 
-.theme-light {
-  --bg-app: #f8fafc;
-  --bg-sidebar: #f1f5f9;
-  --bg-card: #ffffff;
-  --bg-elevated: #fefefe;
-  --text-main: #0f172a;
+/* Saisonale Flächen deutlich kräftiger: bei 5-7 % bliebe von Tannengrün
+   oder Hexenviolett auf Schwarz nichts übrig, was man als Jahreszeit erkennt. */
+[data-theme="christmas"],
+[data-theme="halloween"] {
+  --bg-app:      color-mix(in oklab, var(--surface-tint) 14%, #08080b);
+  --bg-sidebar:  color-mix(in oklab, var(--surface-tint) 20%, #0a0a0e);
+  --bg-card:     color-mix(in oklab, var(--surface-tint) 17%, #101015);
+  --bg-elevated: color-mix(in oklab, var(--surface-tint) 24%, #16161d);
+  --border-ui:   rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"],
+[data-theme="summer"] {
+  --bg-app:      color-mix(in oklab, var(--surface-tint)  3%, #f8fafc);
+  --bg-sidebar:  color-mix(in oklab, var(--surface-tint)  5%, #f1f5f9);
+  --bg-card:     color-mix(in oklab, var(--surface-tint)  2%, #ffffff);
+  --bg-elevated: color-mix(in oklab, var(--surface-tint)  1%, #fefefe);
+  --text-main:  #0f172a;
   --text-muted: #64748b;
-  --border-ui: rgba(0, 0, 0, 0.05);
+  --border-ui:  rgba(0, 0, 0, 0.05);
   --shadow-main: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --status-green: #15803d;
   --status-green-bg: rgba(21, 128, 61, 0.08);
@@ -56,10 +205,33 @@
   --status-yellow-bg: rgba(146, 64, 14, 0.06);
   --status-red: #b91c1c;
   --status-red-bg: rgba(185, 28, 28, 0.06);
+
+  /* Auf hellem Grund braucht Glas dunkle statt heller Schleier. */
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-strong: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.08);
+}
+
+/* Sommer ist hell, aber nicht das kühle Büro-Weiss von "light": Sonnenwärme
+   im Grund, ein Hauch Himmel in den Flächen. Muss nach dem Hell-Block stehen,
+   beide haben dieselbe Spezifität. */
+[data-theme="summer"] {
+  --bg-app:      color-mix(in oklab, var(--surface-tint) 10%, #fffaf3);
+  --bg-sidebar:  color-mix(in oklab, var(--surface-tint) 15%, #fff4e6);
+  --bg-card:     color-mix(in oklab, var(--surface-tint)  6%, #ffffff);
+  --bg-elevated: color-mix(in oklab, var(--surface-tint)  3%, #fffdfa);
+  --text-main:  #0c2733;
+  --text-muted: #4a7183;
+  --border-ui:  rgba(12, 39, 51, 0.08);
 }
 
 body {
+  /* Wie in der Shelf: Verlauf statt Volltonfläche, fixiert damit er beim
+     Scrollen stehen bleibt. */
   background-color: var(--bg-app);
+  background-image: var(--gradient-bg);
+  background-attachment: fixed;
   color: var(--text-main);
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   margin: 0;
@@ -73,9 +245,62 @@ h1, h2, h3, h4, h5, h6 {
   font-family: 'Outfit', system-ui, sans-serif;
 }
 
+/* Glassmorphism — identisch zur Shelf */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.film-list-area {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+}
+
+.detail-panel {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(25px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+}
+
+.filter-bar-field {
+  flex: 1 1 0%;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.filter-bar-field input,
+.filter-bar-field select {
+  width: 100%;
+}
+
+/* Akzent-Helfer (folgen der Theme-Farbe) — aus layouts/app.blade.php */
+.accent-fill { background-color: var(--accent-primary) !important; }
+.accent-text { color: var(--accent-primary) !important; }
+.accent-border { border-color: var(--accent-primary) !important; }
+.accent-soft-bg { background-color: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important; }
+.accent-soft-border { border-color: color-mix(in srgb, var(--accent-primary) 45%, transparent) !important; }
+
 /* Premium smooth transitions for key layout components */
 main, aside, nav, .bg-card, .bg-sidebar, .border-ui {
-  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
               color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -91,5 +316,5 @@ main, aside, nav, .bg-card, .bg-sidebar, .border-ui {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--movie-red);
+  background: var(--accent-primary);
 }

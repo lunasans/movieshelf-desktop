@@ -17,7 +17,7 @@
           {{ $t('onboarding.tagline') }}
         </p>
 
-        <div class="text-left bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 space-y-3">
+        <div class="text-left glass rounded-2xl p-5 space-y-3">
           <div class="flex items-start gap-3">
             <i class="bi bi-search text-red-500 mt-0.5 flex-shrink-0"></i>
             <p class="text-sm text-[var(--text-main)] opacity-80 leading-snug">{{ $t('onboarding.featureTmdb') }}</p>
@@ -88,7 +88,7 @@
         </p>
 
         <div class="flex gap-3 pt-2">
-          <button @click="step--" class="flex-1 bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-2.5 rounded-xl transition-colors hover:border-red-500/30 text-sm">
+          <button @click="step--" class="flex-1 glass text-[var(--text-muted)] font-bold py-2.5 rounded-xl transition-colors hover:border-red-500/30 text-sm">
             {{ $t('common.back') }}
           </button>
           <button @click="saveMode" :disabled="saving" class="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-black py-2.5 rounded-xl transition-colors uppercase tracking-widest text-sm">
@@ -111,11 +111,11 @@
             v-model="tmdbKey"
             type="password"
             :placeholder="$t('onboarding.tmdbPlaceholder')"
-            class="w-full bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors"
+            class="w-full glass rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-colors"
           />
         </div>
         <div class="flex gap-3 pt-2">
-          <button @click="step--" class="flex-1 bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-2.5 rounded-xl transition-colors hover:border-red-500/30 text-sm">
+          <button @click="step--" class="flex-1 glass text-[var(--text-muted)] font-bold py-2.5 rounded-xl transition-colors hover:border-red-500/30 text-sm">
             {{ $t('common.back') }}
           </button>
           <button @click="saveTmdb" :disabled="saving" class="flex-2 flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-black py-2.5 rounded-xl transition-colors uppercase tracking-widest text-sm">

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-lg p-0.5">
+  <div class="flex items-center bg-white/5 border border-white/10 rounded-lg p-0.5">
     <button
       v-for="lang in languages"
       :key="lang.id"

@@ -45,7 +45,7 @@
                   v-model="localSelectedSeasons"
                   class="w-4 h-4 accent-red-600 rounded flex-shrink-0"
                 />
-                <div class="w-10 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-[var(--bg-elevated)] border border-[var(--border-ui)]">
+                <div class="w-10 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-white/5 border border-white/10">
                   <img v-if="season.poster_path" :src="`https://image.tmdb.org/t/p/w92${season.poster_path}`" class="w-full h-full object-cover" />
                   <div v-else class="w-full h-full flex items-center justify-center">
                     <i class="bi bi-image text-[var(--text-muted)] opacity-20"></i>
@@ -72,7 +72,7 @@
             </button>
             <button
               @click="emit('cancel')"
-              class="px-6 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
+              class="px-6 bg-white/5 hover:bg-white/10 border border-white/10 text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
             >
               {{ $t('common.cancel') }}
             </button>

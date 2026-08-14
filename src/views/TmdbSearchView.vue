@@ -1,7 +1,9 @@
 <template>
   <div class="p-8">
-    <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">{{ $t('nav.tmdbSearch') }}</h1>
-    <p class="text-sm text-[var(--text-muted)] opacity-60 mb-6">{{ $t('tmdb.subtitle') }}</p>
+    <div class="mb-6">
+      <h1 class="text-2xl font-black text-[var(--text-main)] uppercase tracking-tight mb-1">{{ $t('nav.tmdbSearch') }}</h1>
+      <p class="text-sm text-[var(--text-muted)] opacity-60">{{ $t('tmdb.subtitle') }}</p>
+    </div>
 
     <!-- Toast -->
     <Transition name="toast">
@@ -19,7 +21,7 @@
         {{ $t('tmdb.noApiKeyHint') }}
       </p>
       <router-link to="/settings"
-        class="inline-block px-5 py-2.5 bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-xs font-black uppercase tracking-widest text-[var(--text-main)] hover:border-red-500/40 transition-all">
+        class="inline-block px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-black uppercase tracking-widest text-[var(--text-main)] hover:border-red-500/40 transition-all">
         {{ $t('tmdb.toSettings') }}
       </router-link>
     </div>
@@ -31,8 +33,8 @@
           @click="searchMode = 'movie'"
           class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
           :class="searchMode === 'movie'
-            ? 'bg-[var(--status-red)] text-white'
-            : 'bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/40'"
+            ? 'bg-red-600 text-white'
+            : 'glass text-[var(--text-muted)] hover:border-red-500/40'"
         >
           <i class="bi bi-film mr-1.5"></i>{{ $t('common.movie') }}
         </button>
@@ -40,8 +42,8 @@
           @click="searchMode = 'tv'"
           class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
           :class="searchMode === 'tv'
-            ? 'bg-[var(--status-red)] text-white'
-            : 'bg-[var(--bg-card)] border border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/40'"
+            ? 'bg-red-600 text-white'
+            : 'glass text-[var(--text-muted)] hover:border-red-500/40'"
         >
           <i class="bi bi-tv mr-1.5"></i>{{ $t('common.series') }}
         </button>
@@ -54,21 +56,21 @@
           @keyup.enter="search"
           type="text"
           :placeholder="searchMode === 'tv' ? $t('tmdb.seriesPlaceholder') : $t('tmdb.moviePlaceholder')"
-          class="flex-1 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors"
+          class="flex-1 glass rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-colors"
         />
         <button @click="search" :disabled="loading"
-          class="bg-[var(--status-red)] hover:opacity-90 disabled:opacity-50 text-white font-bold px-5 py-3 rounded-xl transition-all text-sm">
+          class="bg-red-600 hover:opacity-90 disabled:opacity-50 text-white font-bold px-5 py-3 rounded-xl transition-all text-sm">
           {{ $t('common.search') }}
         </button>
       </div>
 
       <!-- In-collection toggle -->
-      <div class="flex items-center justify-end gap-3 mb-6 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl px-5 py-3">
+      <div class="flex items-center justify-end gap-3 mb-6 glass rounded-2xl px-5 py-3">
         <span class="text-sm font-bold text-[var(--text-main)] opacity-70">{{ $t('tmdb.importToCollection') }}</span>
         <button
           @click="importToCollection = !importToCollection"
           class="relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none"
-          :class="importToCollection ? 'bg-[var(--status-red)]' : 'bg-[var(--bg-elevated)] border border-[var(--border-ui)]'"
+          :class="importToCollection ? 'bg-red-600' : 'bg-white/5 border border-white/10'"
         >
           <div class="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200"
             :class="importToCollection ? 'translate-x-6' : 'translate-x-0'" />
@@ -77,12 +79,12 @@
 
       <!-- Loading -->
       <div v-if="loading" class="flex justify-center py-16">
-        <div class="w-8 h-8 border-2 border-[var(--status-red)] border-t-transparent rounded-full animate-spin"></div>
+        <div class="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
 
       <!-- Error -->
-      <div v-else-if="error" class="bg-[var(--status-red-bg)] border border-[var(--status-red)]/20 rounded-2xl p-4 mb-6">
-        <p class="text-[var(--status-red)] text-sm font-bold">{{ error }}</p>
+      <div v-else-if="error" class="bg-[var(--status-red-bg)] border border-red-500/20 rounded-2xl p-4 mb-6">
+        <p class="text-red-500 text-sm font-bold">{{ error }}</p>
       </div>
 
       <!-- Results -->

@@ -8,7 +8,7 @@
       </div>
       <div class="flex items-center gap-2">
         <!-- Ansicht umschalten -->
-        <div class="flex items-center bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl p-0.5">
+        <div class="flex items-center bg-white/5 border border-white/10 rounded-xl p-0.5">
           <button
             v-for="v in viewOptions"
             :key="v.mode"
@@ -17,7 +17,7 @@
             :class="[
               'p-1.5 rounded-lg transition-colors',
               viewMode === v.mode
-                ? 'bg-[var(--status-red)] text-white'
+                ? 'bg-red-600 text-white'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-main)]',
             ]"
           >
@@ -27,7 +27,7 @@
         <button
           data-testid="random-picker-button"
           @click="showRandom = true"
-          class="p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-ui)] hover:border-purple-500/50 text-[var(--text-muted)] hover:text-purple-400 transition-colors"
+          class="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-[var(--text-muted)] hover:text-red-400 transition-colors"
           :title="$t('movies.randomPick')"
         >
           <i class="bi bi-dice-6-fill"></i>
@@ -37,8 +37,8 @@
           :class="[
             'p-2 rounded-xl border transition-colors',
             store.bulkMode
-              ? 'bg-red-600 border-red-500 text-white'
-              : 'bg-[var(--bg-card)] border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/50',
+              ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-900/40'
+              : 'bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10',
           ]"
           :title="$t('movies.bulkSelect')"
         >
@@ -46,13 +46,15 @@
         </button>
         <router-link
           to="/movies/new"
-          class="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+          class="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg shadow-red-900/40"
         >
           <i class="bi bi-plus-lg"></i> {{ $t('movieForm.addTitle') }}
         </router-link>
       </div>
     </div>
 
+    <!-- Filterleiste als Glas-Panel, wie in der Shelf -->
+    <div class="glass rounded-3xl p-4 mb-6">
     <!-- Search -->
     <div class="relative mb-4">
       <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] opacity-40"></i>
@@ -62,16 +64,16 @@
         @input="onSearch"
         type="text"
         :placeholder="$t('movies.searchPlaceholder')"
-        class="w-full bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl pl-12 pr-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors"
+        class="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all"
       />
     </div>
 
     <!-- Sort + Genre controls -->
-    <div class="flex flex-wrap items-center gap-2 mb-6">
+    <div class="flex flex-wrap items-center gap-2">
       <select
         v-model="sortKey"
         @change="onFiltersChange"
-        class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-lg px-3 py-1.5 text-xs font-bold text-[var(--text-main)] focus:outline-none focus:border-red-500/50"
+        class="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs font-bold text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-red-500/50"
       >
         <option value="title">{{ $t('movies.sortTitle') }}</option>
         <option value="year">{{ $t('movies.sortYear') }}</option>
@@ -81,7 +83,7 @@
       </select>
       <button
         @click="toggleSortDir"
-        class="px-2 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-ui)] text-xs font-black text-[var(--text-muted)] hover:border-red-500/50 transition-colors"
+        class="px-2 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-black text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-main)] transition-colors"
         :title="sortDirLocal === 'ASC' ? $t('movies.sortAsc') : $t('movies.sortDesc')"
       >
         <i :class="sortDirLocal === 'ASC' ? 'bi bi-sort-up' : 'bi bi-sort-down'"></i>
@@ -94,11 +96,12 @@
           :class="[
             'px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors',
             store.selectedGenres.includes(genre)
-              ? 'bg-red-600 border-red-500 text-white'
-              : 'bg-[var(--bg-card)] border-[var(--border-ui)] text-[var(--text-muted)] hover:border-red-500/50',
+              ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-900/40'
+              : 'bg-white/5 border-white/10 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text-main)]',
           ]"
         >{{ genre }}</button>
       </template>
+    </div>
     </div>
 
     <!-- Width measurer (invisible sentinel) -->
@@ -127,7 +130,7 @@
       <template v-if="!settings.isOnline && !query">
         <i class="bi bi-cloud-slash text-3xl text-[var(--text-muted)] opacity-30 block mb-3"></i>
         <p class="text-[var(--text-muted)] opacity-60 text-sm mb-4">{{ $t('movies.emptyLocal') }}</p>
-        <router-link to="/sync" class="text-[var(--status-red)] text-sm font-bold hover:underline">
+        <router-link to="/sync" class="text-red-500 text-sm font-bold hover:underline">
           {{ $t('movies.syncNow') }}
         </router-link>
       </template>
@@ -269,17 +272,31 @@ const listKey  = computed(() => isSeries.value ? 'Serie' : '!Serie')
 
 // ── Virtual scrolling ─────────────────────────────────────────────────────────
 
-const ROW_HEIGHTS = { grid: 290, list: 72, table: 48 } as const
+// Die Listenzeile trägt jetzt Miniatur, Metazeile und Kurztext wie in der Shelf
+// und braucht deshalb deutlich mehr Höhe als die frühere Kompaktzeile.
+const ROW_HEIGHTS = { list: 168, table: 48 } as const
 const ITEM_MIN   = 160
 const GAP        = 24
+
+// Beschriftung unter der Kachel: mt-4 (16) + Titelzeile (16) + Metazeile (14).
+const CARD_LABEL = 46
 
 const containerWidth = ref(1200)
 const scrollMarginV  = ref(0)
 
-const rowHeight = computed(() => ROW_HEIGHTS[viewMode.value])
 const cols      = computed(() => viewMode.value === 'grid'
   ? Math.max(1, Math.floor((containerWidth.value + GAP) / (ITEM_MIN + GAP)))
   : 1)
+
+// Die Kachel ist so breit wie ihre Spalte, das Bild hat Seitenverhältnis 2:3 —
+// die Zeilenhöhe wächst also mit der Fensterbreite mit. Eine feste Konstante
+// (wie früher) passt immer nur zu einer Breite: bei schmalem Fenster bleibt
+// Luft, bei breitem lief die nächste Reihe in die Beschriftung der vorigen.
+const rowHeight = computed(() => {
+  if (viewMode.value !== 'grid') return ROW_HEIGHTS[viewMode.value]
+  const colWidth = (containerWidth.value + GAP) / cols.value - GAP
+  return Math.ceil(colWidth * 1.5) + CARD_LABEL + GAP
+})
 const rowCount  = computed(() => Math.max(0, Math.ceil(store.movies.length / cols.value)))
 
 const virtualizer = useVirtualizer({

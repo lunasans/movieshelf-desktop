@@ -34,7 +34,7 @@ export function upsertActor(db: Database.Database, data: Record<string, unknown>
       tmdb_id = EXCLUDED.tmdb_id,
       updated_at = EXCLUDED.updated_at
   `).run({
-    // remote_id gehoert zu den Vorgaben: lokal angelegte Schauspieler (TMDb, Jellyfin)
+    // remote_id gehört zu den Vorgaben: lokal angelegte Schauspieler (TMDb, Jellyfin)
     // haben keine Shelf-Kennung, und ohne Vorgabe fehlt der Query der Parameter.
     remote_id: null,
     bio: null, birthday: null, place_of_birth: null, image_path: null, tmdb_id: null,

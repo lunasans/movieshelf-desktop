@@ -31,7 +31,7 @@
     <div class="px-12 -mt-32 relative z-10 pb-20">
       <div class="flex gap-10 items-end">
         <!-- Cover -->
-        <div class="w-64 flex-shrink-0 shadow-[var(--shadow-main)] rounded-2xl overflow-hidden border border-[var(--border-ui)] aspect-[2/3] bg-[var(--bg-card)]">
+        <div class="w-64 flex-shrink-0 shadow-[0_0_60px_rgba(0,0,0,0.8)] rounded-[2rem] overflow-hidden border border-white/10 aspect-[2/3] bg-[var(--bg-card)] transform hover:scale-[1.02] hover:rotate-1 transition-all duration-700">
           <img
             v-if="resolveMediaUrl((movie.cover_url || movie.cover_path) as string, Number(movie.remote_id))"
             :src="resolveMediaUrl((movie.cover_url || movie.cover_path) as string, Number(movie.remote_id))!"
@@ -44,79 +44,85 @@
         <!-- Info (Sticky Container) -->
         <div 
           ref="titleRef"
-          class="flex-1 pb-4 sticky top-0 z-30 transition-all duration-300 -mx-12 px-12 py-4"
+          class="flex-1 min-w-0 pb-4 sticky top-0 z-30 transition-all duration-300 -mx-12 px-12 py-4"
           :class="{ 'pointer-events-none': isSticky }"
         >
-          <div class="flex gap-4 mb-2 transition-all duration-500" :class="{ 'opacity-0 scale-95 translate-y-[-10px]': isSticky }">
-            <span v-if="movie.collection_type" 
-              class="px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded border"
-              style="background-color: var(--status-green-bg); color: var(--status-green); border-color: transparent;"
+          <!-- Kennzeichen im Shelf-Stil: Sammlungstyp in der Akzentfarbe, Rest als Glas-Pille -->
+          <div class="flex flex-wrap items-center gap-4 mb-6 transition-all duration-500" :class="{ 'opacity-0 scale-95 translate-y-[-10px]': isSticky }">
+            <span v-if="movie.collection_type"
+              class="px-6 py-2 bg-red-600 text-white rounded-2xl text-[10px] font-black tracking-[0.3em] uppercase shadow-xl shadow-red-500/20"
             >
               {{ movie.collection_type }}
             </span>
-            <span v-if="movie.tag" 
-              class="px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded border"
-              style="background-color: var(--status-yellow-bg); color: var(--status-yellow); border-color: transparent;"
+            <span v-if="movie.year"
+              class="px-6 py-2 bg-white/5 backdrop-blur-xl rounded-2xl text-[10px] font-black tracking-[0.3em] uppercase border border-white/10 italic text-[var(--text-main)]"
+            >
+              {{ movie.year }}
+            </span>
+            <span v-if="movie.tag"
+              class="px-6 py-2 bg-white/5 backdrop-blur-xl rounded-2xl text-[10px] font-black tracking-[0.3em] uppercase border border-white/10 text-[var(--text-main)]"
             >
               {{ movie.tag }}
             </span>
           </div>
-          
-          <h1 
-            class="font-black text-[var(--text-main)] uppercase tracking-tighter transition-all duration-500"
-            :class="isSticky ? 'text-2xl opacity-0 translate-y-[-10px]' : 'text-5xl mb-4 opacity-100'"
+
+          <h1
+            class="font-black text-[var(--text-main)] uppercase tracking-tighter italic drop-shadow-2xl leading-[0.9] break-words transition-all duration-500"
+            :class="isSticky ? 'text-2xl opacity-0 translate-y-[-10px]' : 'text-3xl xl:text-5xl mb-8 opacity-100'"
           >
             {{ movie.title }}
           </h1>
           
-          <div class="flex items-center gap-6 text-sm font-bold text-[var(--text-muted)] transition-all duration-500" :class="{ 'opacity-0 scale-95 translate-y-[-10px]': isSticky }">
-            <div v-if="movie.collection_no" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelNo') }}</span>
-              <span class="text-[var(--text-main)] opacity-70">{{ movie.collection_no }}</span>
+          <!-- Kernangaben als Icon-Zeile, wie in der Shelf -->
+          <div
+            class="flex flex-wrap items-center gap-x-6 gap-y-3 xl:gap-x-12 text-xs font-bold uppercase tracking-[0.2em] italic text-[var(--text-muted)] transition-all duration-500"
+            :class="{ 'opacity-0 scale-95 translate-y-[-10px]': isSticky }"
+          >
+            <div v-if="movie.runtime" class="flex items-center gap-3">
+              <i class="bi bi-clock text-red-500 text-lg"></i>
+              <span class="text-[var(--text-main)]">{{ movie.runtime }} min</span>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelYear') }}</span>
-              <span class="text-[var(--text-main)] opacity-70">{{ movie.year }}</span>
+            <div v-if="movie.rating" class="flex items-center gap-3">
+              <i class="bi bi-star-fill text-yellow-500 text-lg"></i>
+              <span class="text-[var(--text-main)]">{{ Number(movie.rating).toFixed(1) }} / 10</span>
             </div>
-            <div v-if="movie.genre" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelGenre') }}</span>
-              <span class="text-[var(--text-main)] opacity-70">{{ movie.genre }}</span>
+            <div v-if="movie.genre" class="flex items-center gap-3">
+              <i class="bi bi-tags-fill text-red-500 text-lg"></i>
+              <span class="text-[var(--text-main)]">{{ movie.genre }}</span>
             </div>
-            <div v-if="movie.runtime" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelRuntime') }}</span>
-              <span class="text-[var(--text-main)] opacity-70">{{ movie.runtime }} min</span>
+            <div v-if="movie.director" class="flex items-center gap-3">
+              <i class="bi bi-megaphone text-red-500 text-lg"></i>
+              <span class="text-[var(--text-main)]">{{ movie.director }}</span>
             </div>
-            <div v-if="movie.rating" class="flex items-center gap-2 bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">
-              <span class="text-yellow-600">★ {{ Number(movie.rating).toFixed(1) }}</span>
-            </div>
-            <div v-if="movie.director" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelDirector') }}</span>
-              <span class="text-[var(--text-main)] opacity-70">{{ movie.director }}</span>
-            </div>
-            <div v-if="movie.edition" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelEdition') }}</span>
-              <span class="text-[var(--text-main)] opacity-70">{{ movie.edition }}</span>
-            </div>
-            <div v-if="movie.region_code" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelRegionCode') }}</span>
-              <span class="text-[var(--text-main)] opacity-70">{{ movie.region_code }}</span>
-            </div>
-            <div v-if="movie.disc_location" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelDiscLocation') }}</span>
-              <span class="text-[var(--text-main)] opacity-70">{{ movie.disc_location }}</span>
-            </div>
-            <div v-if="movie.condition" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelCondition') }}</span>
-              <span class="text-[var(--text-main)] opacity-70">{{ ({ new: $t('movieForm.conditionNew'), like_new: $t('movieForm.conditionLikeNew'), good: $t('movieForm.conditionGood'), acceptable: $t('movieForm.conditionAcceptable'), damaged: $t('movieForm.conditionDamaged') } as Record<string, string>)[movie.condition || ''] || movie.condition }}</span>
-            </div>
-            <div v-if="movie.purchase_date" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelPurchaseDate') }}</span>
-              <span class="text-[var(--text-main)] opacity-70">{{ movie.purchase_date }}</span>
-            </div>
-            <div v-if="movie.purchase_price != null" class="flex items-center gap-2">
-              <span class="text-[var(--text-muted)] opacity-50 text-xs uppercase tracking-widest">{{ $t('movieDetail.labelPurchasePrice') }}</span>
-              <span class="text-[var(--text-main)] opacity-70">{{ movie.purchase_price }} €</span>
-            </div>
+          </div>
+
+          <!-- Physische Angaben als Pillen, wie im $hasPhysical-Block der Shelf -->
+          <div
+            v-if="hasPhysicalDetails"
+            class="mt-8 flex flex-wrap items-center gap-2.5 transition-all duration-500"
+            :class="{ 'opacity-0 scale-95 translate-y-[-10px]': isSticky }"
+          >
+            <span v-if="movie.collection_no" class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              <i class="bi bi-hash text-red-400"></i>{{ movie.collection_no }}
+            </span>
+            <span v-if="movie.edition" class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              <i class="bi bi-award text-red-400"></i>{{ movie.edition }}
+            </span>
+            <span v-if="movie.region_code" class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              <i class="bi bi-globe text-red-400"></i>{{ $t('movieDetail.labelRegionCode') }} {{ movie.region_code }}
+            </span>
+            <span v-if="movie.disc_location" class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              <i class="bi bi-geo-alt-fill text-red-400"></i>{{ movie.disc_location }}
+            </span>
+            <span v-if="movie.condition" class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              <i class="bi bi-patch-check-fill text-red-400"></i>{{ ({ new: $t('movieForm.conditionNew'), like_new: $t('movieForm.conditionLikeNew'), good: $t('movieForm.conditionGood'), acceptable: $t('movieForm.conditionAcceptable'), damaged: $t('movieForm.conditionDamaged') } as Record<string, string>)[movie.condition || ''] || movie.condition }}
+            </span>
+            <span v-if="movie.purchase_date" class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              <i class="bi bi-calendar-check text-red-400"></i>{{ movie.purchase_date }}
+            </span>
+            <span v-if="movie.purchase_price != null" class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              <i class="bi bi-tag-fill text-red-400"></i>{{ movie.purchase_price }} €
+            </span>
           </div>
         </div>
       </div>
@@ -150,7 +156,7 @@
                 v-for="actor in linkedActors" 
                 :key="actor.id"
                 :to="{ name: 'actors.show', params: { id: actor.id } }"
-                class="flex items-center gap-4 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-3 transition-all hover:scale-[1.02] active:scale-95 group shadow-sm"
+                class="flex items-center gap-4 glass rounded-2xl p-3 transition-all hover:scale-[1.02] active:scale-95 group shadow-sm"
               >
                 <div class="w-12 h-12 rounded-full overflow-hidden border border-[var(--border-ui)] flex-shrink-0 bg-[var(--bg-sidebar)]">
                   <img
@@ -172,7 +178,7 @@
           <div v-if="movie.trailer_url">
             <h3 class="text-[var(--text-muted)] opacity-40 text-xs font-black uppercase tracking-[0.2em] mb-6">{{ $t('movieDetail.trailer') }}</h3>
             <div
-              class="relative aspect-video rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] cursor-pointer group"
+              class="relative aspect-video rounded-2xl overflow-hidden glass cursor-pointer group"
               @click="openTrailer"
             >
               <img
@@ -205,7 +211,7 @@
                 :to="`/movies/${child.id}`"
                 class="group cursor-pointer"
               >
-                <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] group-hover:border-red-500/50 group-hover:scale-105 transition-all duration-300 shadow-[var(--shadow-main)]">
+                <div class="relative aspect-[2/3] rounded-xl overflow-hidden glass group-hover:border-red-500/50 group-hover:scale-105 transition-all duration-300 shadow-[var(--shadow-main)]">
                   <img
                     v-if="resolveMediaUrl(child.cover_url || child.cover_path, child.remote_id)"
                     :src="resolveMediaUrl(child.cover_url || child.cover_path, child.remote_id)!"
@@ -227,7 +233,7 @@
                   <!-- Gesehen-Toggle -->
                   <button
                     @click.stop.prevent="toggleChildWatched(child)"
-                    :class="['absolute bottom-2 right-2 z-20 w-8 h-8 rounded-lg flex items-center justify-center transition-colors text-sm', child.is_watched ? 'bg-green-600/80 hover:bg-green-600' : 'bg-blue-600/80 hover:bg-blue-600']"
+                    :class="['absolute bottom-2 right-2 z-20 w-8 h-8 rounded-lg flex items-center justify-center transition-colors text-sm', child.is_watched ? 'bg-green-600/80 hover:bg-green-600' : 'bg-black/60 backdrop-blur-sm border border-white/10 hover:bg-black/80']"
                     :title="$t('movies.toggleWatched')"
                   >
                     <i :class="child.is_watched ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill'" class="text-white"></i>
@@ -252,7 +258,7 @@
               </button>
             </div>
             <div class="space-y-3">
-              <div v-for="season in seasons" :key="season.id" class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl overflow-hidden">
+              <div v-for="season in seasons" :key="season.id" class="glass rounded-2xl overflow-hidden">
                 <button
                   @click="toggleSeason(season.id)"
                   class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[var(--bg-elevated)] transition-colors"
@@ -293,7 +299,7 @@
           </router-link>
 
           <!-- Listen -->
-          <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-4 space-y-3">
+          <div class="glass rounded-2xl p-4 space-y-3">
             <p class="text-[var(--text-muted)] opacity-50 text-[10px] font-black uppercase tracking-[0.15em]">{{ $t('movieDetail.lists') }}</p>
 
             <div v-if="listStore.lists.length === 0" class="text-xs text-[var(--text-muted)] opacity-40 italic">
@@ -324,7 +330,7 @@
           </div>
 
           <router-link to="/movies"
-            class="flex items-center justify-center w-full bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-4 rounded-2xl transition-colors">
+            class="flex items-center justify-center w-full bg-white/5 hover:bg-white/10 border border-white/10 text-[var(--text-muted)] font-bold py-4 rounded-2xl transition-colors">
             {{ $t('movieDetail.backToCollection') }}
           </router-link>
         </div>
@@ -379,6 +385,15 @@ const backfillLoading   = ref(false)
 const backfillImporting = ref(false)
 const backfillSeasons   = ref<SeasonOption[]>([])
 const backfillError     = ref<string | null>(null)
+
+// Entspricht dem $hasPhysical-Block der Shelf: die Pillenzeile erscheint nur,
+// wenn zu diesem Exemplar überhaupt physische Angaben erfasst sind.
+const hasPhysicalDetails = computed(() => {
+  const m = movie.value
+  if (!m) return false
+  return !!(m.collection_no || m.edition || m.region_code || m.disc_location
+    || m.condition || m.purchase_date || m.purchase_price != null)
+})
 
 const existingSeasonNumbers = computed(() => seasons.value.map((s: any) => Number(s.season_number)))
 const canBackfillSeasons = computed(() =>

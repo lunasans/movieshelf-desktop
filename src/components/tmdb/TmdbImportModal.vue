@@ -100,7 +100,7 @@
             </button>
             <button
               @click="emit('cancel')"
-              class="px-6 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
+              class="px-6 bg-white/5 hover:bg-white/10 border border-white/10 text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
             >
               {{ $t('common.cancel') }}
             </button>
@@ -135,6 +135,6 @@ const emit = defineEmits<{
   @apply block text-xs font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 opacity-60;
 }
 .modal-input {
-  @apply w-full bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-red-500/50 transition-colors;
+  @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all;
 }
 </style>
