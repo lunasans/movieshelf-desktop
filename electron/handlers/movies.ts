@@ -7,6 +7,7 @@ const ALLOWED_MOVIE_COLUMNS = new Set([
   'overview', 'cover_path', 'backdrop_path', 'actors_names', 'trailer_url',
   'collection_type', 'tag', 'tmdb_id', 'remote_id', 'synced_at',
   'edition', 'region_code', 'disc_location', 'purchase_date', 'purchase_price', 'condition',
+  'user_rating',
   'created_at',
 ])
 
@@ -108,8 +109,14 @@ export function listMovies(db: Database.Database, params: {
     countArgs.push(like, like, like)
   }
 
+  // Titel ohne Rücksicht auf Groß-/Kleinschreibung sortieren. SQLites Standard
+  // (BINARY) stellt sonst alle Großbuchstaben vor die Kleinbuchstaben, wodurch
+  // "EUReKA" vor "Emergency Room" landet. Nur beim Titel nötig — die übrigen
+  // Sortierspalten sind Zahlen oder ISO-Datumswerte.
+  const order = col === 'title' ? `title COLLATE NOCASE ${dir}` : `${col} ${dir}`
+
   const rows = db.prepare(
-    `SELECT * FROM movies WHERE ${listWhere} ORDER BY ${col} ${dir} LIMIT ? OFFSET ?`
+    `SELECT * FROM movies WHERE ${listWhere} ORDER BY ${order} LIMIT ? OFFSET ?`
   ).all(...listArgs, perPage, offset) as Record<string, unknown>[]
   const total = (db.prepare(
     `SELECT COUNT(*) as count FROM movies WHERE ${countWhere}`
@@ -162,7 +169,7 @@ export function getMovieChildren(db: Database.Database, movieId: number): unknow
   // sobald eine remote_id zufällig einer lokalen id entsprach. Die Zuordnung
   // löst jetzt resolveBoxsetParents() auf.
   return db.prepare(
-    'SELECT * FROM movies WHERE boxset_parent_id = ? AND is_deleted = 0 AND in_collection = 1 ORDER BY title ASC'
+    'SELECT * FROM movies WHERE boxset_parent_id = ? AND is_deleted = 0 AND in_collection = 1 ORDER BY title COLLATE NOCASE ASC'
   ).all(movieId)
 }
 
@@ -342,7 +349,7 @@ export function searchMovies(db: Database.Database, query: string): unknown[] {
   const rows = db.prepare(`
     SELECT * FROM movies
     WHERE is_deleted = 0 AND in_collection = 1 AND (title LIKE ? OR director LIKE ? OR genre LIKE ?)
-    ORDER BY title ASC LIMIT 50
+    ORDER BY title COLLATE NOCASE ASC LIMIT 50
   `).all(like, like, like) as Record<string, unknown>[]
 
   return applyBoxsetWatched(db, rows)
@@ -397,6 +404,26 @@ export function randomMovie(db: Database.Database, filters?: { collectionType?: 
  * eigener Stand wird aus ihnen abgeleitet (siehe applyBoxsetWatched), ihn zu
  * setzen bliebe wirkungslos.
  */
+/**
+ * Eigene Bewertung setzen — 1 bis 5 Sterne wie in der Shelf.
+ *
+ * Erneutes Klicken auf denselben Stern löscht die Bewertung; ohne das gäbe es
+ * keinen Weg zurück auf "noch nicht bewertet". Werte außerhalb 1-5 werden als
+ * Löschen behandelt, damit ein Aufrufer nichts Ungültiges einschleusen kann.
+ */
+export function setUserRating(db: Database.Database, id: number, rating: number | null): { user_rating: number | null } {
+  const gültig = typeof rating === 'number' && Number.isInteger(rating) && rating >= 1 && rating <= 5
+  const vorher  = db.prepare('SELECT user_rating FROM movies WHERE id = ?').get(id) as { user_rating: number | null } | undefined
+  if (!vorher) return { user_rating: null }
+
+  const ziel = !gültig || vorher.user_rating === rating ? null : rating
+
+  db.prepare('UPDATE movies SET user_rating = ?, updated_at = ? WHERE id = ?')
+    .run(ziel, new Date().toISOString(), id)
+
+  return { user_rating: ziel }
+}
+
 export function toggleWatched(db: Database.Database, id: number): { is_watched: boolean } {
   const now = new Date().toISOString()
 
@@ -504,6 +531,7 @@ export function registerMovieHandlers(): void {
   ipcMain.handle('db:movies:clear',            (_e, c)        => clearMovies(db(), c))
   ipcMain.handle('db:movies:random',           (_e, f)        => randomMovie(db(), f))
   ipcMain.handle('db:movies:toggle-watched',   (_e, id)       => toggleWatched(db(), id))
+  ipcMain.handle('db:movies:set-user-rating',  (_e, id, r)    => setUserRating(db(), id, r))
   ipcMain.handle('db:movies:bulk-delete',      (_e, ids)      => bulkDelete(db(), ids))
   ipcMain.handle('db:movies:bulk-tag',         (_e, ids, tag) => bulkUpdateTag(db(), ids, tag))
   ipcMain.handle('db:movies:import',           (_e, rows)     => importMovies(db(), rows))

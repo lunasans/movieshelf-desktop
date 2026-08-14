@@ -7,7 +7,7 @@ export function getLists(db: Database.Database) {
     SELECT l.*,
       (SELECT COUNT(*) FROM list_items li WHERE li.list_id = l.id) AS movie_count
     FROM lists l
-    ORDER BY l.name ASC
+    ORDER BY l.name COLLATE NOCASE ASC
   `).all()
 }
 

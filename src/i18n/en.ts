@@ -162,6 +162,8 @@ const en = {
     labelRuntime: 'Runtime',
     labelDirector: 'Director',
     labelEdition: 'Edition',
+    yourRating: 'Your rating',
+    rateStars: '{count} out of 5 stars',
     labelRegionCode: 'Region',
     labelDiscLocation: 'Location',
     labelCondition: 'Condition',

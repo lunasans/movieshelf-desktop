@@ -111,6 +111,9 @@ function runMigrations(instance: Database.Database = db): void {
   try { instance.exec('ALTER TABLE movies ADD COLUMN purchase_date TEXT') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN purchase_price REAL') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN condition TEXT') } catch (e) {}
+  // Eigene Bewertung, 1-5 Sterne wie in der Shelf. Getrennt von `rating`, das
+  // die TMDb-Note (0-10) trägt — beide Werte sollen nebeneinander stehen.
+  try { instance.exec('ALTER TABLE movies ADD COLUMN user_rating INTEGER') } catch (e) {}
   // Die Shelf liefert in boxset_parent_id ihre eigene ID. Sie wird beim Pull hier
   // roh abgelegt und erst danach in die lokale id aufgelöst - in einer einzigen
   // Spalte wäre eine bereits aufgelöste lokale id von einer remote id nicht zu

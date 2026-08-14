@@ -64,6 +64,19 @@
             >
               {{ movie.tag }}
             </span>
+
+            <!-- FSK wie in der Shelf: als Siegel, wenn es eine Grafik dafür gibt -->
+            <img
+              v-if="fskImage"
+              :src="fskImage"
+              :alt="`FSK ${movie.rating_age}`"
+              class="h-10 w-auto drop-shadow-2xl"
+            />
+            <span v-else-if="movie.rating_age != null"
+              class="px-6 py-2 bg-white/5 backdrop-blur-xl rounded-2xl text-[10px] font-black tracking-[0.3em] uppercase border border-white/10 text-[var(--text-main)]"
+            >
+              FSK {{ movie.rating_age }}
+            </span>
           </div>
 
           <h1
@@ -94,6 +107,33 @@
               <i class="bi bi-megaphone text-red-500 text-lg"></i>
               <span class="text-[var(--text-main)]">{{ movie.director }}</span>
             </div>
+          </div>
+
+          <!-- Eigene Bewertung, 5 Sterne wie in der Shelf. Der Durchschnitt aus
+               mehreren Nutzern entfällt — der Desktop ist einplatzig. -->
+          <div
+            class="flex items-center gap-3 mt-8 transition-all duration-500"
+            :class="{ 'opacity-0 scale-95 translate-y-[-10px]': isSticky }"
+          >
+            <span class="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              {{ $t('movieDetail.yourRating') }}
+            </span>
+            <div class="flex items-center gap-1" @mouseleave="hoverRating = 0">
+              <button
+                v-for="stern in 5"
+                :key="stern"
+                @click="setUserRating(stern)"
+                @mouseenter="hoverRating = stern"
+                :aria-label="$t('movieDetail.rateStars', { count: stern })"
+                class="text-2xl leading-none transition-all active:scale-90"
+                :class="(hoverRating || userRating) >= stern ? 'text-amber-400' : 'text-[var(--text-muted)] opacity-25 hover:opacity-50'"
+              >
+                <i class="bi bi-star-fill"></i>
+              </button>
+            </div>
+            <span v-if="userRating > 0" class="text-xs font-medium text-[var(--text-muted)]">
+              {{ userRating }}/5
+            </span>
           </div>
 
           <!-- Physische Angaben als Pillen, wie im $hasPhysical-Block der Shelf -->
@@ -385,6 +425,29 @@ const backfillLoading   = ref(false)
 const backfillImporting = ref(false)
 const backfillSeasons   = ref<SeasonOption[]>([])
 const backfillError     = ref<string | null>(null)
+
+const hoverRating = ref(0)
+const userRating  = computed(() => Number(movie.value?.user_rating ?? 0))
+
+// Erneut auf denselben Stern zu klicken löscht die Bewertung; das entscheidet
+// der Handler, hier wird nur das Ergebnis übernommen.
+async function setUserRating(stern: number) {
+  if (!movie.value) return
+  const { user_rating } = await window.electron.db.movies.setUserRating(movie.value.id, stern)
+  movie.value.user_rating = user_rating
+  hoverRating.value = 0
+}
+
+// Nur für diese Stufen gibt es ein Siegel (public/img/fsk, aus der Shelf
+// übernommen). TMDb liefert gelegentlich andere Werte — die bekommen eine
+// Textpille, statt ein fehlendes Bild zu zeigen.
+const FSK_STUFEN = [0, 6, 12, 16, 18]
+const fskImage = computed(() => {
+  const alter = movie.value?.rating_age
+  return alter != null && FSK_STUFEN.includes(Number(alter))
+    ? `/img/fsk/fsk-${Number(alter)}.svg`
+    : null
+})
 
 // Entspricht dem $hasPhysical-Block der Shelf: die Pillenzeile erscheint nur,
 // wenn zu diesem Exemplar überhaupt physische Angaben erfasst sind.

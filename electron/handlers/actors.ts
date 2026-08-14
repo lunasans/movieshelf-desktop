@@ -9,7 +9,7 @@ export function getActorsForMovie(db: Database.Database, movieId: number): unkno
     SELECT a.*, fa.role, fa.is_main_role FROM actors a
     JOIN film_actor fa ON a.id = fa.actor_id
     WHERE fa.film_id = ?
-    ORDER BY fa.is_main_role DESC, a.name ASC
+    ORDER BY fa.is_main_role DESC, a.name COLLATE NOCASE ASC
   `).all(movieId)
 }
 
@@ -50,7 +50,7 @@ export function upsertActor(db: Database.Database, data: Record<string, unknown>
 
 export function searchActors(db: Database.Database, query: string): unknown[] {
   return db.prepare(
-    "SELECT * FROM actors WHERE name LIKE ? ORDER BY name ASC LIMIT 20"
+    "SELECT * FROM actors WHERE name LIKE ? ORDER BY name COLLATE NOCASE ASC LIMIT 20"
   ).all(`%${query}%`)
 }
 
