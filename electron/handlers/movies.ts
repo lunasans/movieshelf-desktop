@@ -163,6 +163,79 @@ export function featuredMovies(db: Database.Database, limit = 5): unknown[] {
   ).all(limit)
 }
 
+export type DuplicateGroup = {
+  /** Woran der Verdacht hängt — die TMDb-ID ist der harte Treffer. */
+  reason: 'tmdb' | 'title'
+  label: string
+  movies: Record<string, unknown>[]
+}
+
+/**
+ * Doppelte Einträge finden — entspricht `duplicates()` im MovieController der
+ * Shelf, dort über Titel und Jahr.
+ *
+ * Zwei Kriterien statt einem: die TMDb-ID ist der eindeutige Treffer, Titel und
+ * Jahr fangen die Fälle ohne ID ab. Was die ID schon gemeldet hat, taucht im
+ * Titel-Durchgang nicht noch einmal auf.
+ *
+ * Der Titelvergleich ignoriert Groß- und Kleinschreibung (wie findDuplicate im
+ * Jellyfin-Import) und berücksichtigt den Sammlungstyp: "Fargo" als Film und
+ * als Serie sind zwei Werke, keine Dublette.
+ */
+export function findDuplicates(db: Database.Database): DuplicateGroup[] {
+  const sichtbar = 'is_deleted = 0 AND in_collection = 1'
+  const gruppen: DuplicateGroup[] = []
+  const schonGemeldet = new Set<number>()
+
+  const nachTmdb = db.prepare(
+    `SELECT tmdb_id FROM movies
+      WHERE ${sichtbar} AND tmdb_id IS NOT NULL
+      GROUP BY tmdb_id HAVING COUNT(*) > 1`
+  ).all() as { tmdb_id: number }[]
+
+  for (const { tmdb_id } of nachTmdb) {
+    const movies = db.prepare(
+      `SELECT * FROM movies WHERE ${sichtbar} AND tmdb_id = ? ORDER BY id ASC`
+    ).all(tmdb_id) as Record<string, unknown>[]
+
+    for (const m of movies) schonGemeldet.add(m.id as number)
+
+    // Der erste Titel taugt nur als Überschrift, wenn alle gleich heissen.
+    // Teilen sich zwei verschiedene Werke eine TMDb-ID — meist ein Fehlimport —
+    // wäre er glatt irreführend; dann steht die ID selbst darüber.
+    const titel = new Set(movies.map(m => String(m.title ?? '').toLowerCase()))
+    const label = titel.size === 1 ? String(movies[0]?.title ?? '') : `TMDb ${tmdb_id}`
+
+    gruppen.push({ reason: 'tmdb', label, movies })
+  }
+
+  const nachTitel = db.prepare(
+    `SELECT title, year, collection_type FROM movies
+      WHERE ${sichtbar}
+      GROUP BY LOWER(title), year, collection_type HAVING COUNT(*) > 1`
+  ).all() as { title: string; year: number | null; collection_type: string | null }[]
+
+  for (const treffer of nachTitel) {
+    const movies = (db.prepare(
+      `SELECT * FROM movies
+        WHERE ${sichtbar}
+          AND LOWER(title) = LOWER(?)
+          AND year IS ?
+          AND collection_type IS ?
+        ORDER BY id ASC`
+    ).all(treffer.title, treffer.year, treffer.collection_type) as Record<string, unknown>[])
+      .filter(m => !schonGemeldet.has(m.id as number))
+
+    if (movies.length > 1) {
+      const jahr = treffer.year ? ` (${treffer.year})` : ''
+      gruppen.push({ reason: 'title', label: `${treffer.title}${jahr}`, movies })
+    }
+  }
+
+  // Die dicksten Nester zuerst — dort lohnt das Aufräumen am meisten.
+  return gruppen.sort((a, b) => b.movies.length - a.movies.length)
+}
+
 export function getMovieChildren(db: Database.Database, movieId: number): unknown[] {
   // Nur die lokale id. Früher wurde zusätzlich über die remote_id gesucht, weil
   // der Pull dort Server-IDs ablegte - dabei sammelte ein Boxset fremde Filme ein,
@@ -525,6 +598,7 @@ export function registerMovieHandlers(): void {
   ipcMain.handle('db:movies:count',            ()         => countMovies(db()))
   ipcMain.handle('db:movies:recent',           (_e, l)    => recentMovies(db(), l))
   ipcMain.handle('db:movies:featured',         (_e, l)    => featuredMovies(db(), l))
+  ipcMain.handle('db:movies:duplicates',       ()         => findDuplicates(db()))
   ipcMain.handle('db:movies:children',         (_e, id)   => getMovieChildren(db(), id))
   ipcMain.handle('db:movies:resolve-boxsets',  ()         => resolveBoxsetParents(db()))
   ipcMain.handle('db:movies:get',              (_e, id)   => getMovie(db(), id))

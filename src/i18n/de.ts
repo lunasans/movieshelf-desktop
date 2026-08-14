@@ -354,6 +354,7 @@ const de = {
     sections: {
       general: 'Allgemein',
       backup: 'Backup',
+      duplicates: 'Duplikate',
       dev: 'Entwickler',
       appearance: 'Erscheinungsbild',
       tmdb: 'TMDb',
@@ -361,6 +362,14 @@ const de = {
       updates: 'Updates',
       connection: 'Verbindung',
       about: 'Info',
+    },
+    duplicates: {
+      title: 'Duplikate finden',
+      hint: 'Sucht Filme, die mehrfach in der Sammlung stehen — über dieselbe TMDb-ID oder über Titel und Jahr. Film und Serie gleichen Namens gelten nicht als Dublette.',
+      scan: 'Sammlung durchsuchen',
+      none: 'Keine Duplikate gefunden.',
+      byTmdb: 'TMDb-ID',
+      byTitle: 'Titel & Jahr',
     },
     about: {
       title: 'Über MovieShelf',

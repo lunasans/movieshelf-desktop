@@ -6,7 +6,7 @@ import {
   listMovies, countMovies, recentMovies, featuredMovies, createMovie, updateMovie,
   deleteMovie, searchMovies, checkTmdbIds, deleteMovieByRemoteId, allRemoteIds,
   getMovie, getMovieByRemoteId, getMovieChildren, resolveBoxsetParents, clearMovies,
-  randomMovie, toggleWatched, setUserRating, applyBoxsetWatched, bulkDelete, bulkUpdateTag, importMovies,
+  randomMovie, toggleWatched, setUserRating, findDuplicates, applyBoxsetWatched, bulkDelete, bulkUpdateTag, importMovies,
 } from '../movies'
 
 let db: Database.Database
@@ -70,6 +70,82 @@ describe('recentMovies', () => {
 
     const result = recentMovies(db, 1) as any[]
     expect(result[0].title).toBe('Neu')
+  })
+})
+
+describe('findDuplicates', () => {
+  it('meldet nichts, wenn alles einmalig ist', () => {
+    insertMovie(db, { title: 'Dune', year: 2021 })
+    insertMovie(db, { title: 'Arrival', year: 2016 })
+
+    expect(findDuplicates(db)).toEqual([])
+  })
+
+  it('erkennt Dubletten an der TMDb-ID', () => {
+    insertMovie(db, { title: 'Dune', tmdb_id: 438631 })
+    insertMovie(db, { title: 'Dune - Der Wüstenplanet', tmdb_id: 438631 })
+
+    const gruppen = findDuplicates(db)
+    expect(gruppen).toHaveLength(1)
+    expect(gruppen[0].reason).toBe('tmdb')
+    expect(gruppen[0].movies).toHaveLength(2)
+  })
+
+  it('nimmt den Titel als Überschrift, wenn alle Einträge gleich heissen', () => {
+    insertMovie(db, { title: 'Dune', tmdb_id: 438631 })
+    insertMovie(db, { title: 'dune', tmdb_id: 438631 })
+
+    expect(findDuplicates(db)[0].label).toBe('Dune')
+  })
+
+  it('nennt die TMDb-ID, wenn sich verschiedene Titel eine ID teilen', () => {
+    insertMovie(db, { title: 'The Bewitching', tmdb_id: 4711 })
+    insertMovie(db, { title: 'Daryl Dixon', tmdb_id: 4711 })
+
+    // Der erste Titel wäre hier eine glatte Falschaussage über die Gruppe.
+    expect(findDuplicates(db)[0].label).toBe('TMDb 4711')
+  })
+
+  it('erkennt Dubletten an Titel und Jahr, unabhängig von der Schreibweise', () => {
+    insertMovie(db, { title: 'Matrix', year: 1999 })
+    insertMovie(db, { title: 'MATRIX', year: 1999 })
+
+    const gruppen = findDuplicates(db)
+    expect(gruppen).toHaveLength(1)
+    expect(gruppen[0].reason).toBe('title')
+  })
+
+  it('hält Film und Serie gleichen Namens auseinander', () => {
+    insertMovie(db, { title: 'Fargo', year: 1996, collection_type: 'Film' })
+    insertMovie(db, { title: 'Fargo', year: 1996, collection_type: 'Serie' })
+
+    expect(findDuplicates(db)).toEqual([])
+  })
+
+  it('meldet dieselbe Dublette nicht zweimal', () => {
+    insertMovie(db, { title: 'Dune', year: 2021, tmdb_id: 438631 })
+    insertMovie(db, { title: 'Dune', year: 2021, tmdb_id: 438631 })
+
+    const gruppen = findDuplicates(db)
+    expect(gruppen).toHaveLength(1)
+    expect(gruppen[0].reason).toBe('tmdb')
+  })
+
+  it('übergeht Gelöschtes und Titel außerhalb der Sammlung', () => {
+    insertMovie(db, { title: 'Matrix', year: 1999 })
+    insertMovie(db, { title: 'Matrix', year: 1999, is_deleted: 1 })
+    insertMovie(db, { title: 'Matrix', year: 1999, in_collection: 0 })
+
+    expect(findDuplicates(db)).toEqual([])
+  })
+
+  it('sortiert die größten Gruppen nach vorn', () => {
+    for (let i = 0; i < 3; i++) insertMovie(db, { title: 'Dreifach', year: 2000 })
+    insertMovie(db, { title: 'Doppelt', year: 2001 })
+    insertMovie(db, { title: 'Doppelt', year: 2001 })
+
+    const gruppen = findDuplicates(db)
+    expect(gruppen.map(g => g.movies.length)).toEqual([3, 2])
   })
 })
 

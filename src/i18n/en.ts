@@ -355,6 +355,7 @@ const en = {
     sections: {
       general: 'General',
       backup: 'Backup',
+      duplicates: 'Duplicates',
       dev: 'Developer',
       appearance: 'Appearance',
       tmdb: 'TMDb',
@@ -362,6 +363,14 @@ const en = {
       updates: 'Updates',
       connection: 'Connection',
       about: 'About',
+    },
+    duplicates: {
+      title: 'Find duplicates',
+      hint: 'Looks for movies stored more than once — by the same TMDb ID, or by title and year. A movie and a series of the same name do not count as duplicates.',
+      scan: 'Scan collection',
+      none: 'No duplicates found.',
+      byTmdb: 'TMDb ID',
+      byTitle: 'Title & year',
     },
     about: {
       title: 'About MovieShelf',
