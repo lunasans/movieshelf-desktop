@@ -92,6 +92,7 @@ interface Window {
           genres?: string[]
         }) => Promise<MovieListResult>
         recent:          (limit?: number) => Promise<unknown[]>
+        featured:        (limit?: number) => Promise<unknown[]>
         get:             (id: number) => Promise<unknown>
         getByRemoteId:   (id: number) => Promise<Record<string, unknown> | null>
         create:          (data: Record<string, unknown>) => Promise<unknown>

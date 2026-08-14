@@ -53,19 +53,21 @@
       </div>
     </div>
 
-    <!-- Filterleiste als Glas-Panel, wie in der Shelf -->
+    <!-- Filterleiste als Glas-Panel, wie in der Shelf. Die Suche sitzt wie dort
+         nicht hier, sondern im Hero des Dashboards; ein Treffer landet über
+         ?q= wieder in dieser Ansicht. -->
     <div class="glass rounded-3xl p-4 mb-6">
-    <!-- Search -->
-    <div class="relative mb-4">
-      <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] opacity-40"></i>
-      <input
-        ref="searchEl"
-        v-model="query"
-        @input="onSearch"
-        type="text"
-        :placeholder="$t('movies.searchPlaceholder')"
-        class="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all"
-      />
+    <!-- Aktive Suche: sichtbar machen und abwählbar halten, sonst wäre nicht
+         erkennbar, warum die Liste gefiltert ist. -->
+    <div v-if="query" class="flex items-center gap-2 mb-4">
+      <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-600 text-white text-xs font-bold">
+        <i class="bi bi-search text-[10px]"></i>
+        {{ query }}
+        <button @click="clearSearch" :aria-label="$t('common.cancel')" class="opacity-70 hover:opacity-100 transition-opacity">
+          <i class="bi bi-x-lg text-[10px]"></i>
+        </button>
+      </span>
+      <span class="text-xs text-[var(--text-muted)] opacity-60">{{ $t('movies.countMovies', { count: store.total }) }}</span>
     </div>
 
     <!-- Sort + Genre controls -->
@@ -222,7 +224,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, onBeforeRouteLeave } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useMovieStore } from '@/stores/movies'
 import { useSettingsStore } from '@/stores/settings'
@@ -234,6 +236,7 @@ import RandomPickerModal from '@/components/RandomPickerModal.vue'
 import BulkActionBar from '@/components/BulkActionBar.vue'
 
 const route    = useRoute()
+const router   = useRouter()
 const store    = useMovieStore()
 const settings = useSettingsStore()
 const { t }    = useI18n()
@@ -265,7 +268,6 @@ const viewOptions = computed<{ mode: ViewMode; icon: string; label: string }[]>(
 
 const measureEl = ref<HTMLElement | null>(null)
 const gridEl    = ref<HTMLElement | null>(null)
-const searchEl  = ref<HTMLInputElement | null>(null)
 
 const isSeries = computed(() => route.path === '/series')
 const listKey  = computed(() => isSeries.value ? 'Serie' : '!Serie')
@@ -371,11 +373,12 @@ watch(() => store.movies.length, async () => {
 
 // ── Filters ───────────────────────────────────────────────────────────────────
 
-let searchTimeout: ReturnType<typeof setTimeout>
-
-function onSearch() {
-  clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => onFiltersChange(), 300)
+// Die Suche kommt aus dem Dashboard-Hero und steht in ?q=. Zurücksetzen heißt
+// deshalb: den Parameter aus der Route nehmen — der Watcher lädt dann neu.
+function clearSearch() {
+  const query = { ...route.query }
+  delete query.q
+  router.replace({ path: route.path, query })
 }
 
 async function onFiltersChange() {
