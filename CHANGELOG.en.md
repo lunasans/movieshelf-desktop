@@ -7,6 +7,31 @@ Bugfix releases are documented in `CHANGELOG.md` only.
 Keep the heading format identical to `CHANGELOG.md` (`## [x.y.z] - YYYY-MM-DD`); the
 release workflow cuts the section out by matching it.
 
+## [1.1.0] - 2026-08-15
+
+Ratings and episode progress now actually reach the shelf — and the sync finally
+says what it is about to transfer.
+
+### New
+
+- **The connected account is shown in the settings.** Until now the app never showed which account it was signed in with. That only becomes apparent when it is the wrong one: ratings do arrive, but never show up in the shelf, because the view there filters by the signed-in user. Connection now lists name, email and id, plus a button to check again. If the login has expired, it says so in plain words (#116).
+- **Counting this installation is now possible, voluntarily.** A switch under Updates, off by default. When switched on, a random identifier and the installed version travel along with the version check the app makes anyway — to movieshelf.info, not to your shelf, with no link to your account and no IP address. You are asked once on first start, with "No" preselected (#118).
+
+### Fixed
+
+- **The preview kept quiet about what goes to the shelf.** Under "Desktop → Shelf" it showed only the title, without a word about what changes — the paragraph listing the changed fields was missing from that list, while the opposite direction had it all along (#117).
+- **Pending ratings counted as "no changes".** Ratings and episode progress deliberately do not hang off the film's timestamp, otherwise every click on a star would trigger a full transfer. As a result they fell out of the count: the page reported "up to date" while something was in fact pending. Both now appear in the preview, with episodes grouped per series (#117).
+- **Error messages about episodes named a database id.** Instead of "Episode 4711" they now name the series along with the episode title (#117).
+
+### Internal
+
+- The winget submission fills in the release notes per language. komac has no flag for this and writes them into the default locale only, which has been English since 1.0.0 — without this step German text would end up in the English manifest file. Feature releases therefore need a section in `CHANGELOG.en.md` from now on (#115).
+
+**Note:** Ratings and episode progress require shelf 2.41.2 or newer. Before
+that, sending them failed and pulling them never delivered anything.
+
+---
+
 ## [1.0.0] - 2026-08-15
 
 The interface now follows the Web Shelf throughout. Since that leaves hardly any view
