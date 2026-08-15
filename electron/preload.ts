@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('electron', {
       count:   ()                        => ipcRenderer.invoke('db:movies:count'),
       recent:  (limit?: number)        => ipcRenderer.invoke('db:movies:recent', limit),
       featured:(limit?: number)        => ipcRenderer.invoke('db:movies:featured', limit),
+      duplicates: ()                   => ipcRenderer.invoke('db:movies:duplicates'),
       setUserRating: (id: number, rating: number | null) => ipcRenderer.invoke('db:movies:set-user-rating', id, rating),
       get:          (id: number)       => ipcRenderer.invoke('db:movies:get', id),
       getByRemoteId:(id: number)       => ipcRenderer.invoke('db:movies:get-by-remote-id', id),

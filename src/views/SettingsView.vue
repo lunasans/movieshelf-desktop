@@ -254,6 +254,63 @@
       </template>
 
       <!-- ── Backup ── -->
+      <!-- ── Duplikate ── -->
+      <template v-if="active === 'duplicates'">
+        <SectionHeader icon="files" :title="$t('settings.duplicates.title')" />
+
+        <div class="glass rounded-2xl p-5 mb-4">
+          <p class="text-xs text-[var(--text-muted)] opacity-60 mb-4">
+            {{ $t('settings.duplicates.hint') }}
+          </p>
+          <button
+            @click="scanDuplicates"
+            :disabled="duplicatesLoading"
+            class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-[var(--text-main)] font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <i class="bi" :class="duplicatesLoading ? 'bi-arrow-repeat animate-spin' : 'bi-search'"></i>
+            {{ duplicatesLoading ? $t('common.loading') : $t('settings.duplicates.scan') }}
+          </button>
+        </div>
+
+        <p v-if="duplicatesScanned && duplicateGroups.length === 0"
+          class="glass rounded-2xl p-5 text-sm text-[var(--status-green)] font-bold flex items-center gap-2">
+          <i class="bi bi-check-circle-fill"></i>{{ $t('settings.duplicates.none') }}
+        </p>
+
+        <div v-for="gruppe in duplicateGroups" :key="gruppe.reason + gruppe.label" class="glass rounded-2xl p-5 mb-4">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <p class="text-sm font-bold text-[var(--text-main)] truncate">{{ gruppe.label }}</p>
+            <span
+              class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg flex-shrink-0"
+              :class="gruppe.reason === 'tmdb'
+                ? 'bg-red-600/15 text-red-400 border border-red-500/25'
+                : 'bg-white/5 text-[var(--text-muted)] border border-white/10'"
+            >
+              {{ gruppe.reason === 'tmdb' ? $t('settings.duplicates.byTmdb') : $t('settings.duplicates.byTitle') }}
+            </span>
+          </div>
+
+          <div v-for="film in gruppe.movies" :key="film.id"
+            class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors">
+            <router-link :to="`/movies/${film.id}`" class="flex-1 min-w-0 group">
+              <p class="text-xs font-bold text-[var(--text-main)] truncate group-hover:text-red-400 transition-colors">
+                {{ film.title }}
+              </p>
+              <p class="text-[10px] text-[var(--text-muted)] opacity-60">
+                {{ [film.year, film.collection_type, film.tag].filter(Boolean).join(' · ') }}
+              </p>
+            </router-link>
+            <button
+              @click="removeDuplicate(film.id)"
+              class="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:bg-red-600 transition-colors flex-shrink-0"
+              :title="$t('common.delete')"
+            >
+              <i class="bi bi-trash3-fill text-xs"></i>
+            </button>
+          </div>
+        </div>
+      </template>
+
       <template v-if="active === 'backup'">
         <SectionHeader icon="archive" :title="$t('settings.backup.title')" />
 
@@ -606,6 +663,27 @@ const changelogLines = computed(() => {
 })
 
 const backupLoading    = ref(false)
+const duplicateGroups   = ref<{ reason: 'tmdb' | 'title'; label: string; movies: any[] }[]>([])
+const duplicatesLoading = ref(false)
+const duplicatesScanned = ref(false)
+
+async function scanDuplicates() {
+  duplicatesLoading.value = true
+  try {
+    duplicateGroups.value = await window.electron.db.movies.duplicates()
+    duplicatesScanned.value = true
+  } finally {
+    duplicatesLoading.value = false
+  }
+}
+
+// Nach dem Löschen neu suchen statt die Zeile nur auszublenden: fällt eine
+// Gruppe damit auf einen Eintrag, ist sie keine Dublette mehr und verschwindet.
+async function removeDuplicate(id: number) {
+  await window.electron.db.movies.delete(id)
+  await scanDuplicates()
+}
+
 const backupResult     = ref<{ success: boolean; movies?: number; error?: string } | null>(null)
 const restoreLoading   = ref(false)
 const restoreResult    = ref<{ success: boolean; movies?: number; actors?: number; error?: string } | null>(null)
@@ -615,6 +693,7 @@ const importResult     = ref<{ imported: number; skipped: number; error?: string
 const sections = [
   { id: 'general',    icon: 'gear',          labelKey: 'settings.sections.general'    },
   { id: 'backup',     icon: 'archive',       labelKey: 'settings.sections.backup'     },
+  { id: 'duplicates', icon: 'files',         labelKey: 'settings.sections.duplicates' },
   { id: 'dev',        icon: 'bug',           labelKey: 'settings.sections.dev',  dev: true },
   { id: 'appearance', icon: 'palette',      labelKey: 'settings.sections.appearance' },
   { id: 'tmdb',       icon: 'film',          labelKey: 'settings.sections.tmdb'       },

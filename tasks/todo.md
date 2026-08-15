@@ -214,3 +214,39 @@ Daten schon da sind. Nicht Teil dieses PRs.
 
 - `npm run build` grün, `npm test` grün (211)
 - Nicht in der laufenden App angesehen
+
+---
+
+# Duplikate finden
+
+Entspricht `duplicates()` im MovieController der Shelf, dort über Titel und Jahr.
+
+- [x] `findDuplicates()` mit **zwei** Kriterien: die TMDb-ID ist der eindeutige
+      Treffer, Titel und Jahr fangen die Fälle ohne ID ab. Was die ID schon
+      gemeldet hat, taucht im Titel-Durchgang nicht noch einmal auf
+- [x] Titelvergleich ohne Rücksicht auf Groß-/Kleinschreibung (wie
+      `findDuplicate` im Jellyfin-Import) und mit Sammlungstyp: „Fargo" als Film
+      und als Serie sind zwei Werke, keine Dublette
+- [x] Größte Gruppen zuerst
+- [x] Eigener Abschnitt in den Einstellungen: Gruppen mit Herkunfts-Kennzeichen,
+      Verweis auf den Film und Löschknopf je Eintrag. Nach dem Löschen wird neu
+      gesucht — fällt eine Gruppe auf einen Eintrag, ist sie keine Dublette mehr
+- [x] 9 Tests
+
+## Beim Ausprobieren gefunden
+
+- **Ein echter Datenfehler in der Sammlung**: *The Bewitching* (2003, Film) und
+  *The Walking Dead: Daryl Dixon* (2023, Serie) teilen sich eine TMDb-ID. Einer
+  von beiden wurde mit der falschen ID importiert.
+- **Die Gruppenüberschrift log.** Sie nahm den Titel des ersten Eintrags — bei
+  verschiedenen Titeln unter einer ID also eine Falschaussage. Jetzt steht die
+  Überschrift nur dann auf dem Titel, wenn alle Einträge gleich heissen, sonst
+  auf der ID selbst.
+- **`insertMovie` im Test-Helfer schrieb `tmdb_id` nicht** — derselbe Fallstrick
+  wie zuvor bei `backdrop_path`. Zwei Tests schlugen scheinbar wegen der Abfrage
+  fehl, tatsächlich wegen des Helfers.
+
+## Verifikation
+
+- `npm run build` grün, `npm test` grün (220)
+- Gegen die echte Sammlung laufen lassen und in den Einstellungen angesehen

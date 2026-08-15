@@ -36,12 +36,12 @@ export function insertMovie(db: Database.Database, overrides: Record<string, unk
   const result = db.prepare(`
     INSERT INTO movies (
       title, year, collection_type, in_collection, is_deleted, is_boxset,
-      runtime, rating, genre, cover_path, backdrop_path,
+      runtime, rating, genre, cover_path, backdrop_path, tmdb_id,
       is_watched, synced_watched, boxset_parent_id, boxset_parent_remote_id,
       remote_id, created_at, updated_at
     ) VALUES (
       @title, @year, @collection_type, @in_collection, @is_deleted, @is_boxset,
-      @runtime, @rating, @genre, @cover_path, @backdrop_path,
+      @runtime, @rating, @genre, @cover_path, @backdrop_path, @tmdb_id,
       @is_watched, @synced_watched, @boxset_parent_id, @boxset_parent_remote_id,
       @remote_id, @created_at, @updated_at
     )
@@ -49,9 +49,9 @@ export function insertMovie(db: Database.Database, overrides: Record<string, unk
     title: 'Test Film', year: 2020, collection_type: 'Film',
     in_collection: 1, is_deleted: 0, is_boxset: 0,
     runtime: null, rating: null, genre: null,
-    // Bilder gehören in die Spaltenliste, sonst schluckt der Helfer sie
-    // stillschweigend und Tests, die darauf filtern, laufen ins Leere.
-    cover_path: null, backdrop_path: null,
+    // Bilder und TMDb-ID gehören in die Spaltenliste, sonst schluckt der Helfer
+    // sie stillschweigend und Tests, die darauf filtern, laufen ins Leere.
+    cover_path: null, backdrop_path: null, tmdb_id: null,
     is_watched: 0,
     // Standardmässig gilt der Stand als übertragen — sonst stünde jede
     // Testzeile ungewollt als offene Markierung da.
