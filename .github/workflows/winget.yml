@@ -30,6 +30,13 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # Fuer packaging/winget/release-notes.py und die beiden Changelogs.
+      # Der Tag, nicht der Standardbranch: die Notizen sollen aus dem Changelog
+      # zum eingereichten Stand kommen.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release-tag }}
+
       # komac direkt statt vedantmgoyal9/winget-releaser: die Action scheitert
       # reproduzierbar an "lunasans does not have the correct permissions to
       # execute CreateRef/UpdateRef", obwohl dasselbe Secret im selben Runner
@@ -59,3 +66,12 @@ jobs:
             --urls "https://github.com/lunasans/movieshelf-desktop/releases/download/$TAG/MovieShelf-Setup-${TAG#v}.exe" \
             --submit \
             --token "$TOKEN"
+
+      # Siehe release.yml: komac schreibt die Notizen nur ins Standard-Locale
+      # und zieht sie aus dem deutschen Release-Text.
+      - name: Release-Notizen je Sprache nachtragen
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          TAG='${{ inputs.release-tag }}'
+          python3 packaging/winget/release-notes.py --version "${TAG#v}"
