@@ -185,6 +185,8 @@ const de = {
     noSeasonChanges: 'Keine Änderungen',
     removeSeasonsWarning: 'Achtung: Entfernen löscht auch alle Folgen der abgewählten Staffel(n).',
     episodeFallback: 'Folge {number}',
+    toggleEpisodeWatched: 'Folge als gesehen markieren',
+    toggleSeasonWatched: 'Ganze Staffel markieren',
     noEpisodes: 'Keine Folgen vorhanden.',
     editMovie: 'Film bearbeiten',
     lists: 'Listen',

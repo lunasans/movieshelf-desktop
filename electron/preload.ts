@@ -65,9 +65,11 @@ contextBridge.exposeInMainWorld('electron', {
       upsert:   (data: any) => ipcRenderer.invoke('db:seasons:upsert', data),
       remove:   (movieId: number, seasonNumbers: number[]) => ipcRenderer.invoke('db:seasons:remove', movieId, seasonNumbers),
       pruneRemote: (movieId: number, keepRemoteIds: number[]) => ipcRenderer.invoke('db:seasons:pruneRemote', movieId, keepRemoteIds),
+      setWatched: (seasonId: number, watched?: boolean) => ipcRenderer.invoke('db:seasons:set-watched', seasonId, watched),
     },
     episodes: {
       upsert: (data: any) => ipcRenderer.invoke('db:episodes:upsert', data),
+      toggleWatched: (id: number) => ipcRenderer.invoke('db:episodes:toggle-watched', id),
     },
     lists: {
       list:              ()                                 => ipcRenderer.invoke('db:lists:list'),

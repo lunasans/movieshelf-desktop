@@ -311,17 +311,50 @@
                     <p v-if="season.overview" class="text-xs text-[var(--text-muted)] opacity-50 mt-0.5 truncate">{{ season.overview }}</p>
                   </div>
                   <div class="flex items-center gap-3 flex-shrink-0 ml-4">
-                    <span class="text-xs text-[var(--text-muted)] opacity-40">{{ $t('movieDetail.episodesCount', { count: season.episodes.length }) }}</span>
+                    <!-- Fortschritt statt blosser Folgenzahl -->
+                    <span class="text-xs" :class="isSeasonWatched(season) ? 'text-green-500 font-bold' : 'text-[var(--text-muted)] opacity-40'">
+                      {{ season.episodes.length > 0
+                        ? `${season.watched_count ?? 0}/${season.episodes.length}`
+                        : $t('movieDetail.episodesCount', { count: 0 }) }}
+                    </span>
+                    <span
+                      v-if="season.episodes.length > 0"
+                      role="button"
+                      @click.stop="toggleSeasonWatched(season)"
+                      :title="$t('movieDetail.toggleSeasonWatched')"
+                      class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                      :class="isSeasonWatched(season)
+                        ? 'bg-green-600/20 text-green-500 hover:bg-green-600/30'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/10'"
+                    >
+                      <i class="bi bi-eye-fill text-sm"></i>
+                    </span>
                     <i class="bi text-[var(--text-muted)] opacity-40 transition-transform" :class="openSeasons.has(season.id) ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                   </div>
                 </button>
                 <div v-if="openSeasons.has(season.id)" class="border-t border-[var(--border-ui)]">
-                  <div v-for="ep in season.episodes" :key="ep.id" class="px-5 py-3 border-b border-[var(--border-ui)] last:border-0">
-                    <p class="text-sm font-bold text-[var(--text-main)]">
-                      <span class="text-[var(--text-muted)] opacity-40 text-xs mr-2 font-mono">E{{ ep.episode_number }}</span>
-                      {{ ep.title ?? $t('movieDetail.episodeFallback', { number: ep.episode_number }) }}
-                    </p>
-                    <p v-if="ep.overview" class="text-xs text-[var(--text-muted)] opacity-60 mt-1 leading-relaxed">{{ ep.overview }}</p>
+                  <div
+                    v-for="ep in season.episodes"
+                    :key="ep.id"
+                    class="flex items-start gap-3 px-5 py-3 border-b border-[var(--border-ui)] last:border-0"
+                  >
+                    <button
+                      @click="toggleEpisode(season, ep)"
+                      :title="$t('movieDetail.toggleEpisodeWatched')"
+                      class="mt-0.5 w-6 h-6 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors"
+                      :class="ep.is_watched === 1
+                        ? 'bg-green-600 border-green-500 text-white'
+                        : 'border-[var(--border-ui)] text-transparent hover:border-[var(--text-muted)]'"
+                    >
+                      <i class="bi bi-check text-sm"></i>
+                    </button>
+                    <div class="min-w-0">
+                      <p class="text-sm font-bold" :class="ep.is_watched === 1 ? 'text-[var(--text-muted)]' : 'text-[var(--text-main)]'">
+                        <span class="text-[var(--text-muted)] opacity-40 text-xs mr-2 font-mono">E{{ ep.episode_number }}</span>
+                        {{ ep.title ?? $t('movieDetail.episodeFallback', { number: ep.episode_number }) }}
+                      </p>
+                      <p v-if="ep.overview" class="text-xs text-[var(--text-muted)] opacity-60 mt-1 leading-relaxed">{{ ep.overview }}</p>
+                    </div>
                   </div>
                   <p v-if="season.episodes.length === 0" class="px-5 py-3 text-xs text-[var(--text-muted)] opacity-40 italic">{{ $t('movieDetail.noEpisodes') }}</p>
                 </div>
@@ -513,6 +546,25 @@ async function confirmSeasonBackfill(changes: { add: number[]; remove: number[] 
   } finally {
     backfillImporting.value = false
   }
+}
+
+// Eine Staffel gilt erst als gesehen, wenn jede Folge markiert ist — halb
+// geschaut als "gesehen" auszuweisen wäre die unangenehmere Unwahrheit.
+// Dieselbe Regel wie bei Boxsets in applyBoxsetWatched.
+function isSeasonWatched(season: any): boolean {
+  return season.episodes.length > 0 && (season.watched_count ?? 0) === season.episodes.length
+}
+
+async function toggleEpisode(season: any, ep: any) {
+  const { is_watched } = await window.electron.db.episodes.toggleWatched(ep.id)
+  ep.is_watched = is_watched ? 1 : 0
+  season.watched_count = season.episodes.filter((e: any) => e.is_watched === 1).length
+}
+
+async function toggleSeasonWatched(season: any) {
+  const { is_watched } = await window.electron.db.seasons.setWatched(season.id)
+  for (const ep of season.episodes) ep.is_watched = is_watched ? 1 : 0
+  season.watched_count = is_watched ? season.episodes.length : 0
 }
 
 function toggleSeason(seasonId: number) {

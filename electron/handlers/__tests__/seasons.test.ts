@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type Database from 'better-sqlite3'
 import { createTestDb, insertMovie } from './testDb'
-import { getSeasonsForMovie, upsertSeason, upsertEpisode, removeSeasonsByNumbers, pruneSeasonsMissingRemote } from '../seasons'
+import { getSeasonsForMovie, upsertSeason, upsertEpisode, removeSeasonsByNumbers, pruneSeasonsMissingRemote, toggleEpisodeWatched, setSeasonWatched } from '../seasons'
 
 let db: Database.Database
 
@@ -193,5 +193,105 @@ describe('getSeasonsForMovie', () => {
     expect(seasons[1].season_number).toBe(2)
     expect(seasons[0].episodes[0].episode_number).toBe(1)
     expect(seasons[0].episodes[1].episode_number).toBe(2)
+  })
+})
+
+// ── Gesehen-Stand je Folge ───────────────────────────────────────────────────
+
+/** Legt eine Serie mit einer Staffel und `anzahl` Folgen an. */
+function serieMitFolgen(anzahl: number) {
+  const movieId  = insertMovie(db, { collection_type: 'Serie' })
+  const seasonId = upsertSeason(db, { movie_id: movieId, season_number: 1 })!
+  for (let i = 1; i <= anzahl; i++) {
+    upsertEpisode(db, { season_id: seasonId, episode_number: i, title: `Folge ${i}` })
+  }
+  const folgen = db.prepare('SELECT id FROM episodes WHERE season_id = ? ORDER BY episode_number')
+    .all(seasonId) as { id: number }[]
+  return { movieId, seasonId, folgen }
+}
+
+describe('toggleEpisodeWatched', () => {
+  it('markiert eine Folge und nimmt die Markierung wieder zurück', () => {
+    const { folgen } = serieMitFolgen(2)
+
+    expect(toggleEpisodeWatched(db, folgen[0].id)).toEqual({ is_watched: true })
+    expect(toggleEpisodeWatched(db, folgen[0].id)).toEqual({ is_watched: false })
+  })
+
+  it('lässt die übrigen Folgen unberührt', () => {
+    const { seasonId, folgen } = serieMitFolgen(3)
+    toggleEpisodeWatched(db, folgen[1].id)
+
+    const stand = db.prepare('SELECT is_watched FROM episodes WHERE season_id = ? ORDER BY episode_number')
+      .all(seasonId) as { is_watched: number }[]
+    expect(stand.map(e => e.is_watched)).toEqual([0, 1, 0])
+  })
+
+  it('meldet den Stand für eine unbekannte Folge, ohne zu werfen', () => {
+    expect(toggleEpisodeWatched(db, 9999)).toEqual({ is_watched: false })
+  })
+
+  it('fängt frisch importierte Folgen als ungesehen an', () => {
+    const { movieId } = serieMitFolgen(2)
+    const [staffel] = getSeasonsForMovie(db, movieId)
+    expect(staffel.watched_count).toBe(0)
+  })
+})
+
+describe('setSeasonWatched', () => {
+  it('markiert eine unvollständige Staffel komplett', () => {
+    const { seasonId, folgen } = serieMitFolgen(3)
+    toggleEpisodeWatched(db, folgen[0].id)
+
+    // Halb geschaut gilt als ungesehen: der Klick soll fertig markieren,
+    // nicht das Erreichte verwerfen.
+    expect(setSeasonWatched(db, seasonId)).toEqual({ is_watched: true, count: 3 })
+  })
+
+  it('setzt eine vollständig gesehene Staffel zurück', () => {
+    const { seasonId } = serieMitFolgen(2)
+    setSeasonWatched(db, seasonId)
+
+    expect(setSeasonWatched(db, seasonId)).toEqual({ is_watched: false, count: 0 })
+  })
+
+  it('folgt einem ausdrücklichen Ziel', () => {
+    const { seasonId } = serieMitFolgen(2)
+
+    expect(setSeasonWatched(db, seasonId, false)).toEqual({ is_watched: false, count: 0 })
+    expect(setSeasonWatched(db, seasonId, true)).toEqual({ is_watched: true, count: 2 })
+  })
+
+  it('rührt eine leere Staffel nicht an', () => {
+    const movieId  = insertMovie(db, { collection_type: 'Serie' })
+    const seasonId = upsertSeason(db, { movie_id: movieId, season_number: 1 })!
+
+    expect(setSeasonWatched(db, seasonId)).toEqual({ is_watched: false, count: 0 })
+  })
+
+  it('lässt andere Staffeln derselben Serie in Ruhe', () => {
+    const movieId = insertMovie(db, { collection_type: 'Serie' })
+    const s1 = upsertSeason(db, { movie_id: movieId, season_number: 1 })!
+    const s2 = upsertSeason(db, { movie_id: movieId, season_number: 2 })!
+    upsertEpisode(db, { season_id: s1, episode_number: 1 })
+    upsertEpisode(db, { season_id: s2, episode_number: 1 })
+
+    setSeasonWatched(db, s1)
+
+    const staffeln = getSeasonsForMovie(db, movieId)
+    expect(staffeln[0].watched_count).toBe(1)
+    expect(staffeln[1].watched_count).toBe(0)
+  })
+})
+
+describe('getSeasonsForMovie', () => {
+  it('liefert den Fortschritt je Staffel mit', () => {
+    const { movieId, folgen } = serieMitFolgen(4)
+    toggleEpisodeWatched(db, folgen[0].id)
+    toggleEpisodeWatched(db, folgen[2].id)
+
+    const [staffel] = getSeasonsForMovie(db, movieId)
+    expect(staffel.watched_count).toBe(2)
+    expect(staffel.episodes).toHaveLength(4)
   })
 })
