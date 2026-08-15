@@ -241,19 +241,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
 import FormRow from '@/components/ui/FormRow.vue'
 import ActorPickerModal from '@/components/movies/ActorPickerModal.vue'
 import { useMovieStore } from '@/stores/movies'
-import { useSettingsStore } from '@/stores/settings'
+import { useTmdb } from '@/composables/useTmdb'
 import { t } from '@/i18n'
-
-const TMDB_BASE = 'https://api.themoviedb.org/3'
 
 const route       = useRoute()
 const router      = useRouter()
 const movieStore  = useMovieStore()
-const settings    = useSettingsStore()
+const tmdb        = useTmdb()
 
 const isEdit = computed(() => !!route.params.id)
 
@@ -383,9 +380,7 @@ async function reloadFromTmdb() {
 
   try {
     if (isTv) {
-      const { data: m } = await axios.get(`${TMDB_BASE}/tv/${form.value.tmdb_id}`, {
-        params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits,videos' }
-      })
+      const m = await tmdb.details('tv', form.value.tmdb_id)
       const creator = (m.created_by ?? [])[0]?.name ?? form.value.director
       const trailer = (m.videos?.results ?? []).find((v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'))
       Object.assign(form.value, {
@@ -401,12 +396,7 @@ async function reloadFromTmdb() {
       })
       await downloadAndSave(m.poster_path ?? null, m.backdrop_path ?? null)
     } else {
-      // Ein Aufruf statt zwei: die Videos kommen ueber append_to_response mit,
-      // wie im Serien-Zweig darueber und in der TMDb-Suche. Ein eigener
-      // /videos-Request kostet nur zusaetzliches Kontingent.
-      const { data: m } = await axios.get(`${TMDB_BASE}/movie/${form.value.tmdb_id}`, {
-        params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits,videos' }
-      })
+      const m        = await tmdb.details('movie', form.value.tmdb_id)
       const director = (m.credits?.crew ?? []).find((c: any) => c.job === 'Director')?.name ?? form.value.director
       const trailer  = (m.videos?.results ?? []).find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
       Object.assign(form.value, {

@@ -1,7 +1,4 @@
-import axios from 'axios'
-import { useSettingsStore } from '@/stores/settings'
-
-const TMDB_BASE = 'https://api.themoviedb.org/3'
+import { useTmdb } from '@/composables/useTmdb'
 
 export interface SeasonOption {
   season_number: number
@@ -16,7 +13,7 @@ export interface SeasonOption {
  * TMDb-Serien-Import und das Staffel-Nachladen auf der Detailseite.
  */
 export function useSeasonImport() {
-  const settings = useSettingsStore()
+  const tmdb = useTmdb()
 
   function mapSeasons(raw: any[]): SeasonOption[] {
     return (raw ?? [])
@@ -30,11 +27,9 @@ export function useSeasonImport() {
       }))
   }
 
-  /** Staffel-Liste einer Serie direkt von TMDb (Standalone, braucht API-Key). */
+  /** Staffel-Liste einer Serie — über die Shelf, sonst direkt von TMDb. */
   async function fetchTvSeasons(tmdbId: number): Promise<SeasonOption[]> {
-    const { data } = await axios.get(`${TMDB_BASE}/tv/${tmdbId}`, {
-      params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage },
-    })
+    const data = await tmdb.details('tv', tmdbId)
     return mapSeasons(data.seasons)
   }
 
@@ -51,9 +46,7 @@ export function useSeasonImport() {
   ): Promise<void> {
     for (const seasonNum of seasonNumbers) {
       try {
-        const { data } = await axios.get(`${TMDB_BASE}/tv/${tmdbId}/season/${seasonNum}`, {
-          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage },
-        })
+        const data = await tmdb.season(tmdbId, seasonNum)
         const seasonId = await window.electron.db.seasons.upsert({
           movie_id: movieId,
           season_number: seasonNum,
