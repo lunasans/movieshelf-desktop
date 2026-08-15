@@ -1,3 +1,15 @@
+## [1.1.1] - 2026-08-15
+
+### Behoben
+
+- **Die Zählung meldete sich erst beim nächsten Start.** Die Kennung fährt auf der Versionsabfrage mit, und die läuft nur beim App-Start, beim Öffnen der Einstellungen und auf Knopfdruck — wer den Schalter umlegt, hat alle drei gerade hinter sich. Es passierte also sichtbar nichts, und die Installation tauchte erst später auf. Dasselbe galt für die Zustimmung im Onboarding: ausgerechnet der Moment, in dem man zustimmt, wurde nicht gezählt. Beide melden jetzt sofort (#120).
+
+### Intern
+
+- Kommentare, Testnamen und Doku verwenden durchgehend echte Umlaute statt `ae`/`oe`/`ue` (#121).
+
+---
+
 ## [1.1.0] - 2026-08-15
 
 Bewertung und Folgenstand erreichen die Shelf jetzt tatsächlich — und die
