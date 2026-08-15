@@ -450,6 +450,14 @@ const en = {
       requestKey: 'Request key →',
       apiKeyPlaceholder: 'Enter TMDb API key...',
     },
+    stats: {
+      title: 'Count this installation',
+      hint: 'Voluntary and off by default. When switched on, the app sends a random identifier, your operating system and the app version along with the version check it makes anyway — to movieshelf.info, not to your shelf. No link to your account, no IP address, no exact time. All it shows is how many installations were active in the last 30 days.',
+      onboardingQuestion: 'May MovieShelf count this installation?',
+      onboardingHint: 'A random identifier, your operating system and the app version — nothing else, and no link to your account. You can change this any time in the settings.',
+      onboardingNo: 'No thanks',
+      onboardingYes: 'Yes, sure',
+    },
     updates: {
       title: 'Software Update',
       installedVersion: 'Installed version',

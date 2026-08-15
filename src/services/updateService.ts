@@ -11,7 +11,19 @@ export function useUpdateService() {
   async function checkForUpdates() {
     try {
       const platform = navigator.platform.toLowerCase().includes('linux') ? 'linux' : 'win'
-      const response = await axios.get(`${UPDATE_URL}?platform=${platform}`)
+
+      // Die Abfrage selbst ist technisch noetig und wird nicht gezaehlt. Nur
+      // wer die Zaehlung eingeschaltet hat, schickt zusaetzlich eine Kennung —
+      // ohne sie haelt die Shelf nichts fest. Die Version faehrt im selben
+      // Zug mit, sonst waere nur die Anzahl bekannt und nicht, welche Ausgaben
+      // ueberhaupt noch draussen sind.
+      const parameter = new URLSearchParams({ platform })
+      if (settings.statsEnabled && settings.statsInstallId) {
+        parameter.set('stats', settings.statsInstallId)
+        parameter.set('version', settings.appVersion)
+      }
+
+      const response = await axios.get(`${UPDATE_URL}?${parameter}`)
       const raw = response.data
       const remoteVersion = (raw.version as string).replace(/^v/, '')
       const { url, sha256, manual } = raw
