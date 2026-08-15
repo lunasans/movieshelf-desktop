@@ -72,7 +72,12 @@
           </span>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-bold text-[var(--text-main)] truncate">{{ item.title }}</p>
-            <p class="text-xs text-[var(--text-muted)] opacity-40 mt-0.5">{{ item.year ?? '–' }}</p>
+            <!-- Wie in der Pull-Liste oben: die geänderten Felder gehen vor dem
+                 Jahr. Fehlte hier, weshalb "Desktop → Shelf" nur den Titel zeigte. -->
+            <p v-if="item.action === 'updated' && item.changes.length > 0" class="text-xs text-[var(--text-muted)] opacity-60 mt-0.5">
+              {{ item.changes.join(' · ') }}
+            </p>
+            <p v-else class="text-xs text-[var(--text-muted)] opacity-40 mt-0.5">{{ item.year ?? '–' }}</p>
           </div>
         </div>
       </div>

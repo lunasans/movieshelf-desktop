@@ -84,7 +84,26 @@ export function useSyncEngine() {
   async function loadStats() {
     localCount.value = await window.electron.db.movies.count()
     const dirty = await window.electron.db.movies.sync.dirty() as any[]
-    dirtyCount.value = dirty.length
+
+    // Bewertung und Folgenstand zaehlen mit. Beide haengen bewusst nicht an
+    // `updated_at`, sondern tragen eigene Markierungen (`synced_user_rating`,
+    // `synced_watched`) — sonst hoebe jeder Sternklick den Zeitstempel und
+    // loeste einen vollstaendigen PUT aus. Ohne sie hier meldete die Seite
+    // "Keine Aenderungen" und der Weg Desktop -> Shelf blieb verschlossen,
+    // waehrend pushUserRatings beim Abgleich sehr wohl etwas zu tun hatte.
+    //
+    // Gezaehlt werden betroffene Filme, nicht Einzelaenderungen: ein Film mit
+    // geaenderten Feldern *und* neuer Bewertung ist eine Zeile, nicht zwei.
+    const betroffen = new Set<string>()
+    for (const m of dirty) betroffen.add(m.remote_id != null ? `m${m.remote_id}` : `l${m.id}`)
+    for (const r of await window.electron.db.movies.sync.pendingUserRatings()) {
+      betroffen.add(`m${r.remote_id}`)
+    }
+    for (const e of await window.electron.db.movies.sync.pendingEpisodesWatched()) {
+      // Ohne Serie zaehlt die Folge fuer sich — uebertragen wird sie trotzdem.
+      betroffen.add(e.movie_remote_id != null ? `m${e.movie_remote_id}` : `e${e.id}`)
+    }
+    dirtyCount.value = betroffen.size
     const ts = await window.electron.settings.get('last_sync_at') as string | null
     if (ts) {
       const d = new Date(ts)
