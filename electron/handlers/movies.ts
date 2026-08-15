@@ -331,11 +331,11 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     INSERT INTO movies (title, year, genre, director, runtime, rating, rating_age, overview,
       cover_path, backdrop_path, actors_names, trailer_url, collection_type, tag, tmdb_id, remote_id,
       edition, region_code, disc_location, purchase_date, purchase_price, condition,
-      is_boxset, boxset_parent_id, boxset_parent_remote_id, view_count, is_watched, user_rating, synced_user_rating, in_collection, collection_no, created_at, updated_at)
+      is_boxset, boxset_parent_id, boxset_parent_remote_id, view_count, is_watched, synced_watched, user_rating, synced_user_rating, in_collection, collection_no, created_at, updated_at)
     VALUES (@title, @year, @genre, @director, @runtime, @rating, @rating_age, @overview,
       @cover_path, @backdrop_path, @actors_names, @trailer_url, @collection_type, @tag, @tmdb_id, @remote_id,
       @edition, @region_code, @disc_location, @purchase_date, @purchase_price, @condition,
-      @is_boxset, @boxset_parent_id, @boxset_parent_remote_id, @view_count, @is_watched, @user_rating, @user_rating, @in_collection, @collection_no, @created_at, @updated_at)
+      @is_boxset, @boxset_parent_id, @boxset_parent_remote_id, @view_count, @is_watched, @synced_watched, @user_rating, @user_rating, @in_collection, @collection_no, @created_at, @updated_at)
     ON CONFLICT(remote_id) DO UPDATE SET
       title = EXCLUDED.title, year = EXCLUDED.year, genre = EXCLUDED.genre,
       director = EXCLUDED.director, runtime = EXCLUDED.runtime, rating = EXCLUDED.rating,
@@ -380,6 +380,12 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     view_count: 0, is_watched: 0, user_rating: null, in_collection: 1,
     collection_no: nextCollectionNo,
     ...data,
+    // Kommt die Zeile vom Server, ist ihr Gesehen-Stand dort per Definition
+    // bekannt - sonst blieb synced_watched beim Anlegen NULL, die Zeile galt
+    // als "steht noch aus" und der naechste Push schob einen Stand hinauf,
+    // den die Shelf laengst hat. Rein lokale Zeilen bleiben NULL: ihre
+    // Markierung muss beim ersten Push tatsaechlich mitgehen.
+    synced_watched: data.remote_id != null ? (data.is_watched ?? 0) : null,
     created_at: data.created_at || now, updated_at: data.updated_at || now,
   })
 
