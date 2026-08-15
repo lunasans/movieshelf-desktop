@@ -295,7 +295,7 @@
 
         <!--
           Zählung aktiver Installationen. Steht hier, weil sie auf derselben
-          Abfrage mitfaehrt: die App fragt beim Start ohnehin nach der neuesten
+          Abfrage mitfährt: die App fragt beim Start ohnehin nach der neuesten
           Version. Vorgabe ist aus — ohne ausdrückliches Einschalten wird
           nichts gesendet und nichts gespeichert.
         -->
@@ -881,16 +881,16 @@ async function handleUpdateCheck() {
 }
 
 /**
- * Zaehlung umschalten — beim Einschalten gleich einmal melden.
+ * Zählung umschalten — beim Einschalten gleich einmal melden.
  *
- * Die Kennung faehrt auf der Versionsabfrage mit, und die laeuft nur beim
+ * Die Kennung fährt auf der Versionsabfrage mit, und die läuft nur beim
  * App-Start, beim Oeffnen dieser Seite und auf Knopfdruck. Wer den Schalter
  * umlegt, hat all das gerade hinter sich: es passierte also sichtbar nichts,
- * und die Installation tauchte erst beim naechsten Start auf. Das sah aus, als
- * wuerde der Schalter nicht wirken.
+ * und die Installation tauchte erst beim nächsten Start auf. Das sah aus, als
+ * würde der Schalter nicht wirken.
  *
  * Nur beim Einschalten. Ein Ausschalten braucht keine Meldung — der vorhandene
- * Eintrag verfaellt auf dem Server von selbst.
+ * Eintrag verfällt auf dem Server von selbst.
  */
 async function toggleStats() {
   const einschalten = !settings.statsEnabled

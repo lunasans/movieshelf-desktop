@@ -382,7 +382,7 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     ...data,
     // Kommt die Zeile vom Server, ist ihr Gesehen-Stand dort per Definition
     // bekannt - sonst blieb synced_watched beim Anlegen NULL, die Zeile galt
-    // als "steht noch aus" und der naechste Push schob einen Stand hinauf,
+    // als "steht noch aus" und der nächste Push schob einen Stand hinauf,
     // den die Shelf laengst hat. Rein lokale Zeilen bleiben NULL: ihre
     // Markierung muss beim ersten Push tatsaechlich mitgehen.
     synced_watched: data.remote_id != null ? (data.is_watched ?? 0) : null,

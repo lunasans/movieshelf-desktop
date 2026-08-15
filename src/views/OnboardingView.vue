@@ -231,11 +231,11 @@ async function statsAntwortSichern() {
   const zugestimmt = statsWahl.value === true
   await settings.setStatsEnabled(zugestimmt)
 
-  // Bei Zustimmung gleich melden: die Kennung faehrt auf der Versionsabfrage
-  // mit, und die ist beim App-Start laengst gelaufen — ohne das hier wuerde
-  // diese Installation erst beim naechsten Start ueberhaupt auftauchen.
+  // Bei Zustimmung gleich melden: die Kennung fährt auf der Versionsabfrage
+  // mit, und die ist beim App-Start längst gelaufen — ohne das hier würde
+  // diese Installation erst beim nächsten Start überhaupt auftauchen.
   if (zugestimmt) {
-    try { await checkForUpdates() } catch { /* Zaehlung darf das Onboarding nicht aufhalten */ }
+    try { await checkForUpdates() } catch { /* Zählung darf das Onboarding nicht aufhalten */ }
   }
 }
 

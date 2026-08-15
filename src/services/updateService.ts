@@ -14,7 +14,7 @@ export function useUpdateService() {
 
       // Die Abfrage selbst ist technisch nötig und wird nicht gezählt. Nur
       // wer die Zählung eingeschaltet hat, schickt zusätzlich eine Kennung —
-      // ohne sie hält die Shelf nichts fest. Die Version faehrt im selben
+      // ohne sie hält die Shelf nichts fest. Die Version fährt im selben
       // Zug mit, sonst wäre nur die Anzahl bekannt und nicht, welche Ausgaben
       // überhaupt noch draußen sind.
       const parameter = new URLSearchParams({ platform })
