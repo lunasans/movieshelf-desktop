@@ -12,11 +12,11 @@ export function useUpdateService() {
     try {
       const platform = navigator.platform.toLowerCase().includes('linux') ? 'linux' : 'win'
 
-      // Die Abfrage selbst ist technisch noetig und wird nicht gezaehlt. Nur
-      // wer die Zaehlung eingeschaltet hat, schickt zusaetzlich eine Kennung —
-      // ohne sie haelt die Shelf nichts fest. Die Version faehrt im selben
-      // Zug mit, sonst waere nur die Anzahl bekannt und nicht, welche Ausgaben
-      // ueberhaupt noch draussen sind.
+      // Die Abfrage selbst ist technisch nötig und wird nicht gezählt. Nur
+      // wer die Zählung eingeschaltet hat, schickt zusätzlich eine Kennung —
+      // ohne sie hält die Shelf nichts fest. Die Version faehrt im selben
+      // Zug mit, sonst wäre nur die Anzahl bekannt und nicht, welche Ausgaben
+      // überhaupt noch draußen sind.
       const parameter = new URLSearchParams({ platform })
       if (settings.statsEnabled && settings.statsInstallId) {
         parameter.set('stats', settings.statsInstallId)
@@ -56,7 +56,7 @@ export function useUpdateService() {
     }
   }
 
-  // Das Stats-Popup laeuft im selben Renderer-Bundle, hat aber kein Tray —
+  // Das Stats-Popup läuft im selben Renderer-Bundle, hat aber kein Tray —
   // der Aufruf ist trotzdem harmlos. Fehler hier duerfen den Check nicht kippen.
   function notifyTray(version: string | null) {
     window.electron?.tray?.setUpdate(version).catch(() => { /* Tray-Update ist optional */ })

@@ -32,9 +32,9 @@ async function init() {
     router.push(path)
   })
 
-  // Router fuer die E2E-Tests erreichbar machen. Ueber location.hash zu
+  // Router für die E2E-Tests erreichbar machen. Über location.hash zu
   // navigieren reisst unter file:// die Seite weg ("Target page has been
-  // closed"), und page.goto() verlaesst die App komplett.
+  // closed"), und page.goto() verlässt die App komplett.
   ;(window as any).__router = router
 }
 

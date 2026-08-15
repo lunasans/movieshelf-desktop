@@ -145,8 +145,8 @@ function showAndNavigate(path: string) {
   }
 }
 
-// Vom Renderer gemeldete verfuegbare Version (updateService prueft, nicht der
-// Main-Prozess) — null heisst „aktuell".
+// Vom Renderer gemeldete verfuegbare Version (updateService prüft, nicht der
+// Main-Prozess) — null heißt „aktuell".
 let updateVersion: string | null = null
 
 function trayIconPath() {
@@ -334,7 +334,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-// Jedes app.quit() zaehlt als echtes Beenden - nicht nur der Weg ueber das
+// Jedes app.quit() zählt als echtes Beenden - nicht nur der Weg über das
 // Tray-Menue. Ohne das blockt der close-Handler des Hauptfensters auch das
 // Herunterfahren des Systems, ein `quit` von aussen und den Teardown der
 // E2E-Tests: das Fenster verweigert sich, die App bleibt als Zombie liegen und
@@ -494,7 +494,7 @@ autoUpdater.on('error', (err) => {
   mainWindow?.webContents.send('update:error', String(err?.message || err))
 })
 
-// Der Update-Check laeuft im Renderer (updateService gegen movieshelf.info).
+// Der Update-Check läuft im Renderer (updateService gegen movieshelf.info).
 // Er meldet das Ergebnis hierher, damit Tray-Icon, Tooltip und Menue den
 // Hinweis auch dann zeigen, wenn das Fenster geschlossen im Tray liegt.
 ipcMain.handle('tray:set-update', (_e, version: string | null) => {

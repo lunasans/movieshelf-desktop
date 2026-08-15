@@ -135,9 +135,9 @@
           {{ settings.mode === 'online' ? $t('onboarding.doneHintCloud') : $t('onboarding.doneHint') }}
         </p>
         <!--
-          Einmalige Frage zur Zaehlung. Bewusst als zwei gleichwertige Knoepfe
+          Einmalige Frage zur Zählung. Bewusst als zwei gleichwertige Knoepfe
           statt eines vorangekreuzten Kaestchens: eine Einwilligung, die man
-          uebersieht, ist keine. Vorausgewaehlt ist "Nein" — wer einfach
+          übersieht, ist keine. Vorausgewählt ist "Nein" — wer einfach
           weiterklickt, stimmt nicht zu.
         -->
         <div class="glass rounded-2xl p-4 text-left mt-2">
@@ -190,7 +190,7 @@ const settings = useSettingsStore()
 
 const step         = ref(0)
 const totalSteps   = 4
-// Vorgabe "Nein": wer die Frage ueberliest und weiterklickt, stimmt nicht zu.
+// Vorgabe "Nein": wer die Frage überliest und weiterklickt, stimmt nicht zu.
 const statsWahl    = ref(false)
 const selectedMode = ref<'standalone' | 'online'>(settings.mode)
 const tmdbKey      = ref(settings.tmdbApiKey)
@@ -219,9 +219,9 @@ async function saveTmdb() {
 }
 
 /**
- * Die Antwort auf die Zaehlungsfrage festhalten.
+ * Die Antwort auf die Zählungsfrage festhalten.
  *
- * Auch ein "Nein" wird geschrieben — sonst liesse sich spaeter nicht
+ * Auch ein "Nein" wird geschrieben — sonst liesse sich später nicht
  * unterscheiden, ob jemand abgelehnt oder die Frage nie gesehen hat. Die
  * Kennung entsteht nur bei Zustimmung (siehe setStatsEnabled).
  */

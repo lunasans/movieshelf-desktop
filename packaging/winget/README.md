@@ -55,7 +55,7 @@ SHA256, erzeugt die drei Manifest-Dateien (version / installer / locale) und öf
 den Pull Request. Nach der Freigabe durch
 einen winget-Moderator übernimmt die CI alle weiteren Versionen automatisch.
 
-## Logo / Icon im Manifest — derzeit nicht moeglich
+## Logo / Icon im Manifest — derzeit nicht möglich
 
 **Nicht erneut versuchen, solange `Lunasans` kein verifizierter Publisher ist.**
 
@@ -68,11 +68,11 @@ Manifest-Validierung gescheitert:
 
 Das Feld `Icons` ist verifizierten Publishern vorbehalten. Am Block selbst lag
 es nicht: IconUrl lieferte HTTP 200 als `image/png`, exakt 256x256 (RGBA), und
-der `IconSha256` stimmte mit der ausgelieferten Datei ueberein — geprueft. Ein
+der `IconSha256` stimmte mit der ausgelieferten Datei überein — geprüft. Ein
 korrekter Block wird trotzdem abgelehnt.
 
 Der vorbereitete Block liegt weiter unter [`icons-block.yaml`](icons-block.yaml),
-falls sich das durch eine Publisher-Verifizierung einmal aendert. Dann gilt:
+falls sich das durch eine Publisher-Verifizierung einmal ändert. Dann gilt:
 
 - Ziel ist das **defaultLocale-Manifest**, hier `Lunasans.MovieShelf.locale.de-DE.yaml`
   (de-DE, nicht en-US). Installer- und Version-Manifest haben kein Bildfeld.
@@ -81,9 +81,9 @@ falls sich das durch eine Publisher-Verifizierung einmal aendert. Dann gilt:
 - `winget-releaser` schreibt pro Release nur Version und Installer-Block neu,
   das Locale-Manifest wird fortgeschrieben — der Block muss also einmalig rein.
 - `icon-256.png` ist die auf 256x256 skalierte Variante von `public/icon.png`
-  (`IconResolution` kennt nur feste Groessen, das Original mit 1254x1254 passt
+  (`IconResolution` kennt nur feste Größen, das Original mit 1254x1254 passt
   in keine davon).
-- Wird das Icon neu erzeugt, muessen Tag in der IconUrl und `IconSha256`
+- Wird das Icon neu erzeugt, müssen Tag in der IconUrl und `IconSha256`
   gemeinsam nachgezogen werden:
   `(Get-FileHash packaging/winget/icon-256.png -Algorithm SHA256).Hash`
 - Die winget-CLI selbst rendert ohnehin kein Logo; genutzt wird es von
@@ -125,7 +125,7 @@ Description: MovieShelf Desktop verwaltet deine Film- und Seriensammlung lokal, 
 Der Grund ist eine Eigenheit von komac: Für die Notizen gibt es **keinen Schalter**.
 komac zieht sie selbst aus dem GitHub-Release-Text — und den schneidet der
 `notify`-Job aus dem **deutschen** `CHANGELOG.md` — und schreibt sie
-ausschliesslich ins **Standard-Locale**. Seit der Umstellung auf `en-US` würde
+ausschließlich ins **Standard-Locale**. Seit der Umstellung auf `en-US` würde
 also deutscher Text in der englischen Datei landen und die deutsche leer bleiben.
 
 Deshalb läuft nach `komac update --submit` ein weiterer Schritt:
@@ -164,13 +164,13 @@ winget und stehen allein in `CHANGELOG.md`.
 
 ## Nur Feature-Releases landen bei winget
 
-Eingereicht wird ausschliesslich bei Tags, die auf `.0` enden — der Job in
+Eingereicht wird ausschließlich bei Tags, die auf `.0` enden — der Job in
 `release.yml` prüft das per `endsWith(github.ref_name, '.0')`, damit die
 winget-pkgs-Reviewer nicht mit Bugfix-Versionen geflutet werden.
 
 Dass bei winget also eine ältere Versionsnummer steht als die zuletzt
 veröffentlichte, ist **kein Rückstand, sondern die Absicht** — so wie `0.25.0`
-dort stand, während 0.25.1 bis 0.25.5 draussen waren. winget braucht ohnehin nur
+dort stand, während 0.25.1 bis 0.25.5 draußen waren. winget braucht ohnehin nur
 die jeweils neueste Version; wer zwischendurch installiert, holt sich die Updates
 über den eingebauten Updater.
 

@@ -23,7 +23,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const tmdbLanguage = computed(() => language.value === 'en' ? 'en-US' : 'de-DE')
   const dateLocale   = computed(() => language.value === 'en' ? 'en-GB' : 'de-AT')
 
-  // Zaehlung aktiver Installationen — ausdrueckliches Opt-in, Vorgabe aus.
+  // Zählung aktiver Installationen — ausdrückliches Opt-in, Vorgabe aus.
   // Die Kennung entsteht erst beim Einschalten (siehe setStatsEnabled): wer nie
   // zustimmt, hat auch keine.
   const statsEnabled   = ref(false)
@@ -54,18 +54,18 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
-   * Zaehlung ein- oder ausschalten.
+   * Zählung ein- oder ausschalten.
    *
    * Beim ersten Einschalten entsteht die Kennung — zufaellig, ohne Bezug zu
    * Person, Konto oder Hardware. Beim Ausschalten bleibt sie liegen, statt
-   * geloescht zu werden: sonst bekaeme dieselbe Installation beim naechsten
-   * Einschalten eine neue und wuerde doppelt gezaehlt. Gesendet wird sie dann
-   * ohnehin nicht mehr, und der Eintrag auf dem Server verfaellt nach 30 Tagen
+   * gelöscht zu werden: sonst bekaeme dieselbe Installation beim nächsten
+   * Einschalten eine neue und würde doppelt gezählt. Gesendet wird sie dann
+   * ohnehin nicht mehr, und der Eintrag auf dem Server verfällt nach 30 Tagen
    * von selbst.
    *
    * Wird sofort gespeichert statt erst beim Speichern-Knopf: eine Zustimmung
-   * zur Datenerhebung darf nicht daran haengen, ob jemand danach noch eine
-   * Schaltflaeche findet.
+   * zur Datenerhebung darf nicht daran hängen, ob jemand danach noch eine
+   * Schaltfläche findet.
    */
   async function setStatsEnabled(enabled: boolean) {
     if (enabled && !statsInstallId.value) {

@@ -294,9 +294,9 @@
         </div>
 
         <!--
-          Zaehlung aktiver Installationen. Steht hier, weil sie auf derselben
+          Zählung aktiver Installationen. Steht hier, weil sie auf derselben
           Abfrage mitfaehrt: die App fragt beim Start ohnehin nach der neuesten
-          Version. Vorgabe ist aus — ohne ausdrueckliches Einschalten wird
+          Version. Vorgabe ist aus — ohne ausdrückliches Einschalten wird
           nichts gesendet und nichts gespeichert.
         -->
         <div class="glass rounded-2xl p-5 mt-4">
@@ -720,11 +720,11 @@ const oauthState       = ref('')
 /**
  * Das Konto, mit dem der Desktop bei der Shelf angemeldet ist.
  *
- * Ohne diese Anzeige laesst sich nicht erkennen, unter welchem Konto der
- * Abgleich schreibt. Faellt das auseinander, kommen Bewertungen und
+ * Ohne diese Anzeige lässt sich nicht erkennen, unter welchem Konto der
+ * Abgleich schreibt. Fällt das auseinander, kommen Bewertungen und
  * Gesehen-Stand zwar an, tauchen in der Shelf aber nicht auf, weil dort nach
  * dem angemeldeten Nutzer gefiltert wird — ein Fehlerbild, das von aussen wie
- * "wird nicht uebertragen" aussieht.
+ * "wird nicht übertragen" aussieht.
  */
 const account        = ref<{ id?: number, name?: string, email?: string } | null>(null)
 const accountLoading = ref(false)

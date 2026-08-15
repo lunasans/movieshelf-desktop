@@ -5,3 +5,6 @@ release/
 *.local
 .env
 *.pfx
+
+# Python-Bytecode aus packaging/winget/release-notes.py
+__pycache__/

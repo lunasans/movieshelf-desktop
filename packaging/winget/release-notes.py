@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Traegt die Release-Notizen je Sprache im eingereichten winget-Manifest nach.
+"""Trägt die Release-Notizen je Sprache im eingereichten winget-Manifest nach.
 
-Warum es das braucht: `komac update` hat keinen Schalter fuer die Notizen. komac
+Warum es das braucht: `komac update` hat keinen Schalter für die Notizen. komac
 zieht sie selbst aus dem GitHub-Release-Text — der ist deutsch, weil der
-`notify`-Job ihn aus CHANGELOG.md schneidet — und schreibt sie ausschliesslich ins
+`notify`-Job ihn aus CHANGELOG.md schneidet — und schreibt sie ausschließlich ins
 Standard-Locale. Seit 1.0.0 ist das en-US. Ohne diesen Schritt bekaeme also die
 englische Datei deutschen Text und die deutsche gar keinen.
 
-Der Schritt laeuft nach `komac update --submit` und schiebt einen weiteren Commit
+Der Schritt läuft nach `komac update --submit` und schiebt einen weiteren Commit
 in den Branch, den komac im Fork angelegt hat.
 
 Aufruf:
@@ -16,7 +16,7 @@ Aufruf:
     release-notes.py --version 1.1.0 --dry-run --lokal VERZEICHNIS
 
 `--lokal` liest die Manifest-Dateien aus einem Verzeichnis statt von GitHub; damit
-laesst sich die Ersetzung ohne Netz und ohne Token pruefen.
+lässt sich die Ersetzung ohne Netz und ohne Token prüfen.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ PAKET = "Lunasans.MovieShelf"
 MANIFEST_VERZEICHNIS = "manifests/l/Lunasans/MovieShelf"
 RELEASE_URL = "https://github.com/lunasans/movieshelf-desktop/releases/tag/v{version}"
 
-# Was das winget-Schema fuer ReleaseNotes zulaesst.
+# Was das winget-Schema für ReleaseNotes zulässt.
 MAX_ZEICHEN = 10000
 
 # Locale-Datei -> Changelog, aus dem ihre Notizen stammen.
@@ -63,12 +63,12 @@ def abschnitt_lesen(pfad: str, version: str) -> str:
         raise Abbruch(f"{pfad} fehlt.")
 
     beginn = re.compile(r"^## \[" + re.escape(version) + r"\]")
-    naechster = re.compile(r"^## \[")
+    folgender = re.compile(r"^## \[")
 
     gesammelt: list[str] = []
     drin = False
     for zeile in zeilen:
-        if drin and naechster.match(zeile):
+        if drin and folgender.match(zeile):
             break
         if drin:
             gesammelt.append(zeile)
@@ -88,7 +88,7 @@ def abschnitt_lesen(pfad: str, version: str) -> str:
 def als_klartext(markdown: str) -> str:
     """Reduziert Markdown auf das, was komac auch erzeugt.
 
-    Also: keine Fettschrift, keine Rautenzeichen vor Ueberschriften, keine
+    Also: keine Fettschrift, keine Rautenzeichen vor Überschriften, keine
     Trennlinien und keine Leerzeilen. Der Zeilenumbruch der Quelle bleibt.
     """
     ergebnis: list[str] = []
@@ -105,15 +105,15 @@ def als_klartext(markdown: str) -> str:
 
 
 # --------------------------------------------------------------------------
-# YAML — bewusst zeilenweise statt ueber einen Parser
+# YAML — bewusst zeilenweise statt über einen Parser
 # --------------------------------------------------------------------------
 
 def notizen_ersetzen(inhalt: str, notizen: str) -> str:
     """Tauscht den ReleaseNotes-Block aus, ohne den Rest der Datei anzufassen.
 
-    Ein YAML-Parser wuerde die Datei neu schreiben und dabei Kommentare,
+    Ein YAML-Parser würde die Datei neu schreiben und dabei Kommentare,
     Feldreihenfolge und Zeichenketten-Stil verlieren — bei einem Manifest, das
-    Menschen bei Microsoft pruefen, ist das den Aufwand nicht wert.
+    Menschen bei Microsoft prüfen, ist das den Aufwand nicht wert.
     """
     zeilen = inhalt.splitlines()
     block = ["ReleaseNotes: |-"] + [f"  {z}" for z in notizen.splitlines()]
@@ -134,7 +134,7 @@ def notizen_ersetzen(inhalt: str, notizen: str) -> str:
                 return "\n".join(zeilen[:stelle] + block + zeilen[stelle:]) + "\n"
         raise Abbruch("Manifest hat weder ReleaseNotesUrl noch ManifestType.")
 
-    # Ende des Blockskalars: die naechste Zeile, die in Spalte 0 beginnt.
+    # Ende des Blockskalars: die nächste Zeile, die in Spalte 0 beginnt.
     ende = len(zeilen)
     for nummer in range(beginn + 1, len(zeilen)):
         zeile = zeilen[nummer]
@@ -148,8 +148,8 @@ def notizen_ersetzen(inhalt: str, notizen: str) -> str:
 def feld_setzen(inhalt: str, feld: str, wert: str) -> str:
     """Setzt ein einzeiliges Feld, oder legt es vor ManifestType an.
 
-    Noetig fuer ReleaseNotesUrl: die winget-Validierung vergleicht jede Version
-    mit der zuletzt veroeffentlichten und meldet jedes Feld, das verschwindet
+    Nötig für ReleaseNotesUrl: die winget-Validierung vergleicht jede Version
+    mit der zuletzt veröffentlichten und meldet jedes Feld, das verschwindet
     ("Manifest-Metadata-Consistency"). Beim Wechsel des Standard-Locales auf
     en-US ist genau das passiert, weil die neue Datei beide Notizen-Felder nicht
     hatte.
@@ -203,22 +203,22 @@ def branch_finden(version: str) -> str:
     """Sucht den Branch, den komac angelegt hat.
 
     Der Name lautet `Lunasans.MovieShelf-<version>-<UUID>`; den UUID-Teil vergibt
-    komac, deshalb wird ueber das Praefix gesucht.
+    komac, deshalb wird über das Präfix gesucht.
     """
-    praefix = f"{PAKET}-{version}-"
+    präfix = f"{PAKET}-{version}-"
     seite = 1
     treffer: list[str] = []
     while True:
         stapel = api(f"repos/{FORK}/branches?per_page=100&page={seite}")
         if not stapel:
             break
-        treffer += [b["name"] for b in stapel if b["name"].startswith(praefix)]
+        treffer += [b["name"] for b in stapel if b["name"].startswith(präfix)]
         if len(stapel) < 100:
             break
         seite += 1
 
     if not treffer:
-        raise Abbruch(f"Kein Branch mit Praefix '{praefix}' im Fork {FORK}.")
+        raise Abbruch(f"Kein Branch mit Präfix '{präfix}' im Fork {FORK}.")
     if len(treffer) > 1:
         raise Abbruch("Mehrere passende Branches, uneindeutig:\n  " + "\n  ".join(treffer))
     return treffer[0]
@@ -260,7 +260,7 @@ def commit_schreiben(branch: str, dateien: dict[str, str], nachricht: str) -> st
 
 def main() -> int:
     zerleger = argparse.ArgumentParser(description=__doc__)
-    zerleger.add_argument("--version", required=True, help="Version ohne fuehrendes v")
+    zerleger.add_argument("--version", required=True, help="Version ohne führendes v")
     zerleger.add_argument("--dry-run", action="store_true",
                           help="Ergebnis ausgeben statt pushen")
     zerleger.add_argument("--lokal", metavar="VERZEICHNIS",
@@ -268,7 +268,7 @@ def main() -> int:
     argumente = zerleger.parse_args()
     version = argumente.version
 
-    # Zuerst die Texte — schlaegt das fehl, ist noch nichts angefasst.
+    # Zuerst die Texte — schlägt das fehl, ist noch nichts angefasst.
     notizen = {}
     for locale, quelle in QUELLEN.items():
         text = als_klartext(abschnitt_lesen(quelle, version))
@@ -276,8 +276,8 @@ def main() -> int:
             raise Abbruch(f"Abschnitt '## [{version}]' in {quelle} ist leer.")
         if len(text) > MAX_ZEICHEN:
             raise Abbruch(
-                f"Notizen fuer {locale} sind {len(text)} Zeichen lang, "
-                f"das winget-Schema laesst {MAX_ZEICHEN} zu."
+                f"Notizen für {locale} sind {len(text)} Zeichen lang, "
+                f"das winget-Schema lässt {MAX_ZEICHEN} zu."
             )
         notizen[locale] = text
 
@@ -285,7 +285,7 @@ def main() -> int:
     if branch:
         print(f"Branch: {branch}")
 
-    geaendert = {}
+    ergebnisse = {}
     for locale, text in notizen.items():
         name = f"{PAKET}.locale.{locale}.yaml"
         pfad = f"{MANIFEST_VERZEICHNIS}/{version}/{name}"
@@ -296,19 +296,19 @@ def main() -> int:
             vorher = datei_lesen(branch, pfad)
         nachher = notizen_ersetzen(vorher, text)
         nachher = feld_setzen(nachher, "ReleaseNotesUrl", RELEASE_URL.format(version=version))
-        geaendert[pfad] = nachher
+        ergebnisse[pfad] = nachher
 
     if argumente.dry_run:
-        for pfad, inhalt in geaendert.items():
+        for pfad, inhalt in ergebnisse.items():
             print(f"\n===== {pfad} =====")
             sys.stdout.write(inhalt)
         return 0
 
     sha = commit_schreiben(
-        branch, geaendert,
+        branch, ergebnisse,
         f"Add localised release notes for {version}",
     )
-    print(f"Commit {sha[:7]} auf {branch}: " + ", ".join(sorted(geaendert)))
+    print(f"Commit {sha[:7]} auf {branch}: " + ", ".join(sorted(ergebnisse)))
     return 0
 
 
