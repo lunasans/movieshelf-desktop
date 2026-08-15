@@ -401,17 +401,14 @@ async function reloadFromTmdb() {
       })
       await downloadAndSave(m.poster_path ?? null, m.backdrop_path ?? null)
     } else {
-      const [detailRes, videoRes] = await Promise.all([
-        axios.get(`${TMDB_BASE}/movie/${form.value.tmdb_id}`, {
-          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits' }
-        }),
-        axios.get(`${TMDB_BASE}/movie/${form.value.tmdb_id}/videos`, {
-          params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage }
-        }).catch(() => ({ data: { results: [] } }))
-      ])
-      const m        = detailRes.data
+      // Ein Aufruf statt zwei: die Videos kommen ueber append_to_response mit,
+      // wie im Serien-Zweig darueber und in der TMDb-Suche. Ein eigener
+      // /videos-Request kostet nur zusaetzliches Kontingent.
+      const { data: m } = await axios.get(`${TMDB_BASE}/movie/${form.value.tmdb_id}`, {
+        params: { api_key: settings.tmdbApiKey, language: settings.tmdbLanguage, append_to_response: 'credits,videos' }
+      })
       const director = (m.credits?.crew ?? []).find((c: any) => c.job === 'Director')?.name ?? form.value.director
-      const trailer  = (videoRes.data.results ?? []).find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
+      const trailer  = (m.videos?.results ?? []).find((v: any) => v.site === 'YouTube' && v.type === 'Trailer')
       Object.assign(form.value, {
         title:        m.title,
         year:         m.release_date ? parseInt(m.release_date.slice(0, 4)) : form.value.year,
