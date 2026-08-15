@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl mb-6 overflow-hidden">
+  <div class="glass rounded-2xl mb-6 overflow-hidden">
 
     <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--border-ui)]">
       <div class="flex items-center gap-3">

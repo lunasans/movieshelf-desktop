@@ -10,36 +10,36 @@
       <label class="block">
         <span class="block text-xs font-bold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">{{ $t('jellyfin.serverUrl') }}</span>
         <input v-model="form.url" type="url" placeholder="http://192.168.1.10:8096"
-          class="w-full bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[var(--status-red)]" />
+          class="w-full glass rounded-xl px-4 py-2.5 text-sm outline-none focus:border-red-500" />
       </label>
       <label class="block">
         <span class="block text-xs font-bold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">{{ $t('jellyfin.username') }}</span>
         <input v-model="form.username" type="text"
-          class="w-full bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[var(--status-red)]" />
+          class="w-full glass rounded-xl px-4 py-2.5 text-sm outline-none focus:border-red-500" />
       </label>
       <label class="block">
         <span class="block text-xs font-bold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">{{ $t('jellyfin.password') }}</span>
         <input v-model="form.password" type="password" placeholder="••••••••" @keyup.enter="doLogin"
-          class="w-full bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[var(--status-red)]" />
+          class="w-full glass rounded-xl px-4 py-2.5 text-sm outline-none focus:border-red-500" />
       </label>
 
       <button @click="doLogin" :disabled="loginLoading || !form.url || !form.username"
-        class="w-full bg-[var(--status-red)] hover:opacity-90 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2">
+        class="w-full bg-red-600 hover:opacity-90 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2">
         <i class="bi bi-box-arrow-in-right"></i>
         {{ loginLoading ? $t('jellyfin.connecting') : $t('jellyfin.connect') }}
       </button>
-      <p v-if="error" class="text-[var(--status-red)] text-xs text-center font-bold">{{ error }}</p>
+      <p v-if="error" class="text-red-500 text-xs text-center font-bold">{{ error }}</p>
     </section>
 
     <!-- ── Verbunden: Bibliotheken + Import ── -->
     <section v-else class="space-y-6">
-      <div class="flex items-center justify-between bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-3">
+      <div class="flex items-center justify-between glass rounded-xl px-4 py-3">
         <div class="text-sm">
           <span class="inline-flex h-2 w-2 rounded-full bg-[var(--status-green)] mr-2"></span>
           <span class="font-bold">{{ status.user }}</span>
           <span class="text-[var(--text-muted)]"> · {{ status.url }}</span>
         </div>
-        <button @click="doLogout" class="text-xs text-[var(--text-muted)] hover:text-[var(--status-red)] font-bold">
+        <button @click="doLogout" class="text-xs text-[var(--text-muted)] hover:text-red-500 font-bold">
           {{ $t('jellyfin.disconnect') }}
         </button>
       </div>
@@ -49,18 +49,18 @@
         <p v-if="!libraries.length" class="text-xs text-[var(--text-muted)]">{{ $t('jellyfin.noLibraries') }}</p>
         <div v-else class="space-y-2">
           <label v-for="lib in libraries" :key="lib.id"
-            class="flex items-center gap-3 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-3 cursor-pointer">
-            <input type="checkbox" :value="lib.id" v-model="selected" :disabled="running" class="accent-[var(--status-red)]" />
+            class="flex items-center gap-3 glass rounded-xl px-4 py-3 cursor-pointer">
+            <input type="checkbox" :value="lib.id" v-model="selected" :disabled="running" class="accent-red-600" />
             <i :class="`bi bi-${lib.type === 'tvshows' ? 'tv' : 'film'} text-[var(--text-muted)]`"></i>
             <span class="text-sm font-medium">{{ lib.name }}</span>
           </label>
         </div>
       </div>
 
-      <label class="flex items-start gap-3 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-3"
+      <label class="flex items-start gap-3 glass rounded-xl px-4 py-3"
         :class="settings.hasTmdb ? 'cursor-pointer' : 'opacity-50'">
         <input type="checkbox" v-model="verifyWithTmdb" :disabled="running || !settings.hasTmdb"
-          class="mt-0.5 accent-[var(--status-red)]" />
+          class="mt-0.5 accent-red-600" />
         <span>
           <span class="block text-sm font-medium">{{ $t('jellyfin.verifyLabel') }}</span>
           <span class="block text-xs text-[var(--text-muted)]">
@@ -69,8 +69,8 @@
         </span>
       </label>
 
-      <label class="flex items-start gap-3 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-3 cursor-pointer">
-        <input type="checkbox" v-model="reimportDeleted" :disabled="running" class="mt-0.5 accent-[var(--status-red)]" />
+      <label class="flex items-start gap-3 glass rounded-xl px-4 py-3 cursor-pointer">
+        <input type="checkbox" v-model="reimportDeleted" :disabled="running" class="mt-0.5 accent-red-600" />
         <span>
           <span class="block text-sm font-medium">{{ $t('jellyfin.reimportLabel') }}</span>
           <span class="block text-xs text-[var(--text-muted)]">{{ $t('jellyfin.reimportHint') }}</span>
@@ -79,22 +79,22 @@
 
       <!-- Der Import schreibt in die lokale Datenbank; im Online-Modus liest die App
            vom Shelf-Server. Ohne Sync bliebe das Ergebnis unsichtbar. -->
-      <p v-if="settings.isOnline" class="text-xs text-[var(--text-muted)] bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl px-4 py-3">
+      <p v-if="settings.isOnline" class="text-xs text-[var(--text-muted)] glass rounded-xl px-4 py-3">
         <i class="bi bi-info-circle mr-1"></i>{{ $t('jellyfin.onlineHint') }}
       </p>
 
       <button @click="startImport" :disabled="running || !selected.length"
-        class="w-full bg-[var(--status-red)] hover:opacity-90 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2">
+        class="w-full bg-red-600 hover:opacity-90 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2">
         <i class="bi bi-download"></i>
         {{ running ? $t('jellyfin.importing') : $t('jellyfin.startImport') }}
       </button>
 
-      <p v-if="error" class="text-[var(--status-red)] text-xs text-center font-bold">{{ error }}</p>
+      <p v-if="error" class="text-red-500 text-xs text-center font-bold">{{ error }}</p>
 
       <!-- Fortschritt -->
       <div v-if="running || progress" class="space-y-2">
         <div class="h-2 rounded-full bg-[var(--bg-card)] overflow-hidden">
-          <div class="h-full bg-[var(--status-red)] transition-all" :style="{ width: `${percent}%` }"></div>
+          <div class="h-full bg-red-600 transition-all" :style="{ width: `${percent}%` }"></div>
         </div>
         <p class="text-xs text-[var(--text-muted)] truncate">
           <template v-if="progress?.phase === 'libraries'">{{ $t('jellyfin.readingLibraries') }}</template>
@@ -103,8 +103,8 @@
       </div>
 
       <!-- Ergebnis -->
-      <div v-if="result" class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl p-4 space-y-2">
-        <p v-if="result.error" class="text-[var(--status-red)] text-sm font-bold">{{ result.error }}</p>
+      <div v-if="result" class="glass rounded-xl p-4 space-y-2">
+        <p v-if="result.error" class="text-red-500 text-sm font-bold">{{ result.error }}</p>
         <template v-else>
           <p class="text-sm font-bold">{{ $t('jellyfin.resultTitle') }}</p>
           <ul class="text-sm text-[var(--text-muted)] space-y-1">
@@ -112,11 +112,11 @@
             <li>{{ $t('jellyfin.resultSkipped', { count: result.skipped }) }}</li>
             <li v-if="result.failed">{{ $t('jellyfin.resultFailed', { count: result.failed }) }}</li>
           </ul>
-          <ul v-if="result.errors.length" class="text-xs text-[var(--status-red)] space-y-0.5 pt-2">
+          <ul v-if="result.errors.length" class="text-xs text-red-500 space-y-0.5 pt-2">
             <li v-for="(e, i) in result.errors.slice(0, 10)" :key="i">{{ e }}</li>
           </ul>
           <RouterLink v-if="settings.isOnline && result.imported" to="/sync"
-            class="inline-flex items-center gap-2 text-xs font-bold text-[var(--status-red)] hover:underline pt-1">
+            class="inline-flex items-center gap-2 text-xs font-bold text-red-500 hover:underline pt-1">
             <i class="bi bi-arrow-repeat"></i>{{ $t('jellyfin.goToSync') }}
           </RouterLink>
         </template>

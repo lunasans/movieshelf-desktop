@@ -158,7 +158,7 @@ contextBridge.exposeInMainWorld('electron', {
     logout:    ()                                                          => ipcRenderer.invoke('jellyfin:logout'),
     libraries: ()                                                          => ipcRenderer.invoke('jellyfin:libraries'),
     // Werte kopieren: IPC klont die Argumente strukturiert, ein reaktiver Vue-Proxy
-    // aus dem Renderer wuerde den Aufruf mit "An object could not be cloned" abbrechen.
+    // aus dem Renderer würde den Aufruf mit "An object could not be cloned" abbrechen.
     import:    (libraryIds: string[], options?: { verifyWithTmdb?: boolean; reimportDeleted?: boolean }) =>
       ipcRenderer.invoke('jellyfin:import', Array.from(libraryIds ?? [], String), {
         verifyWithTmdb:   options?.verifyWithTmdb !== false,

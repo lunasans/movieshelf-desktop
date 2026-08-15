@@ -1,9 +1,18 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
+/** Theme-IDs wie in der Web Shelf, plus der Desktop-eigene Hellmodus und "system". */
+export const THEMES = [
+  'dark', 'light', 'system',
+  'blue', 'green', 'red', 'purple',
+  'christmas', 'halloween', 'summer',
+] as const
+
+export type Theme = typeof THEMES[number]
+
 export const useSettingsStore = defineStore('settings', () => {
   const mode        = ref<'standalone' | 'online'>('standalone')
-  const theme       = ref<'light' | 'dark' | 'system'>('dark')
+  const theme       = ref<Theme>('dark')
   const language    = ref<'de' | 'en'>('de')
   const shelfUrl    = ref('')
   const token       = ref('')
@@ -25,8 +34,8 @@ export const useSettingsStore = defineStore('settings', () => {
   async function load() {
     const all = await window.electron.settings.getAll()
     mode.value       = all.mode     === 'online' ? 'online' : 'standalone'
-    const validThemes = ['light', 'dark', 'system'] as const
-    theme.value      = (validThemes as readonly string[]).includes(all.theme) ? all.theme as 'light' | 'dark' | 'system' : 'dark'
+    // Unbekannte oder alte Werte (z.B. "default" aus der Shelf) fallen auf "dark" zurück.
+    theme.value      = (THEMES as readonly string[]).includes(all.theme) ? all.theme as Theme : 'dark'
     language.value   = all.language === 'en' ? 'en' : 'de'
     shelfUrl.value   = all.shelf_url  ?? ''
     token.value      = all.shelf_token ?? ''

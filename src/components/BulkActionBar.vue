@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl px-4 py-3 shadow-2xl backdrop-blur-md">
+    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 glass rounded-2xl px-4 py-3 shadow-2xl backdrop-blur-md">
       <!-- Count badge -->
       <span class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest">
         {{ $t('movies.selectedCount', { count }) }}
@@ -10,7 +10,7 @@
 
       <!-- Tag select -->
       <div class="relative" v-if="showTagMenu">
-        <div class="absolute bottom-full mb-2 left-0 bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-xl shadow-xl overflow-hidden">
+        <div class="absolute bottom-full mb-2 left-0 glass rounded-xl shadow-xl overflow-hidden">
           <button
             v-for="tag in TAGS"
             :key="tag"
@@ -22,7 +22,7 @@
 
       <button
         @click="showTagMenu = !showTagMenu"
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-widest transition-colors"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-black uppercase tracking-widest transition-colors"
       >
         <i class="bi bi-tag-fill"></i> Tag
       </button>

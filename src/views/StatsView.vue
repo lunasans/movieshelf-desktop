@@ -45,7 +45,7 @@
       <i class="bi bi-exclamation-triangle text-3xl text-[var(--status-yellow)]"></i>
       <p class="text-sm font-black text-[var(--text-main)]">{{ $t('stats.loadFailed') }}</p>
       <p class="text-xs text-[var(--text-muted)] opacity-60 max-w-xs">{{ loadError }}</p>
-      <button @click="reload" class="mt-2 px-5 py-2.5 bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-sm font-bold text-[var(--text-main)] hover:bg-[var(--bg-card)] transition-colors">
+      <button @click="reload" class="mt-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-[var(--text-main)] hover:bg-[var(--bg-card)] transition-colors">
         {{ $t('stats.reload') }}
       </button>
     </div>
@@ -73,7 +73,7 @@
         </div>
 
         <!-- Laufzeit-Verteilung -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6">
+        <div class="glass rounded-2xl p-6">
           <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-50 mb-6">{{ $t('stats.byRuntime') }}</h2>
           <div class="flex items-end gap-3 h-36 mb-3">
             <div
@@ -93,7 +93,7 @@
         </div>
 
         <!-- Sammlungstypen -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6">
+        <div class="glass rounded-2xl p-6">
           <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-50 mb-5">{{ $t('stats.collectionTypes') }}</h2>
           <div class="space-y-2">
             <div v-for="t in stats.byType" :key="t.collection_type" class="rounded-xl border border-[var(--border-ui)] overflow-hidden">
@@ -130,7 +130,7 @@
 
       <!-- Tab: Genres -->
       <div v-else-if="activeTab === 'genres'" class="p-8">
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6">
+        <div class="glass rounded-2xl p-6">
           <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-50 mb-6">{{ $t('stats.perGenre') }}</h2>
           <div class="flex items-end gap-2 h-48 mb-3">
             <div
@@ -156,7 +156,7 @@
 
       <!-- Tab: Schauspieler -->
       <div v-else-if="activeTab === 'actors'" class="p-8">
-        <div v-if="stats.topActors.length > 0" class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6">
+        <div v-if="stats.topActors.length > 0" class="glass rounded-2xl p-6">
           <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-50 mb-6">{{ $t('stats.topActors') }}</h2>
           <div class="space-y-3">
             <div
@@ -165,7 +165,7 @@
               class="flex items-center gap-4 p-3 rounded-xl hover:bg-[var(--bg-elevated)] transition-colors"
             >
               <span class="w-5 text-[11px] font-black text-[var(--text-muted)] opacity-40 text-right flex-shrink-0">{{ i + 1 }}</span>
-              <div class="w-10 h-10 rounded-full bg-[var(--bg-app)] border border-[var(--border-ui)] overflow-hidden flex-shrink-0 flex items-center justify-center text-[var(--text-muted)] opacity-40">
+              <div class="w-10 h-10 rounded-full bg-white/5 border border-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center text-[var(--text-muted)] opacity-40">
                 <img
                   v-if="actor.remote_id"
                   :src="`movie-resource://actor_${actor.remote_id}.jpg`"
@@ -199,7 +199,7 @@
       <div v-else-if="activeTab === 'years'" class="p-8 space-y-6">
 
         <!-- Dekaden -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6">
+        <div class="glass rounded-2xl p-6">
           <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-50 mb-6">{{ $t('stats.perDecade') }}</h2>
           <div class="flex items-end gap-3 h-36 mb-3">
             <div
@@ -218,7 +218,7 @@
           </div>
         </div>
 
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-6">
+        <div class="glass rounded-2xl p-6">
           <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-50 mb-6">{{ $t('stats.perYear') }}</h2>
           <div class="flex items-end gap-1 h-40 mb-2">
             <div

@@ -1,5 +1,6 @@
 <template>
   <div
+    data-testid="movie-card"
     class="group cursor-pointer"
     @click="onClick"
   >
@@ -8,19 +9,19 @@
       <div class="absolute inset-0" :class="[movie.is_boxset ? 'card-flipper transition-transform duration-500' : '', { 'is-flipped': flipped }]">
       <div
         :class="[
-          'absolute inset-0 rounded-2xl overflow-hidden bg-[var(--bg-card)] border transition-all duration-300 shadow-[var(--shadow-main)]',
+          'absolute inset-0 rounded-3xl overflow-hidden glass shadow-2xl transition-all duration-500',
           movie.is_boxset ? 'card-face' : '',
           flipped ? 'pointer-events-none' : '',
           selected
             ? 'border-red-500 scale-[0.97]'
-            : 'border-[var(--border-ui)] group-hover:border-blue-500/50 group-hover:-translate-y-1',
+            : 'border-white/10 group-hover:scale-[1.05] group-hover:shadow-red-500/30 group-hover:border-red-500/50',
         ]"
       >
         <img
           v-if="resolveMediaUrl(movie.cover_url || movie.cover_path, movie.remote_id ?? undefined)"
           :src="resolveMediaUrl(movie.cover_url || movie.cover_path, movie.remote_id ?? undefined)!"
           :alt="movie.title"
-          class="w-full h-full object-cover"
+          class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
         />
         <div v-else class="w-full h-full bg-gradient-to-br from-[var(--bg-app)] via-[var(--bg-sidebar)] to-[var(--bg-app)] flex flex-col items-center justify-center p-4 text-center">
           <i class="bi bi-film text-[var(--text-muted)] opacity-20 text-4xl mb-3"></i>
@@ -31,32 +32,42 @@
         <!-- Cover gradient overlay -->
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
 
-        <!-- Format-Badge (oben rechts; weicht der Bulk-Checkbox) -->
+        <!-- Format-Banderole in der oberen Ecke, wie in der Shelf -->
         <div
           v-if="movie.tag && !bulkMode"
-          :class="['absolute top-2.5 right-2.5 z-20 px-1.5 py-0.5 rounded-md border border-white/15 backdrop-blur-sm flex items-center gap-1 pointer-events-none', tagStyle(movie.tag).bg]"
+          :class="['absolute top-[22px] -right-[55px] z-20 w-[180px] py-[5px] rotate-45 text-center shadow-lg pointer-events-none flex items-center justify-center gap-1', tagStyle(movie.tag).bg]"
         >
-          <MediaFormatIcon :format="movie.tag" class="w-3 h-3 text-white" />
-          <span class="text-[9px] font-black text-white uppercase tracking-widest">{{ tagStyle(movie.tag).label }}</span>
+          <MediaFormatIcon :format="movie.tag" class="w-2.5 h-2.5 text-white" />
+          <span class="text-[9px] font-black text-white uppercase tracking-widest drop-shadow-sm">{{ tagStyle(movie.tag).label }}</span>
         </div>
 
-        <!-- Watched- und Rating-Badge (oben links, damit sie nicht unter der Banderole liegen) -->
-        <div class="absolute top-2.5 left-2.5 z-20 flex items-center gap-1">
-          <div v-if="movie.is_watched" class="bg-green-600/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md border border-green-500/30 flex items-center">
-            <i class="bi bi-eye-fill text-[9px] text-white"></i>
-          </div>
-          <div v-if="movie.rating" class="bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded-md border border-white/10 flex items-center gap-1">
-            <i class="bi bi-star-fill text-[9px] text-yellow-400"></i>
-            <span class="text-[10px] font-black text-white">{{ movie.rating.toFixed(1) }}</span>
+        <!-- Gesehen-Ring (oben links) -->
+        <div v-if="movie.is_watched" class="absolute top-3 left-3 z-20">
+          <div class="w-8 h-8 bg-red-500/80 backdrop-blur-md rounded-full border border-white/20 shadow-lg flex items-center justify-center">
+            <i class="bi bi-eye-fill text-white text-sm leading-none"></i>
           </div>
         </div>
 
-        <!-- Boxset Badge (bottom left); beim Hover uebernimmt der Icon-Button in der Aktionsleiste -->
+        <!-- Bewertung (oben rechts, fährt beim Hover ein) -->
+        <div
+          v-if="movie.rating && !bulkMode"
+          class="absolute top-3 right-3 z-20 transform translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500"
+        >
+          <div class="bg-red-600 px-2 py-1 rounded-lg border border-white/20 flex items-center gap-1 shadow-xl">
+            <i class="bi bi-star-fill text-[10px] text-yellow-400"></i>
+            <span class="text-[11px] font-black text-white">{{ movie.rating.toFixed(1) }}</span>
+          </div>
+        </div>
+
+        <!-- Boxset Badge (bottom left); beim Hover übernimmt der Icon-Button in der Aktionsleiste -->
         <div v-if="movie.is_boxset" class="absolute bottom-3 left-3 z-20 transition-opacity duration-200" :class="{ 'group-hover:opacity-0': !bulkMode }">
-          <span class="text-[9px] font-black text-white/90 uppercase tracking-widest bg-red-700/80 backdrop-blur-md px-2 py-1 rounded-lg border border-red-500/30 shadow-lg flex items-center gap-1">
+          <span class="text-[9px] font-black text-white/90 uppercase tracking-widest glass px-2 py-1 rounded-lg shadow-lg flex items-center gap-1">
             <i class="bi bi-collection-fill"></i> {{ $t('movies.boxset') }}
           </span>
         </div>
+
+        <!-- Hover-Tönung in der Akzentfarbe, Signatur der Shelf-Kachel -->
+        <div v-if="!bulkMode" class="absolute inset-0 z-10 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
         <!-- Bulk mode: checkbox overlay -->
         <div v-if="bulkMode" class="absolute top-2.5 right-2.5 z-30">
@@ -99,11 +110,11 @@
         </div>
       </div>
 
-      <!-- Rueckseite: enthaltene Filme des Boxsets -->
+      <!-- Rückseite: enthaltene Filme des Boxsets -->
       <div
         v-if="movie.is_boxset"
         :class="[
-          'card-face card-back absolute inset-0 z-30 cursor-default rounded-2xl overflow-hidden bg-[var(--bg-card)] border border-red-500/40 shadow-[var(--shadow-main)] flex flex-col',
+          'card-face card-back absolute inset-0 z-30 cursor-default rounded-3xl overflow-hidden bg-[var(--bg-card)] border border-red-500/40 shadow-2xl flex flex-col',
           flipped ? '' : 'pointer-events-none',
         ]"
         @click.stop
@@ -152,9 +163,15 @@
       </div>
     </div>
 
-    <div class="mt-2 px-1">
-      <p class="text-[12px] font-black text-[var(--text-main)] truncate uppercase tracking-tight opacity-90">{{ movie.title }}</p>
-      <p class="text-[10px] text-[var(--text-muted)] font-bold">{{ movie.year }}</p>
+    <div class="mt-4 px-1">
+      <h3 class="text-[13px] font-black text-[var(--text-main)] leading-tight truncate uppercase tracking-tight group-hover:text-red-400 transition-colors">
+        {{ movie.title }}
+      </h3>
+      <div class="flex items-center gap-2 mt-1 opacity-60 group-hover:opacity-100 transition-opacity">
+        <span v-if="movie.year" class="text-[10px] text-[var(--text-muted)] font-bold italic">{{ movie.year }}</span>
+        <span v-if="movie.year && movie.genre" class="w-1 h-1 bg-red-500 rounded-full"></span>
+        <span v-if="movie.genre" class="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-tighter truncate">{{ movie.genre }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -209,7 +226,7 @@ function onClick() {
 
 const TAG_MAP: Record<string, { label: string; bg: string }> = {
   DVD:       { label: 'DVD',     bg: 'bg-orange-800/80' },
-  BluRay:    { label: 'Blu-ray', bg: 'bg-blue-800/80'   },
+  BluRay:    { label: 'Blu-ray', bg: 'bg-rose-800/80'   },
   '4K':      { label: '4K UHD',  bg: 'bg-cyan-800/80'   },
   Streaming: { label: 'Stream',  bg: 'bg-emerald-800/80' },
   Digital:   { label: 'Digital', bg: 'bg-violet-800/80' },

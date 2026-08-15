@@ -4,7 +4,7 @@
     <div class="px-12 relative z-10 pb-20 pt-8">
       <div class="flex gap-10 items-start">
         <!-- Profile Image -->
-        <div class="w-64 flex-shrink-0 shadow-[var(--shadow-main)] rounded-2xl overflow-hidden border border-[var(--border-ui)] aspect-[2/3] bg-[var(--bg-card)]">
+        <div class="w-64 flex-shrink-0 shadow-[0_0_60px_rgba(0,0,0,0.8)] rounded-[2rem] overflow-hidden border border-white/10 aspect-[2/3] bg-[var(--bg-card)] transform hover:scale-[1.02] hover:rotate-1 transition-all duration-700">
           <img
             v-if="resolveMediaUrl(actor.image_path || actor.image_url, Number(actor.remote_id || actor.id), 'actor')"
             :src="resolveMediaUrl(actor.image_path || actor.image_url, Number(actor.remote_id || actor.id), 'actor')!"

@@ -130,20 +130,20 @@ export function recentMovies(db: Database.Database, limit = 10): unknown[] {
 }
 
 export function getMovieChildren(db: Database.Database, movieId: number): unknown[] {
-  // Nur die lokale id. Frueher wurde zusaetzlich ueber die remote_id gesucht, weil
+  // Nur die lokale id. Früher wurde zusätzlich über die remote_id gesucht, weil
   // der Pull dort Server-IDs ablegte - dabei sammelte ein Boxset fremde Filme ein,
-  // sobald eine remote_id zufaellig einer lokalen id entsprach. Die Zuordnung
-  // loest jetzt resolveBoxsetParents() auf.
+  // sobald eine remote_id zufällig einer lokalen id entsprach. Die Zuordnung
+  // löst jetzt resolveBoxsetParents() auf.
   return db.prepare(
     'SELECT * FROM movies WHERE boxset_parent_id = ? AND is_deleted = 0 AND in_collection = 1 ORDER BY title ASC'
   ).all(movieId)
 }
 
 /**
- * Uebersetzt die vom Server gelieferten Boxset-Zugehoerigkeiten
- * (`boxset_parent_remote_id`) in lokale ids. Fuer synchronisierte Filme ist die
+ * Übersetzt die vom Server gelieferten Boxset-Zugehörigkeiten
+ * (`boxset_parent_remote_id`) in lokale ids. Für synchronisierte Filme ist die
  * Shelf Master: findet sich kein passendes Boxset, wird die Zuordnung geleert.
- * Rein lokale Filme (ohne remote_id) bleiben unberuehrt.
+ * Rein lokale Filme (ohne remote_id) bleiben unberührt.
  */
 export function resolveBoxsetParents(db: Database.Database): { updated: number } {
   const result = db.prepare(`
@@ -280,9 +280,9 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     // noch auf ihre Übertragung und darf nicht überschrieben werden; stimmen
     // beide überein, gibt es lokal nichts zu schützen.
     //
-    // Ein "updated_at <= ?" waere hier falsch: Umschalten setzt lokal die Zeit
-    // auf jetzt, die Shelf fuehrt ihre eigene. Liegt die lokale danach vorn,
-    // bliebe der Serverstand fuer diesen Film dauerhaft ausgesperrt - der Grund,
+    // Ein "updated_at <= ?" wäre hier falsch: Umschalten setzt lokal die Zeit
+    // auf jetzt, die Shelf führt ihre eigene. Liegt die lokale danach vorn,
+    // bliebe der Serverstand für diesen Film dauerhaft ausgesperrt - der Grund,
     // warum "gesehen" aus der Shelf nie in der App ankam.
     db.prepare(`
       UPDATE movies SET is_watched = ?, synced_watched = ?

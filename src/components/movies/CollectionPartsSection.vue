@@ -10,7 +10,7 @@
         @click="addPart(part)"
         class="group cursor-pointer"
       >
-        <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[var(--bg-card)] border border-[var(--border-ui)] border-dashed group-hover:border-red-500/50 group-hover:scale-105 transition-all duration-300 shadow-[var(--shadow-main)]">
+        <div class="relative aspect-[2/3] rounded-xl overflow-hidden glass border-dashed group-hover:border-red-500/50 group-hover:scale-105 transition-all duration-300 shadow-[var(--shadow-main)]">
           <img
             v-if="part.poster_path"
             :src="`https://image.tmdb.org/t/p/w200${part.poster_path}`"

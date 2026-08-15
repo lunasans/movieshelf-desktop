@@ -3,10 +3,10 @@
     <div v-for="result in results" :key="result.id" class="group relative">
 
       <div
-        class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-[var(--bg-card)] border transition-all duration-300"
+        class="relative aspect-[2/3] rounded-3xl overflow-hidden glass shadow-2xl transition-all duration-500"
         :class="importedIds.has(result.id)
           ? 'border-[var(--status-green)]/50'
-          : 'border-[var(--border-ui)] hover:border-[var(--status-red)]/50 group-hover:scale-105'"
+          : 'border-white/10 group-hover:scale-[1.05] group-hover:shadow-red-500/30 group-hover:border-red-500/50'"
       >
         <img
           v-if="result.poster_path"
@@ -50,7 +50,7 @@
       <!-- List picker dropdown -->
       <div
         v-if="listPickerFor === result.id"
-        class="absolute z-50 top-full mt-1 left-0 right-0 bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl shadow-xl overflow-hidden"
+        class="absolute z-50 top-full mt-1 left-0 right-0 bg-white/5 border border-white/10 rounded-xl shadow-xl overflow-hidden"
       >
         <div v-if="lists.length === 0" class="px-3 py-2 text-xs text-[var(--text-muted)] opacity-50">{{ $t('tmdb.noLists') }}</div>
         <button

@@ -1,8 +1,8 @@
 import { test, expect, navigate } from '../fixtures/app'
 
 test('Film anlegen und in Liste sehen', async ({ page }) => {
-  // Kein page.goto('about:blank'): das verlaesst die geladene App-Seite, danach
-  // gibt es weder Router noch DOM. Navigiert wird ueber den Hash.
+  // Kein page.goto('about:blank'): das verlässt die geladene App-Seite, danach
+  // gibt es weder Router noch DOM. Navigiert wird über den Hash.
   await navigate(page, '/movies/new')
 
   const titleInput = page.getByTestId('movie-title-input')
@@ -17,7 +17,7 @@ test('Film anlegen und in Liste sehen', async ({ page }) => {
 test('Film löschen funktioniert', async ({ page }) => {
   await navigate(page, '/movies')
 
-  const cards = page.locator('.group.cursor-pointer')
+  const cards = page.getByTestId('movie-card')
   const count = await cards.count()
   test.skip(count === 0, 'keine Filme in der Sammlung')
 

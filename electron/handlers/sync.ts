@@ -49,8 +49,8 @@ export function markWatchedSynced(db: Database.Database, id: number, isWatched: 
   db.prepare('UPDATE movies SET synced_watched = ? WHERE id = ?').run(isWatched ? 1 : 0, id)
 }
 
-// Die Gegenrichtung - Serverstand uebernehmen - braucht hier nichts: der Pull
-// laeuft vollstaendig ueber createMovie(), das "gesehen" mitschreibt.
+// Die Gegenrichtung - Serverstand übernehmen - braucht hier nichts: der Pull
+// läuft vollständig über createMovie(), das "gesehen" mitschreibt.
 
 // ── IPC registration ──────────────────────────────────────────────────────────
 

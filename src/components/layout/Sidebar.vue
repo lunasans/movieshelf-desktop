@@ -1,7 +1,7 @@
 <template>
   <aside 
     :class="ui.isSidebarCollapsed ? 'w-16' : 'w-56'"
-    class="flex-shrink-0 bg-[var(--bg-sidebar)] bg-sidebar border-r border-[var(--border-ui)] border-ui flex flex-col py-4 transition-all duration-300 overflow-hidden"
+    class="flex-shrink-0 glass border-y-0 border-l-0 flex flex-col py-4 transition-all duration-300 overflow-hidden"
   >
     <nav class="flex-1 px-3 space-y-1">
       <SidebarItem to="/" icon="speedometer2" :label="$t('nav.dashboard')" />
@@ -11,7 +11,7 @@
       <SidebarItem to="/tmdb" icon="search" :label="$t('nav.tmdbSearch')" />
     </nav>
 
-    <div class="px-3 mt-4 border-t border-[var(--border-ui)] border-ui pt-4 space-y-1">
+    <div class="px-3 mt-4 border-t border-white/10 pt-4 space-y-1">
       <SidebarItem to="/sync" icon="arrow-left-right" :label="$t('nav.sync')" />
       <SidebarItem to="/settings" icon="gear-fill" :label="$t('nav.settings')" :badge="settings.updateAvailable" />
       

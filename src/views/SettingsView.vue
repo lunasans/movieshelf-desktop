@@ -82,7 +82,7 @@
             <button
               @click="doOAuthLogin"
               :disabled="oauthLoading || !settings.shelfUrl"
-              class="w-full bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] disabled:opacity-40 text-[var(--text-main)] font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2"
+              class="w-full bg-white/5 hover:bg-white/10 border border-white/10 disabled:opacity-40 text-[var(--text-main)] font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2"
             >
               <i class="bi bi-shield-lock"></i>
               {{ oauthLoading ? $t('settings.connection.oauthWaiting') : $t('settings.connection.oauthLogin') }}
@@ -140,7 +140,7 @@
             v-model="settings.tmdbApiKey"
             type="password"
             :placeholder="$t('settings.tmdb.apiKeyPlaceholder')"
-            class="w-full bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] opacity-80 focus:outline-none focus:border-[var(--status-red)]/50 transition-colors font-mono"
+            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] opacity-80 focus:outline-none focus:border-[var(--status-red)]/50 transition-colors font-mono"
           />
         </div>
 
@@ -157,7 +157,7 @@
       <template v-if="active === 'updates'">
         <SectionHeader icon="arrow-repeat" :title="$t('settings.updates.title')" />
 
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+        <div class="glass rounded-2xl p-5 mb-4">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-bold text-[var(--text-main)]">{{ $t('settings.updates.installedVersion') }}</p>
@@ -176,7 +176,7 @@
 
         <!-- Changelog for new version -->
         <div v-if="settings.updateAvailable && settings.updateChangelog && !downloading"
-          class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+          class="glass rounded-2xl p-5 mb-4">
           <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-3">
             {{ $t('settings.updates.whatsNew', { version: settings.newestVersion }) }}
           </p>
@@ -195,7 +195,7 @@
         </div>
 
         <!-- Download progress -->
-        <div v-if="downloading" class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+        <div v-if="downloading" class="glass rounded-2xl p-5 mb-4">
           <div class="flex items-center justify-between mb-3">
             <p class="text-sm font-bold text-[var(--text-main)]">{{ $t('settings.updates.downloading') }}</p>
             <span class="text-sm font-black text-[var(--text-main)]">{{ downloadProgress }}%</span>
@@ -245,7 +245,7 @@
             v-if="!downloading"
             @click="handleUpdateCheck"
             :disabled="checkingUpdate"
-            class="flex-1 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] rounded-xl text-sm font-bold text-[var(--text-main)] py-3 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            class="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold text-[var(--text-main)] py-3 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <i class="bi bi-arrow-repeat" :class="{ 'animate-spin': checkingUpdate }"></i>
             {{ checkingUpdate ? $t('settings.updates.checking') : $t('settings.updates.checkForUpdates') }}
@@ -258,7 +258,7 @@
         <SectionHeader icon="archive" :title="$t('settings.backup.title')" />
 
         <!-- Backup erstellen -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+        <div class="glass rounded-2xl p-5 mb-4">
           <p class="text-sm font-bold text-[var(--text-main)] mb-1">{{ $t('settings.backup.createTitle') }}</p>
           <p class="text-xs text-[var(--text-muted)] opacity-60 mb-4">
             {{ $t('settings.backup.createHint') }}
@@ -280,7 +280,7 @@
         </div>
 
         <!-- Backup wiederherstellen -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+        <div class="glass rounded-2xl p-5 mb-4">
           <p class="text-sm font-bold text-[var(--text-main)] mb-1">{{ $t('settings.backup.restoreTitle') }}</p>
           <p class="text-xs text-[var(--text-muted)] opacity-60 mb-4">
             {{ $t('settings.backup.restoreHint') }}
@@ -302,7 +302,7 @@
         </div>
 
         <!-- CSV / Letterboxd Import -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5">
+        <div class="glass rounded-2xl p-5">
           <p class="text-sm font-bold text-[var(--text-main)] mb-1">{{ $t('settings.backup.csvTitle') }}</p>
           <p class="text-xs text-[var(--text-muted)] opacity-60 mb-4">
             {{ $t('settings.backup.csvHint') }}
@@ -330,7 +330,7 @@
         <SectionHeader icon="info-circle" :title="$t('settings.about.title')" />
 
         <!-- App -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4 flex items-center gap-4">
+        <div class="glass rounded-2xl p-5 mb-4 flex items-center gap-4">
           <img src="/icon.png" alt="" class="w-14 h-14 rounded-xl" />
           <div>
             <p class="text-lg font-black text-[var(--text-main)]">MovieShelf Desktop</p>
@@ -340,7 +340,7 @@
         </div>
 
         <!-- Technik -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+        <div class="glass rounded-2xl p-5 mb-4">
           <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-3">
             {{ $t('settings.about.technical') }}
           </p>
@@ -353,7 +353,7 @@
         </div>
 
         <!-- Speicherort -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+        <div class="glass rounded-2xl p-5 mb-4">
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
               <p class="text-sm font-bold text-[var(--text-main)]">{{ $t('settings.about.dataTitle') }}</p>
@@ -369,7 +369,7 @@
         </div>
 
         <!-- Links -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4 space-y-2">
+        <div class="glass rounded-2xl p-5 mb-4 space-y-2">
           <a v-for="link in aboutLinks" :key="link.url" :href="link.url" target="_blank"
             class="flex items-center gap-3 text-sm text-[var(--text-main)] hover:text-[var(--status-red)] transition-colors">
             <i :class="`bi bi-${link.icon} text-[var(--text-muted)]`"></i>
@@ -378,8 +378,8 @@
           </a>
         </div>
 
-        <!-- Unterstuetzen -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+        <!-- Unterstützen -->
+        <div class="glass rounded-2xl p-5 mb-4">
           <div class="flex items-start gap-4">
             <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-[var(--status-yellow-bg)] flex items-center justify-center">
               <i class="bi bi-cup-hot text-lg text-[var(--status-yellow)]"></i>
@@ -400,7 +400,7 @@
         </div>
 
         <!-- Danksagung / Attribution -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5">
+        <div class="glass rounded-2xl p-5">
           <p class="text-xs font-black text-[var(--text-muted)] uppercase tracking-widest opacity-60 mb-3">
             {{ $t('settings.about.creditsTitle') }}
           </p>
@@ -427,7 +427,7 @@
         <SectionHeader icon="bug" :title="$t('settings.dev.title')" />
 
         <!-- Protokolle -->
-        <div class="bg-[var(--bg-card)] border border-[var(--border-ui)] rounded-2xl p-5 mb-4">
+        <div class="glass rounded-2xl p-5 mb-4">
           <div class="flex items-center justify-between mb-3">
             <div>
               <p class="text-sm font-bold text-[var(--text-main)]">{{ $t('settings.dev.logsTitle') }}</p>
@@ -455,7 +455,7 @@
             </div>
           </div>
           <pre
-            class="bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl p-3 text-[11px] leading-relaxed text-[var(--text-main)] opacity-80 font-mono overflow-auto max-h-80 whitespace-pre-wrap break-all"
+            class="bg-white/5 border border-white/10 rounded-xl p-3 text-[11px] leading-relaxed text-[var(--text-main)] opacity-80 font-mono overflow-auto max-h-80 whitespace-pre-wrap break-all"
           >{{ logs || $t('settings.dev.noEntries') }}</pre>
         </div>
 
@@ -526,7 +526,7 @@ const SettingsInput = defineComponent({
         type: props.type ?? 'text',
         value: props.modelValue,
         placeholder: props.placeholder,
-        class: 'w-full bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--status-red)]/50 transition-colors',
+        class: 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--status-red)]/50 transition-colors',
         onInput: (e: Event) => emit('update:modelValue', (e.target as HTMLInputElement).value),
       }),
     ])
@@ -660,8 +660,8 @@ watch(active, (id) => {
   if (id === 'dev') refreshLogs()
 })
 
-// Direkt auf einen Bereich springen (?section=updates aus dem Tray-Menue).
-// Als watch mit immediate, weil ein erneuter Aufruf nur die Query aendert und
+// Direkt auf einen Bereich springen (?section=updates aus dem Tray-Menü).
+// Als watch mit immediate, weil ein erneuter Aufruf nur die Query ändert und
 // die Komponente dabei nicht neu gemountet wird.
 watch(() => route.query.section, (section) => {
   if (typeof section === 'string' && sections.some(s => s.id === section)) {

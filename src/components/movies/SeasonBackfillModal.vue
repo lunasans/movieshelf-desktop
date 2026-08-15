@@ -14,11 +14,11 @@
           <!-- Season list -->
           <div class="p-6 overflow-y-auto flex-1">
             <div v-if="loading" class="flex justify-center py-12">
-              <div class="w-8 h-8 border-2 border-[var(--status-red)] border-t-transparent rounded-full animate-spin"></div>
+              <div class="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
 
-            <div v-else-if="error" class="bg-[var(--status-red-bg)] border border-[var(--status-red)]/20 rounded-2xl p-4">
-              <p class="text-[var(--status-red)] text-sm font-bold">{{ error }}</p>
+            <div v-else-if="error" class="bg-[var(--status-red-bg)] border border-red-500/20 rounded-2xl p-4">
+              <p class="text-red-500 text-sm font-bold">{{ error }}</p>
             </div>
 
             <div v-else class="space-y-2">
@@ -34,7 +34,7 @@
                   v-model="selected"
                   class="w-4 h-4 accent-red-600 rounded flex-shrink-0"
                 />
-                <div class="w-10 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-[var(--bg-elevated)] border border-[var(--border-ui)]">
+                <div class="w-10 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-white/5 border border-white/10">
                   <img v-if="season.poster_path" :src="`https://image.tmdb.org/t/p/w92${season.poster_path}`" class="w-full h-full object-cover" />
                   <div v-else class="w-full h-full flex items-center justify-center">
                     <i class="bi bi-image text-[var(--text-muted)] opacity-20"></i>
@@ -46,7 +46,7 @@
                 </div>
                 <span
                   v-if="isRemoving(season.season_number)"
-                  class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-[var(--status-red)] bg-[var(--status-red)]/10 border border-[var(--status-red)]/20 flex-shrink-0"
+                  class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-red-500 bg-red-600/10 border border-red-500/20 flex-shrink-0"
                 >
                   {{ $t('movieDetail.seasonWillRemove') }}
                 </span>
@@ -62,7 +62,7 @@
 
           <!-- Footer -->
           <div class="p-6 border-t border-[var(--border-ui)] flex-shrink-0">
-            <p v-if="toRemove.length > 0" class="mb-4 text-xs font-bold text-[var(--status-red)] opacity-80">
+            <p v-if="toRemove.length > 0" class="mb-4 text-xs font-bold text-red-500 opacity-80">
               {{ $t('movieDetail.removeSeasonsWarning') }}
             </p>
             <div class="flex gap-3">
@@ -77,7 +77,7 @@
               </button>
               <button
                 @click="emit('cancel')"
-                class="px-6 bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-ui)] text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
+                class="px-6 bg-white/5 hover:bg-white/10 border border-white/10 text-[var(--text-muted)] font-bold py-3 rounded-xl transition-colors text-sm"
               >
                 {{ $t('common.cancel') }}
               </button>

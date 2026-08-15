@@ -1,6 +1,6 @@
 <template>
-  <div class="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-ui)] p-5 flex items-center gap-4 shadow-[var(--shadow-main)]">
-    <div class="w-12 h-12 bg-red-600/10 rounded-xl flex items-center justify-center text-xl text-red-500 border border-red-500/10">
+  <div class="glass rounded-3xl p-5 flex items-center gap-4 transition-all duration-300 hover:border-red-500/30">
+    <div class="w-12 h-12 bg-red-600/10 rounded-2xl flex items-center justify-center text-xl text-red-500 border border-red-500/20">
       <i :class="`bi bi-${icon}`"></i>
     </div>
     <div>
