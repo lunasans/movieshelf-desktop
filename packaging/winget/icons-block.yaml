@@ -1,15 +1,15 @@
 # ACHTUNG: Derzeit NICHT einreichbar. Die winget-Validierung lehnt das Feld ab:
 #   [Error] FieldRequireVerifiedPublisher: Field usage requires verified publishers. (Icons)
-# Gescheitert beim Release 0.24.0 (winget-pkgs PR #411233), obwohl URL, Groesse
+# Gescheitert beim Release 0.24.0 (winget-pkgs PR #411233), obwohl URL, Größe
 # und Hash korrekt sind. Details in README.md.
 #
 # Falls Lunasans einmal verifizierter Publisher ist: einfuegen in
 # Lunasans.MovieShelf.locale.de-DE.yaml (de-DE ist das defaultLocale).
 # ManifestVersion nicht anfassen, komac schreibt bereits 1.12.0.
 #
-# Die URL zeigt fest auf v0.24.0 - dieses Tag enthaelt packaging/winget/icon-256.png.
-# Nicht auf "main" umstellen, Raw-URLs auf main aendern sich. Wird das Icon neu
-# erzeugt, muessen Tag und IconSha256 gemeinsam nachgezogen werden, sonst schlaegt
+# Die URL zeigt fest auf v0.24.0 - dieses Tag enthält packaging/winget/icon-256.png.
+# Nicht auf "main" umstellen, Raw-URLs auf main ändern sich. Wird das Icon neu
+# erzeugt, müssen Tag und IconSha256 gemeinsam nachgezogen werden, sonst schlägt
 # die Validierung in winget-pkgs fehl.
 
 Icons:

@@ -549,7 +549,7 @@ async function importCast(
         const file = entry.imageUrl
           ? await downloadTmdbImage(entry.imageUrl, fileName)
           : entry.jellyfinPersonId
-            // Portraits erscheinen nur als kleine Kreise – Coverbreite waere Verschwendung.
+            // Portraits erscheinen nur als kleine Kreise – Coverbreite wäre Verschwendung.
             ? await downloadImage(s, entry.jellyfinPersonId, 'Primary', fileName, 300)
             : null
         if (file) db.prepare('UPDATE actors SET image_path = ? WHERE id = ?').run(`movie-resource://${file}`, actorId)

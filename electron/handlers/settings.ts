@@ -6,10 +6,10 @@ export const ALLOWED_SETTINGS_KEYS = new Set([
   'mode', 'theme', 'shelf_url', 'shelf_token', 'tmdb_api_key', 'last_sync_at', 'language',
   'jellyfin_url', 'jellyfin_user', 'jellyfin_token', 'jellyfin_user_id',
   'jellyfin_device_id', 'jellyfin_libraries', 'jellyfin_last_import_at',
-  // Zaehlung aktiver Installationen (Opt-in, Vorgabe aus). Die Kennung ist
+  // Zählung aktiver Installationen (Opt-in, Vorgabe aus). Die Kennung ist
   // absichtlich nicht in SENSITIVE_KEYS: sie ist zufaellig und ohne Bezug zu
-  // Person oder Konto, verschluesseln waere Aufwand ohne Schutzgewinn — und
-  // eine nicht entschluesselbare Kennung wuerde beim Zurueckspielen eines
+  // Person oder Konto, verschlüsseln wäre Aufwand ohne Schutzgewinn — und
+  // eine nicht entschlüsselbare Kennung würde beim Zurückspielen eines
   // Backups still zu einer zweiten Installation.
   'stats_enabled', 'stats_install_id',
 ])

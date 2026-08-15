@@ -293,10 +293,10 @@ describe('createMovie', () => {
     expect(all[0].title).toBe('Update')
   })
 
-  // "gesehen" ist hier bewusst nicht mehr Teil der Zusicherung: es haengt seit
+  // "gesehen" ist hier bewusst nicht mehr Teil der Zusicherung: es hängt seit
   // 0.25.5 nicht mehr am Zeitvergleich, sondern an synced_watched. Eine offene
-  // Markierung schuetzt der Fall bei remote_id 46, und genau diese Trennung war
-  // noetig, damit der Stand aus der Shelf ueberhaupt ankommt.
+  // Markierung schützt der Fall bei remote_id 46, und genau diese Trennung war
+  // nötig, damit der Stand aus der Shelf überhaupt ankommt.
   it('überschreibt lokal neuere Änderungen nicht (Guard)', () => {
     createMovie(db, { title: 'Original', remote_id: 42, view_count: 5, updated_at: '2024-06-01T00:00:00.000Z' })
     // Server liefert älteren Stand – darf lokal nichts zurücksetzen
@@ -354,7 +354,7 @@ describe('createMovie', () => {
     expect(row.synced_watched).toBe(0)
   })
 
-  it('haelt einen frisch gepullten Film nicht faelschlich fuer offen', () => {
+  it('hält einen frisch gepullten Film nicht fälschlich für offen', () => {
     createMovie(db, { title: 'Vom Server', remote_id: 47, is_watched: 1, updated_at: '2024-01-01T00:00:00.000Z' })
 
     const row = db.prepare('SELECT * FROM movies WHERE remote_id = 47').get() as any
@@ -362,7 +362,7 @@ describe('createMovie', () => {
     expect(row.synced_watched).toBe(1)
   })
 
-  it('laesst synced_watched bei rein lokalen Filmen offen', () => {
+  it('lässt synced_watched bei rein lokalen Filmen offen', () => {
     createMovie(db, { title: 'Nur hier', is_watched: 1 })
 
     const row = db.prepare('SELECT * FROM movies WHERE title = ?').get('Nur hier') as any
