@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type Database from 'better-sqlite3'
 import { createTestDb, insertMovie } from './testDb'
+import { getDirtyMovies } from '../sync'
 import {
   listMovies, countMovies, recentMovies, featuredMovies, createMovie, updateMovie,
   deleteMovie, searchMovies, checkTmdbIds, deleteMovieByRemoteId, allRemoteIds,
@@ -109,11 +110,27 @@ describe('setUserRating', () => {
     expect(setUserRating(db, 9999, 3)).toEqual({ user_rating: null })
   })
 
-  it('hebt updated_at an, damit die Änderung in den Abgleich geht', () => {
+  // Die Bewertung ist rein lokal — useSyncEngine überträgt user_rating nicht.
+  // Stiege updated_at, gälte der Film als schmutzig und jeder Sternklick schöbe
+  // ein vollständiges PUT an die Shelf, ohne die Bewertung zu enthalten.
+  it('lässt updated_at unberührt, damit kein Push ausgelöst wird', () => {
     const id = insertMovie(db, { title: 'Dune', updated_at: '2020-01-01T00:00:00.000Z' })
 
     setUserRating(db, id, 4)
-    expect((getMovie(db, id) as any).updated_at).not.toBe('2020-01-01T00:00:00.000Z')
+    expect((getMovie(db, id) as any).updated_at).toBe('2020-01-01T00:00:00.000Z')
+  })
+
+  it('macht den Film nicht schmutzig', () => {
+    const id = insertMovie(db, {
+      title: 'Dune', remote_id: 42,
+      updated_at: '2020-01-01T00:00:00.000Z',
+    })
+    db.prepare('UPDATE movies SET synced_at = ? WHERE id = ?').run('2020-06-01T00:00:00.000Z', id)
+
+    setUserRating(db, id, 4)
+
+    const schmutzig = getDirtyMovies(db) as any[]
+    expect(schmutzig.map(m => m.id)).not.toContain(id)
   })
 })
 

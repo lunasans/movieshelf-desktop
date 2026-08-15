@@ -410,6 +410,15 @@ export function randomMovie(db: Database.Database, filters?: { collectionType?: 
  * Erneutes Klicken auf denselben Stern löscht die Bewertung; ohne das gäbe es
  * keinen Weg zurück auf "noch nicht bewertet". Werte außerhalb 1-5 werden als
  * Löschen behandelt, damit ein Aufrufer nichts Ungültiges einschleusen kann.
+ *
+ * `updated_at` bleibt bewusst unangetastet. Die Bewertung ist derzeit rein
+ * lokal — useSyncEngine überträgt `user_rating` weder hin noch zurück.
+ * Würde der Zeitstempel steigen, gälte der Film in getDirtyMovies als
+ * schmutzig (`updated_at > synced_at`), und jeder Sternklick schöbe ein
+ * vollständiges PUT /admin/movies an die Shelf — ohne die Bewertung zu
+ * enthalten, aber mit dem Risiko, dort neuere Felder zu überschreiben.
+ * Sobald die Bewertung wirklich synchronisiert wird, braucht sie eine eigene
+ * Markierung wie `synced_watched` beim Gesehen-Stand.
  */
 export function setUserRating(db: Database.Database, id: number, rating: number | null): { user_rating: number | null } {
   const gültig = typeof rating === 'number' && Number.isInteger(rating) && rating >= 1 && rating <= 5
@@ -418,8 +427,7 @@ export function setUserRating(db: Database.Database, id: number, rating: number 
 
   const ziel = !gültig || vorher.user_rating === rating ? null : rating
 
-  db.prepare('UPDATE movies SET user_rating = ?, updated_at = ? WHERE id = ?')
-    .run(ziel, new Date().toISOString(), id)
+  db.prepare('UPDATE movies SET user_rating = ? WHERE id = ?').run(ziel, id)
 
   return { user_rating: ziel }
 }

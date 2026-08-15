@@ -169,11 +169,17 @@ Ausgewählt aus dem Abgleich der Shelf-Routen gegen die des Desktops.
 - [x] `setUserRating()`: 1-5 Sterne. Erneuter Klick auf denselben Stern löscht
       die Bewertung, sonst gäbe es keinen Weg zurück auf „nicht bewertet".
       Werte außerhalb 1-5 gelten als Löschen, damit kein Aufrufer etwas
-      Ungültiges einschleusen kann. `updated_at` steigt für den Abgleich
+      Ungültiges einschleusen kann
 - [x] Sterne in der Detailansicht mit Hover-Vorschau
 - [x] Kein Durchschnitt und keine Anzahl wie in der Shelf: Mehrbenutzer ist
       nicht vorgesehen
-- [x] 6 Tests
+- [x] **`updated_at` bleibt unangetastet.** Die Bewertung ist rein lokal:
+      `useSyncEngine` überträgt `user_rating` weder hin noch zurück. Stiege
+      der Zeitstempel, gälte der Film in `getDirtyMovies` als schmutzig
+      (`updated_at > synced_at`) und jeder Sternklick schöbe ein vollständiges
+      `PUT /admin/movies` an die Shelf — ohne die Bewertung zu enthalten, aber
+      mit dem Risiko, dort neuere Felder zu überschreiben
+- [x] 8 Tests, zwei davon sichern genau das ab
 
 ## Sortierung ohne Groß-/Kleinschreibung
 
