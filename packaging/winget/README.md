@@ -130,9 +130,23 @@ also deutscher Text in der englischen Datei landen und die deutsche leer bleiben
 
 Deshalb läuft nach `komac update --submit` ein weiterer Schritt:
 [`release-notes.py`](release-notes.py) schneidet beide Abschnitte, reduziert das
-Markdown auf das, was komac auch erzeugt, und ersetzt den `ReleaseNotes`-Block in
-`…locale.en-US.yaml` und `…locale.de-DE.yaml` — in einem Commit auf den Branch,
-den komac im Fork angelegt hat.
+Markdown auf das, was komac auch erzeugt, und setzt `ReleaseNotes` **und**
+`ReleaseNotesUrl` in `…locale.en-US.yaml` und `…locale.de-DE.yaml` — in einem
+Commit auf den Branch, den komac im Fork angelegt hat.
+
+Dass auch die URL gesetzt wird, ist kein Beiwerk: die winget-Validierung vergleicht
+jede Einreichung mit der zuletzt veröffentlichten Version und meldet jedes Feld,
+das verschwindet. Bei 1.0.0 ist genau das passiert, weil das frisch angelegte
+en-US-Manifest beide Felder nicht hatte:
+
+```
+Inconsistencies detected in package Lunasans.MovieShelf version 1.0.0
+based on published version 0.25.0
+- Missing property ReleaseNotes
+- Missing property ReleaseNotesUrl
+```
+
+Label dazu: `Manifest-Metadata-Consistency`.
 
 Die Ersetzung arbeitet zeilenweise statt über einen YAML-Parser: ein Parser würde
 die Datei neu schreiben und dabei Kommentare, Feldreihenfolge und Zeichenketten-Stil

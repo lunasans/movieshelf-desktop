@@ -34,6 +34,7 @@ import urllib.request
 FORK = "lunasans/winget-pkgs"
 PAKET = "Lunasans.MovieShelf"
 MANIFEST_VERZEICHNIS = "manifests/l/Lunasans/MovieShelf"
+RELEASE_URL = "https://github.com/lunasans/movieshelf-desktop/releases/tag/v{version}"
 
 # Was das winget-Schema fuer ReleaseNotes zulaesst.
 MAX_ZEICHEN = 10000
@@ -142,6 +143,30 @@ def notizen_ersetzen(inhalt: str, notizen: str) -> str:
             break
 
     return "\n".join(zeilen[:beginn] + block + zeilen[ende:]) + "\n"
+
+
+def feld_setzen(inhalt: str, feld: str, wert: str) -> str:
+    """Setzt ein einzeiliges Feld, oder legt es vor ManifestType an.
+
+    Noetig fuer ReleaseNotesUrl: die winget-Validierung vergleicht jede Version
+    mit der zuletzt veroeffentlichten und meldet jedes Feld, das verschwindet
+    ("Manifest-Metadata-Consistency"). Beim Wechsel des Standard-Locales auf
+    en-US ist genau das passiert, weil die neue Datei beide Notizen-Felder nicht
+    hatte.
+    """
+    zeilen = inhalt.splitlines()
+    neu = f"{feld}: {wert}"
+
+    for nummer, zeile in enumerate(zeilen):
+        if zeile.startswith(f"{feld}:"):
+            zeilen[nummer] = neu
+            return "\n".join(zeilen) + "\n"
+
+    treffer = [n for n, z in enumerate(zeilen) if z.startswith("ManifestType:")]
+    if not treffer:
+        raise Abbruch(f"Manifest hat kein ManifestType, {feld} nicht platzierbar.")
+    stelle = treffer[0]
+    return "\n".join(zeilen[:stelle] + [neu] + zeilen[stelle:]) + "\n"
 
 
 # --------------------------------------------------------------------------
@@ -269,7 +294,9 @@ def main() -> int:
                 vorher = datei.read()
         else:
             vorher = datei_lesen(branch, pfad)
-        geaendert[pfad] = notizen_ersetzen(vorher, text)
+        nachher = notizen_ersetzen(vorher, text)
+        nachher = feld_setzen(nachher, "ReleaseNotesUrl", RELEASE_URL.format(version=version))
+        geaendert[pfad] = nachher
 
     if argumente.dry_run:
         for pfad, inhalt in geaendert.items():
