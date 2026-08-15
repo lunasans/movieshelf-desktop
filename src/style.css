@@ -278,6 +278,16 @@ h1, h2, h3, h4, h5, h6 {
   padding: 1.5rem;
 }
 
+/* Waagrechte Reihen des Dashboards scrollen ohne sichtbare Leiste (in der
+   Shelf heißt die Klasse no-scrollbar). */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .filter-bar-field {
   flex: 1 1 0%;
   min-width: 120px;

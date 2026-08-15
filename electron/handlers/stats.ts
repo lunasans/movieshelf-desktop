@@ -131,13 +131,19 @@ export function registerStatsHandlers(): void {
       minHeight: 600,
       frame: false,
       titleBarStyle: 'hidden',
-      backgroundColor: '#0a0a0f',
+      // Kein fester Farbwert: bei hellen Themes (light, summer) blitzte hier vor
+      // dem ersten Rendern Schwarz auf. Der Renderer setzt den Grund selbst.
+      show: false,
       webPreferences: {
         preload: join(__dirname, 'preload.js'),
         contextIsolation: true,
         nodeIntegration: false,
       },
     })
+
+    // Erst zeigen, wenn der Renderer gezeichnet hat — sonst sieht man einen
+    // leeren Rahmen in der Standardfarbe statt des Themes.
+    statsWindow.once('ready-to-show', () => statsWindow?.show())
 
     if (isDev) {
       statsWindow.loadURL('http://localhost:5173?popup=1#/stats')

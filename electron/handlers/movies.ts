@@ -129,6 +129,33 @@ export function recentMovies(db: Database.Database, limit = 10): unknown[] {
   ).all(limit)
 }
 
+/**
+ * Filme für den Hero-Slider des Dashboards — entspricht $featuredMovies der
+ * Shelf (MovieController): zufällige Titel mit Hintergrundbild, ohne Filme,
+ * die zu einem Boxset gehören. Ohne Backdrop taugt ein Film für den Hero
+ * nicht, deshalb fällt die Auswahl notfalls auf die neuesten zurück.
+ *
+ * Nur backdrop_path, nicht backdrop_url: letzteres ist keine Spalte, sondern
+ * kommt aus der Online-API und steht deshalb nur im Renderer-Typ.
+ */
+export function featuredMovies(db: Database.Database, limit = 5): unknown[] {
+  const withBackdrop = db.prepare(
+    `SELECT * FROM movies
+      WHERE is_deleted = 0 AND in_collection = 1
+        AND boxset_parent_id IS NULL
+        AND backdrop_path IS NOT NULL AND backdrop_path <> ''
+      ORDER BY RANDOM() LIMIT ?`
+  ).all(limit)
+
+  if (withBackdrop.length > 0) return withBackdrop
+
+  return db.prepare(
+    `SELECT * FROM movies
+      WHERE is_deleted = 0 AND in_collection = 1 AND boxset_parent_id IS NULL
+      ORDER BY created_at DESC LIMIT ?`
+  ).all(limit)
+}
+
 export function getMovieChildren(db: Database.Database, movieId: number): unknown[] {
   // Nur die lokale id. Früher wurde zusätzlich über die remote_id gesucht, weil
   // der Pull dort Server-IDs ablegte - dabei sammelte ein Boxset fremde Filme ein,
@@ -462,6 +489,7 @@ export function registerMovieHandlers(): void {
   ipcMain.handle('db:movies:list',             (_e, p)    => listMovies(db(), p))
   ipcMain.handle('db:movies:count',            ()         => countMovies(db()))
   ipcMain.handle('db:movies:recent',           (_e, l)    => recentMovies(db(), l))
+  ipcMain.handle('db:movies:featured',         (_e, l)    => featuredMovies(db(), l))
   ipcMain.handle('db:movies:children',         (_e, id)   => getMovieChildren(db(), id))
   ipcMain.handle('db:movies:resolve-boxsets',  ()         => resolveBoxsetParents(db()))
   ipcMain.handle('db:movies:get',              (_e, id)   => getMovie(db(), id))

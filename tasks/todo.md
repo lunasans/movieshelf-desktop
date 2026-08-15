@@ -90,3 +90,68 @@ Diese vier zeigten sich erst beim Ansehen in der laufenden App, nicht im Build:
 - E2E-Selektor angepasst: `MovieListRow` trug nach dem Umbau ebenfalls
   `group cursor-pointer` und kollidierte mit dem Kachel-Selektor in
   `movies.spec.ts`. `MovieCard` hat jetzt `data-testid="movie-card"`
+
+---
+
+# Dashboard und Navigation nach dem Shelf-Aufbau (Layout)
+
+Der Design-Schritt hat Farben und Flächen angeglichen, aber den **Aufbau** nicht
+angefasst. Die Shelf ist im Dashboard Netflix-artig, der Desktop hatte Kennzahlen
+plus eine senkrechte Liste. Vorlage: `movies/partials/streaming-layout.blade.php`.
+
+## Umgesetzt
+
+- [x] **Hero-Slider**: Backdrop mit langsamer Fahrt, dreifacher Verlauf,
+      „Empfohlen"-Kennzeichen, großer Titel, Handlung, Details-Knopf,
+      Indikatoren, alle 8 s weiter
+- [x] `featuredMovies()` im Handler — entspricht `$featuredMovies` im
+      `MovieController` der Shelf (zufällig, mit Backdrop, ohne Boxset-Kinder),
+      Rückfall auf die neuesten. Plus Preload, Typen und 6 Tests
+- [x] `MediaRow.vue`: waagrecht scrollende Reihe mit Pfeilen beim Überfahren
+      und Kachel-Hover wie in der Shelf
+- [x] Dashboard: Hero → „Neu dabei" → „Filme" → „Serien". Die Reihen „Filme" und
+      „Serien" sortieren nach Titel aufsteigend, dieselbe Voreinstellung wie die
+      Listenansicht, damit „Alle ansehen" die Reihenfolge fortsetzt
+- [x] **Statistik-Kacheln** aus dem Dashboard entfernt, Statistik dafür als
+      eigener Punkt in die Seitenleiste (`/stats`)
+- [x] **Suchleiste** aus der Filmliste in den Hero verlegt, wie in der Shelf auf
+      dessen Unterkante. Enter führt nach `/movies?q=`, wo die Ansicht die Suche
+      schon immer aus der Route las. In der Liste zeigt ein abwählbarer Chip die
+      aktive Suche — ohne das wäre nicht erkennbar, warum sie gefiltert ist
+- [x] Akzentstriche an Überschriften und hinter den Reihen-Titeln entfernt
+
+## Beim Nachsehen gefunden und behoben
+
+1. **`backdrop_url` ist keine DB-Spalte.** Vom Renderer-Interface aufs Schema
+   geschlossen — die Abfrage starb mit `no such column`.
+2. **Ein Fehler im Hero leerte das ganze Dashboard**, weil alles in einem
+   `Promise.all` hing. Der Hero lädt jetzt getrennt; er ist Beiwerk und darf
+   die Seite nicht mitreissen.
+3. **Handlung wurde roh ausgegeben** („`<p>`Liebe und Rebellion…"). Der Text
+   kommt mit HTML und Shortcodes aus der Shelf und wird jetzt wie in der
+   Detailansicht per `DOMParser` gesäubert.
+4. **`insertMovie` im Test-Helfer schrieb `backdrop_path` nicht** — zwei Tests
+   schlugen scheinbar wegen der Abfrage fehl, tatsächlich wegen des Helfers.
+5. **Die Hero-Section durfte kein `overflow-hidden` haben**, sonst schnitte sie
+   die überstehende Suchleiste ab. Beschnitten wird nur der innere Rahmen.
+
+## Statistikseite folgte dem Theme nicht
+
+Ursache war kein fehlender Theme-Anschluss, sondern ein Überbleibsel aus der
+Zeit, als die Statistik nur als eigenes Fenster erreichbar war:
+
+- [x] Die Wurzel malte mit `bg-[var(--bg-app)]` eine **deckende** Fläche über
+      den Verlauf des Bodys — die Seite wirkte wie herausgeschnitten, Flächen
+      grau statt getönt, kein Glas. In der App ist sie jetzt durchsichtig
+- [x] Sie brachte eine **eigene Fensterleiste samt Schließknopf** mit, die in
+      der App neben der echten Titelleiste stand. Nur noch im Popup
+- [x] `h-screen` und ein zweites `overflow-y-auto` erzeugten eine Bildlaufleiste
+      in der Bildlaufleiste — ebenfalls nur noch im Popup
+- [x] `backgroundColor: '#0a0a0f'` am Statistikfenster war fest verdrahtet und
+      blitzte bei hellen Themes schwarz auf → `show: false` + `ready-to-show`
+
+## Verifikation
+
+- `npm run build` grün, `npm test` grün (203)
+- In der laufenden App durchgeklickt: Hero, Reihen, Suche („Matrix" → 4 Treffer),
+  Statistikseite in dark/christmas/summer
