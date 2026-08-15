@@ -1,3 +1,31 @@
+## [1.0.0] - 2026-08-15
+
+Die Oberfläche folgt jetzt durchgehend der Web Shelf. Weil damit kaum eine Ansicht
+unverändert bleibt, trägt diese Ausgabe die 1.0.0.
+
+### Neu
+
+- **Die Optik entspricht der Web Shelf.** Rose statt Indigo als Markenfarbe, Glasflächen statt flacher Karten, und dieselben zehn Farbschemata — darunter Weihnachten, Halloween und Sommer. Umgesetzt über die Farbpalette selbst statt über einzelne Ansichten: die Skalen werden aus der Akzentfarbe abgeleitet, weshalb jede Stelle dem gewählten Schema folgt. Die saisonalen Schemata tragen zusätzlich einen eigenen Flächenton, weil Weihnachten ohne Tannengrün nur ein zweites Rot wäre (#107).
+- **Dashboard nach dem Vorbild der Shelf.** Ein Hero-Bereich mit wechselnden Empfehlungen, darunter waagrecht scrollende Reihen für "Neu dabei", Filme und Serien. Die Suchleiste sitzt wie dort auf der Unterkante des Hero und führt in die Filmliste. Die Kennzahlen sind von der Startseite in einen eigenen Punkt der Seitenleiste gewandert (#113).
+- **Eigene Bewertung mit fünf Sternen.** Getrennt von der TMDb-Note, die weiterhin daneben steht. Ein erneuter Klick auf denselben Stern nimmt die Bewertung zurück (#109).
+- **Die FSK wird endlich angezeigt.** Das Feld liess sich seit jeher erfassen, tauchte in der Detailansicht aber nirgends auf. Jetzt steht dort das Siegel, für Altersstufen ohne eigenes Siegel eine Textangabe (#109).
+- **Gesehen-Stand je Folge und Staffel.** Serien liessen sich importieren, aber kein Fortschritt festhalten — die Datenbank kannte das Feld gar nicht. Die Staffelzeile zeigt jetzt "3/8" statt der blossen Folgenzahl. Eine Staffel gilt erst als gesehen, wenn jede Folge markiert ist (#111).
+- **Bewertung und Folgenstand gehen zur Shelf.** Beides wird in beide Richtungen abgeglichen, wie schon der Gesehen-Stand bei Filmen. Setzt die Shelf ab 2.41.0 voraus (#112).
+- **Duplikate finden.** Ein neuer Bereich in den Einstellungen sucht mehrfach vorhandene Filme — über dieselbe TMDb-Kennung und über Titel und Jahr. Film und Serie gleichen Namens gelten nicht als Dublette (#110).
+- **TMDb läuft im Online-Betrieb über die Shelf.** Wer angemeldet ist, braucht keinen eigenen TMDb-Schlüssel mehr; im Alleinbetrieb bleibt es beim eigenen Schlüssel (#105).
+
+### Behoben
+
+- **Die Sortierung beachtete Gross- und Kleinschreibung.** Dadurch stand "EUReKA" vor "Emergency Room" — in der Liste wie im Dashboard. Betroffen waren auch Boxset-Inhalte, Suche, Listennamen und Schauspieler (#109).
+- **Frisch geholte Filme galten als offen.** Beim Anlegen aus dem Abgleich blieb der gemerkte Gesehen-Stand leer, die Zeile zählte als "noch nicht übertragen" und der nächste Abgleich schob einen Stand hinauf, den die Shelf längst hatte (#103).
+- **"Von TMDb laden" brauchte zwei Aufrufe.** Die Videos kommen jetzt mit dem Datensatz zusammen, wie im Serien-Zweig ohnehin schon (#104).
+
+### Intern
+
+- Die winget-Beschreibung ist zweisprachig vorbereitet; ab dieser Ausgabe wird `en-US` das Standard-Locale (#106).
+
+---
+
 ## [0.25.5] - 2026-08-13
 
 ### Behoben

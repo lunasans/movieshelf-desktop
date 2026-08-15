@@ -70,13 +70,13 @@ falls sich das durch eine Publisher-Verifizierung einmal aendert. Dann gilt:
 - Die winget-CLI selbst rendert ohnehin kein Logo; genutzt wird es von
   GUI-Frontends und Katalogseiten.
 
-## Zweisprachig ab 0.26.0 — vorbereitet, noch nicht eingereicht
+## Zweisprachig ab 1.0.0 — vorbereitet, noch nicht eingereicht
 
-Das Paket hat bis 0.25.0 **nur ein deutsches** Locale-Manifest, und `DefaultLocale`
+Das Paket hat bis 0.25.5 **nur ein deutsches** Locale-Manifest, und `DefaultLocale`
 steht auf `de-DE`. Wer eine andere Sprache fährt, bekommt in `winget show`
 deutschen Text — auch Englisch, Französisch, Polnisch.
 
-Bei der nächsten Einreichung (0.26.0) soll das umgestellt werden:
+Bei der nächsten Einreichung (1.0.0) soll das umgestellt werden:
 
 - **`en-US` wird das Standard-Locale**, `de-DE` kommt als zusätzliches Manifest
   daneben. Damit landen alle Sprachen ohne eigenes Manifest bei Englisch statt
@@ -88,7 +88,13 @@ Bei der nächsten Einreichung (0.26.0) soll das umgestellt werden:
   Standard-Locale fort. Die zweite Datei muss einmalig von Hand in den Branch,
   den komac im Fork `lunasans/winget-pkgs` anlegt, bevor der PR gemergt wird.
   Danach trägt komac beide Dateien weiter — dieselbe Mechanik wie beim
-  Icons-Block oben.
+  Icons-Block oben. Fertig dafür liegt [`locale-en-US.yaml`](locale-en-US.yaml)
+  daneben; nur `PackageVersion` prüfen und die Datei als
+  `Lunasans.MovieShelf.locale.en-US.yaml` ablegen.
+- **Herausgeber wird `MovieShelf`.** Das veröffentlichte Manifest trägt bei
+  `Publisher`, `Author` und `Copyright` noch den Klarnamen. Das ist im selben
+  PR auch in `…locale.de-DE.yaml` nachzuziehen, sonst weisen die beiden Locales
+  verschiedene Herausgeber aus.
 
 Beschreibungstexte, abgestimmt mit der Landingpage. Neu ist jeweils der letzte
 Satz: Ohne den Hinweis auf den TMDb-Schlüssel liest sich der Eintrag so, als
@@ -115,7 +121,7 @@ ist **kein Rückstand, sondern die Absicht**. winget braucht ohnehin nur die
 jeweils neueste Version; wer zwischendurch installiert, holt sich die Updates
 über den eingebauten Updater.
 
-Die nächste Einreichung ist damit 0.26.0 — und genau der Zeitpunkt für die
+Die nächste Einreichung ist damit 1.0.0 — und genau der Zeitpunkt für die
 Umstellung oben.
 
 ## Hinweis zu Updates
