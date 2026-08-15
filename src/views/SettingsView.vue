@@ -78,6 +78,47 @@
           <div class="space-y-4">
             <SettingsInput :label="$t('settings.connection.shelfUrl')" type="url" v-model="settings.shelfUrl" :placeholder="$t('settings.connection.shelfUrlPlaceholder')" />
 
+            <!--
+              Verbundenes Konto. Ohne diese Anzeige bleibt unsichtbar, unter
+              welchem Konto der Abgleich schreibt — und wenn das ein anderes ist
+              als das im Browser, kommen Bewertungen zwar an, tauchen in der
+              Shelf aber nicht auf.
+            -->
+            <div v-if="settings.token" class="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">
+                  {{ $t('settings.connection.accountTitle') }}
+                </span>
+                <button
+                  @click="loadAccount"
+                  :disabled="accountLoading"
+                  class="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] disabled:opacity-40 transition-colors"
+                  :title="$t('settings.connection.accountRecheck')"
+                >
+                  <i class="bi" :class="accountLoading ? 'bi-arrow-repeat animate-spin' : 'bi-arrow-clockwise'"></i>
+                </button>
+              </div>
+
+              <div v-if="accountLoading" class="mt-1.5 text-sm text-[var(--text-muted)] opacity-60">
+                {{ $t('settings.connection.accountLoading') }}
+              </div>
+
+              <div v-else-if="accountError" class="mt-1.5">
+                <p class="text-sm font-bold text-[var(--status-red)]">{{ accountError }}</p>
+              </div>
+
+              <div v-else-if="account" class="mt-1.5 flex items-center gap-2 flex-wrap">
+                <i class="bi bi-person-circle text-[var(--status-green)]"></i>
+                <span class="text-sm font-bold text-[var(--text-main)]">{{ account.name || account.email }}</span>
+                <span v-if="account.name && account.email" class="text-xs text-[var(--text-muted)] opacity-60">{{ account.email }}</span>
+                <span v-if="account.id" class="text-[10px] text-[var(--text-muted)] opacity-40 font-mono">#{{ account.id }}</span>
+              </div>
+
+              <p class="mt-1.5 text-[10px] text-[var(--text-muted)] opacity-50 leading-relaxed">
+                {{ $t('settings.connection.accountHint') }}
+              </p>
+            </div>
+
             <!-- OAuth Login -->
             <button
               @click="doOAuthLogin"
@@ -627,7 +668,7 @@ const SaveButton = defineComponent({
 
 const route    = useRoute()
 const settings = useSettingsStore()
-const { login } = useApi()
+const { login, apiGet } = useApi()
 const { checkForUpdates } = useUpdateService()
 
 const isDev            = ref(false)
@@ -644,6 +685,37 @@ const loginSuccess     = ref(false)
 
 const oauthLoading     = ref(false)
 const oauthState       = ref('')
+
+/**
+ * Das Konto, mit dem der Desktop bei der Shelf angemeldet ist.
+ *
+ * Ohne diese Anzeige laesst sich nicht erkennen, unter welchem Konto der
+ * Abgleich schreibt. Faellt das auseinander, kommen Bewertungen und
+ * Gesehen-Stand zwar an, tauchen in der Shelf aber nicht auf, weil dort nach
+ * dem angemeldeten Nutzer gefiltert wird — ein Fehlerbild, das von aussen wie
+ * "wird nicht uebertragen" aussieht.
+ */
+const account        = ref<{ id?: number, name?: string, email?: string } | null>(null)
+const accountLoading = ref(false)
+const accountError   = ref('')
+
+async function loadAccount() {
+  account.value      = null
+  accountError.value = ''
+  if (settings.mode !== 'online' || !settings.shelfUrl || !settings.token) return
+
+  accountLoading.value = true
+  try {
+    account.value = await apiGet('/user') as { id?: number, name?: string, email?: string }
+  } catch (e: unknown) {
+    const err = e as { response?: { status?: number, data?: { message?: string } }, message?: string }
+    accountError.value = err?.response?.status === 401
+      ? t('settings.connection.accountExpired')
+      : (err?.response?.data?.message ?? err?.message ?? t('settings.connection.accountFailed'))
+  } finally {
+    accountLoading.value = false
+  }
+}
 
 const checkingUpdate   = ref(false)
 const downloading      = ref(false)
@@ -755,6 +827,7 @@ onMounted(async () => {
   autostart.value = await window.electron.getAutostart()
   appInfo.value = await window.electron.getInfo()
   await settings.load()
+  loadAccount()
 
   window.electron.update.onProgress((percent: number) => {
     downloadProgress.value = percent
@@ -828,6 +901,7 @@ async function doOAuthLogin() {
       settings.token = res.data.access_token
       await settings.save()
       loginSuccess.value = true
+      await loadAccount()
     } catch {
       loginError.value = t('settings.connection.tokenExchangeFailed')
     }
@@ -848,6 +922,7 @@ async function doLogin() {
     await settings.save()
     loginSuccess.value  = true
     loginPassword.value = ''
+    await loadAccount()
   } catch (e: unknown) {
     loginError.value = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('settings.connection.loginFailed')
   } finally {
