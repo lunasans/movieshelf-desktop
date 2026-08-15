@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type Database from 'better-sqlite3'
 import { createTestDb, insertMovie } from './testDb'
-import { getDirtyMovies, markSynced, hardDelete, getPendingWatched, markWatchedSynced } from '../sync'
-import { toggleWatched } from '../movies'
+import {
+  getDirtyMovies, markSynced, hardDelete, getPendingWatched, markWatchedSynced,
+  getPendingUserRatings, markUserRatingSynced,
+  getPendingEpisodesWatched, markEpisodeWatchedSynced,
+} from '../sync'
+import { toggleWatched, setUserRating } from '../movies'
+import { upsertSeason, upsertEpisode, toggleEpisodeWatched } from '../seasons'
 
 let db: Database.Database
 
@@ -118,5 +123,119 @@ describe('getPendingWatched', () => {
 
     const titel = getPendingWatched(db).map(r => r.title).sort()
     expect(titel).toEqual(['Rocky', 'Rocky II'])
+  })
+})
+
+
+// ── Bewertung ────────────────────────────────────────────────────────────────
+
+describe('getPendingUserRatings', () => {
+  it('meldet eine frisch gesetzte Bewertung als offen', () => {
+    const id = insertMovie(db, { title: 'Dune', remote_id: 42 })
+    setUserRating(db, id, 4)
+
+    const offen = getPendingUserRatings(db)
+    expect(offen).toHaveLength(1)
+    expect(offen[0].user_rating).toBe(4)
+  })
+
+  it('meldet nichts, solange nie bewertet wurde', () => {
+    insertMovie(db, { title: 'Dune', remote_id: 42 })
+
+    expect(getPendingUserRatings(db)).toEqual([])
+  })
+
+  it('schweigt nach der Bestätigung durch die Shelf', () => {
+    const id = insertMovie(db, { title: 'Dune', remote_id: 42 })
+    setUserRating(db, id, 4)
+    markUserRatingSynced(db, id, 4)
+
+    expect(getPendingUserRatings(db)).toEqual([])
+  })
+
+  // Eine gelöschte Bewertung ist NULL. `NULL != 3` ist in SQL nicht wahr,
+  // sondern NULL — mit != statt IS NOT bliebe das Löschen unbemerkt liegen.
+  it('erkennt auch das Löschen einer Bewertung', () => {
+    const id = insertMovie(db, { title: 'Dune', remote_id: 42 })
+    setUserRating(db, id, 4)
+    markUserRatingSynced(db, id, 4)
+
+    setUserRating(db, id, 4)   // derselbe Stern löscht
+
+    const offen = getPendingUserRatings(db)
+    expect(offen).toHaveLength(1)
+    expect(offen[0].user_rating).toBeNull()
+  })
+
+  it('übergeht Filme ohne remote_id und gelöschte', () => {
+    const ohneRemote = insertMovie(db, { title: 'Nur lokal' })
+    const gelöscht  = insertMovie(db, { title: 'Weg', remote_id: 43, is_deleted: 1 })
+    setUserRating(db, ohneRemote, 3)
+    setUserRating(db, gelöscht, 3)
+
+    expect(getPendingUserRatings(db)).toEqual([])
+  })
+})
+
+// ── Folgen ───────────────────────────────────────────────────────────────────
+
+/** Serie mit einer Staffel und `anzahl` Folgen; remote_id optional. */
+function serieMitFolgen(anzahl: number, mitRemote = true) {
+  const movieId  = insertMovie(db, { collection_type: 'Serie', remote_id: 99 })
+  const seasonId = upsertSeason(db, { movie_id: movieId, season_number: 1 })!
+  for (let i = 1; i <= anzahl; i++) {
+    upsertEpisode(db, {
+      season_id: seasonId, episode_number: i, title: `Folge ${i}`,
+      ...(mitRemote ? { remote_id: 1000 + i } : {}),
+    })
+  }
+  const folgen = db.prepare('SELECT id FROM episodes WHERE season_id = ? ORDER BY episode_number')
+    .all(seasonId) as { id: number }[]
+  return { movieId, seasonId, folgen }
+}
+
+describe('getPendingEpisodesWatched', () => {
+  it('meldet eine frisch markierte Folge als offen', () => {
+    const { folgen } = serieMitFolgen(3)
+    toggleEpisodeWatched(db, folgen[1].id)
+
+    const offen = getPendingEpisodesWatched(db)
+    expect(offen).toHaveLength(1)
+    expect(offen[0].is_watched).toBe(1)
+  })
+
+  it('meldet nichts für unberührte Folgen', () => {
+    serieMitFolgen(3)
+
+    expect(getPendingEpisodesWatched(db)).toEqual([])
+  })
+
+  it('schweigt nach der Bestätigung durch die Shelf', () => {
+    const { folgen } = serieMitFolgen(2)
+    toggleEpisodeWatched(db, folgen[0].id)
+    markEpisodeWatchedSynced(db, folgen[0].id, true)
+
+    expect(getPendingEpisodesWatched(db)).toEqual([])
+  })
+
+  it('erkennt auch das Zurücknehmen', () => {
+    const { folgen } = serieMitFolgen(2)
+    toggleEpisodeWatched(db, folgen[0].id)
+    markEpisodeWatchedSynced(db, folgen[0].id, true)
+
+    toggleEpisodeWatched(db, folgen[0].id)
+
+    const offen = getPendingEpisodesWatched(db)
+    expect(offen).toHaveLength(1)
+    expect(offen[0].is_watched).toBe(0)
+  })
+
+  // Ohne remote_id kennt die Shelf die Folge nicht — sie stünde sonst für
+  // immer in der Warteschlange und liefe bei jedem Abgleich in einen Fehler.
+  it('übergeht Folgen ohne remote_id', () => {
+    const { folgen } = serieMitFolgen(2, false)
+    toggleEpisodeWatched(db, folgen[0].id)
+
+    expect(getPendingEpisodesWatched(db)).toEqual([])
   })
 })

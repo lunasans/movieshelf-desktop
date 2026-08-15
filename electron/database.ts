@@ -114,6 +114,14 @@ function runMigrations(instance: Database.Database = db): void {
   // Eigene Bewertung, 1-5 Sterne wie in der Shelf. Getrennt von `rating`, das
   // die TMDb-Note (0-10) trägt — beide Werte sollen nebeneinander stehen.
   try { instance.exec('ALTER TABLE movies ADD COLUMN user_rating INTEGER') } catch (e) {}
+  // Der zuletzt von der Shelf bestätigte Bewertungsstand, analog zu
+  // synced_watched. Weicht user_rating davon ab, wartet die Bewertung auf ihre
+  // Übertragung; ohne den Merker liesse sich "steht noch aus" nicht von
+  // "längst übertragen" unterscheiden.
+  try { instance.exec('ALTER TABLE movies ADD COLUMN synced_user_rating INTEGER') } catch (e) {}
+  // Bestand gilt als übertragen — sonst schöbe der erste Abgleich jede schon
+  // vorhandene Bewertung als vermeintliche Änderung zur Shelf.
+  try { instance.exec('UPDATE movies SET synced_user_rating = user_rating WHERE synced_user_rating IS NULL') } catch (e) {}
   // Die Shelf liefert in boxset_parent_id ihre eigene ID. Sie wird beim Pull hier
   // roh abgelegt und erst danach in die lokale id aufgelöst - in einer einzigen
   // Spalte wäre eine bereits aufgelöste lokale id von einer remote id nicht zu
@@ -248,6 +256,9 @@ function runMigrations(instance: Database.Database = db): void {
   // `episodes` noch nicht, der ALTER wirft dort und das leere catch verschluckt
   // es — auf einer frischen Datenbank fehlte die Spalte damit stillschweigend.
   try { instance.exec('ALTER TABLE episodes ADD COLUMN is_watched INTEGER DEFAULT 0') } catch (e) {}
+  // Zuletzt von der Shelf bestätigter Stand je Folge, analog zu movies.
+  try { instance.exec('ALTER TABLE episodes ADD COLUMN synced_watched INTEGER') } catch (e) {}
+  try { instance.exec('UPDATE episodes SET synced_watched = is_watched WHERE synced_watched IS NULL') } catch (e) {}
 
   // ── Datenmodell-Split: externe Filme (nicht in Sammlung) + polymorpher Listen-Pivot ──
   instance.exec(`
