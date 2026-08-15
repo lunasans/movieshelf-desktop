@@ -66,7 +66,8 @@ Releases werden **manuell** ausgelöst (kein semantic-release mehr).
 **Vor dem Release manuell erledigen:**
 1. Version in `package.json` bumpen
 2. Passenden Abschnitt `## [x.y.z]` in `CHANGELOG.md` ergänzen (wird vom Workflow für die Release-Notes ausgelesen)
-3. Committen, dann Tag `vx.y.z` setzen und pushen
+3. **Nur bei Feature-Releases (`x.y.0`):** denselben Abschnitt auf Englisch in `CHANGELOG.en.md` ergänzen — nur diese Versionen gehen zu winget, und die englische Manifest-Datei bezieht ihre Notizen von dort. Fehlt der Abschnitt, bricht der winget-Job ab
+4. Committen, dann Tag `vx.y.z` setzen und pushen
 
 **Was `.github/workflows/release.yml` dann automatisch macht:**
 1. `test` → Unit-Tests (vitest)
