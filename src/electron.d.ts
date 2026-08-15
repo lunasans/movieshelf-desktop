@@ -93,6 +93,7 @@ interface Window {
         }) => Promise<MovieListResult>
         recent:          (limit?: number) => Promise<unknown[]>
         featured:        (limit?: number) => Promise<unknown[]>
+        setUserRating:   (id: number, rating: number | null) => Promise<{ user_rating: number | null }>
         get:             (id: number) => Promise<unknown>
         getByRemoteId:   (id: number) => Promise<Record<string, unknown> | null>
         create:          (data: Record<string, unknown>) => Promise<unknown>

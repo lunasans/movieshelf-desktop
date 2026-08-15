@@ -161,6 +161,8 @@ const de = {
     labelRuntime: 'Dauer',
     labelDirector: 'Regie',
     labelEdition: 'Edition',
+    yourRating: 'Deine Bewertung',
+    rateStars: '{count} von 5 Sternen',
     labelRegionCode: 'Region',
     labelDiscLocation: 'Standort',
     labelCondition: 'Zustand',

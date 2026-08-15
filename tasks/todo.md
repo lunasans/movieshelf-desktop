@@ -155,3 +155,62 @@ Zeit, als die Statistik nur als eigenes Fenster erreichbar war:
 - `npm run build` grün, `npm test` grün (203)
 - In der laufenden App durchgeklickt: Hero, Reihen, Suche („Matrix" → 4 Treffer),
   Statistikseite in dark/christmas/summer
+
+---
+
+# Funktionen: eigene Bewertung, Sortierung, FSK
+
+Ausgewählt aus dem Abgleich der Shelf-Routen gegen die des Desktops.
+
+## Eigene Bewertung (`movies.rate` der Shelf)
+
+- [x] Spalte `user_rating INTEGER` als additive Migration. Getrennt von `rating`,
+      das die TMDb-Note (0-10) trägt — beide Werte stehen nebeneinander
+- [x] `setUserRating()`: 1-5 Sterne. Erneuter Klick auf denselben Stern löscht
+      die Bewertung, sonst gäbe es keinen Weg zurück auf „nicht bewertet".
+      Werte außerhalb 1-5 gelten als Löschen, damit kein Aufrufer etwas
+      Ungültiges einschleusen kann
+- [x] Sterne in der Detailansicht mit Hover-Vorschau
+- [x] Kein Durchschnitt und keine Anzahl wie in der Shelf: Mehrbenutzer ist
+      nicht vorgesehen
+- [x] **`updated_at` bleibt unangetastet.** Die Bewertung ist rein lokal:
+      `useSyncEngine` überträgt `user_rating` weder hin noch zurück. Stiege
+      der Zeitstempel, gälte der Film in `getDirtyMovies` als schmutzig
+      (`updated_at > synced_at`) und jeder Sternklick schöbe ein vollständiges
+      `PUT /admin/movies` an die Shelf — ohne die Bewertung zu enthalten, aber
+      mit dem Risiko, dort neuere Felder zu überschreiben
+- [x] 8 Tests, zwei davon sichern genau das ab
+
+## Sortierung ohne Groß-/Kleinschreibung
+
+SQLites Standard-Collation (BINARY) stellt Großbuchstaben vor Kleinbuchstaben,
+deshalb stand „EUReKA" vor „Emergency Room" — in der Liste wie im Dashboard.
+
+- [x] `COLLATE NOCASE` auf allen Textsortierungen: Filmliste (nur bei `title`,
+      die übrigen Sortierspalten sind Zahlen oder ISO-Daten), Boxset-Kinder,
+      Suche, Listen-Namen, Schauspielernamen
+- [x] 2 Tests
+
+## FSK in der Detailansicht
+
+- [x] Die FSK wurde **nie** angezeigt — sie war nur im Formular und beim
+      TMDb-Import erfassbar
+- [x] Die fünf Siegel aus `v2-saas/public/img/fsk` übernommen und wie in der
+      Shelf in die Kennzeichenzeile gesetzt
+- [x] TMDb liefert gelegentlich Altersstufen ohne Siegel (nur 0/6/12/16/18
+      existieren) — dafür eine Textpille statt eines fehlenden Bildes
+
+## Nebenbefund: die Merkliste ist da, aber unsichtbar
+
+Das Datenmodell kennt `in_collection`, und die TMDb-Suche hat den Schalter
+„In Sammlung übernehmen". Steht er aus, entsteht ein Eintrag mit
+`in_collection = 0` — aber **alle 13** Filmabfragen filtern auf `= 1`, und keine
+Ansicht zeigt solche Einträge. Nur die Listen filtern nicht danach.
+Heute verschwindet ein so importierter Film also spurlos. Das ist eher ein
+Fehler als eine fehlende Funktion, und eine Merkliste wäre billig, weil die
+Daten schon da sind. Nicht Teil dieses PRs.
+
+## Verifikation
+
+- `npm run build` grün, `npm test` grün (211)
+- Nicht in der laufenden App angesehen

@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type Database from 'better-sqlite3'
 import { createTestDb, insertMovie } from './testDb'
+import { getDirtyMovies } from '../sync'
 import {
   listMovies, countMovies, recentMovies, featuredMovies, createMovie, updateMovie,
   deleteMovie, searchMovies, checkTmdbIds, deleteMovieByRemoteId, allRemoteIds,
   getMovie, getMovieByRemoteId, getMovieChildren, resolveBoxsetParents, clearMovies,
-  randomMovie, toggleWatched, applyBoxsetWatched, bulkDelete, bulkUpdateTag, importMovies,
+  randomMovie, toggleWatched, setUserRating, applyBoxsetWatched, bulkDelete, bulkUpdateTag, importMovies,
 } from '../movies'
 
 let db: Database.Database
@@ -69,6 +70,86 @@ describe('recentMovies', () => {
 
     const result = recentMovies(db, 1) as any[]
     expect(result[0].title).toBe('Neu')
+  })
+})
+
+describe('setUserRating', () => {
+  it('setzt eine Bewertung von 1 bis 5', () => {
+    const id = insertMovie(db, { title: 'Dune' })
+
+    expect(setUserRating(db, id, 4)).toEqual({ user_rating: 4 })
+    expect((getMovie(db, id) as any).user_rating).toBe(4)
+  })
+
+  it('löscht die Bewertung beim erneuten Klick auf denselben Stern', () => {
+    const id = insertMovie(db, { title: 'Dune' })
+    setUserRating(db, id, 3)
+
+    expect(setUserRating(db, id, 3)).toEqual({ user_rating: null })
+    expect((getMovie(db, id) as any).user_rating).toBeNull()
+  })
+
+  it('wechselt auf einen anderen Stern statt zu löschen', () => {
+    const id = insertMovie(db, { title: 'Dune' })
+    setUserRating(db, id, 2)
+
+    expect(setUserRating(db, id, 5)).toEqual({ user_rating: 5 })
+  })
+
+  it('weist Werte außerhalb von 1 bis 5 zurück', () => {
+    const id = insertMovie(db, { title: 'Dune' })
+    setUserRating(db, id, 3)
+
+    for (const ungültig of [0, 6, -1, 2.5]) {
+      expect(setUserRating(db, id, ungültig)).toEqual({ user_rating: null })
+      setUserRating(db, id, 3)
+    }
+  })
+
+  it('meldet den Stand für einen unbekannten Film, ohne zu werfen', () => {
+    expect(setUserRating(db, 9999, 3)).toEqual({ user_rating: null })
+  })
+
+  // Die Bewertung ist rein lokal — useSyncEngine überträgt user_rating nicht.
+  // Stiege updated_at, gälte der Film als schmutzig und jeder Sternklick schöbe
+  // ein vollständiges PUT an die Shelf, ohne die Bewertung zu enthalten.
+  it('lässt updated_at unberührt, damit kein Push ausgelöst wird', () => {
+    const id = insertMovie(db, { title: 'Dune', updated_at: '2020-01-01T00:00:00.000Z' })
+
+    setUserRating(db, id, 4)
+    expect((getMovie(db, id) as any).updated_at).toBe('2020-01-01T00:00:00.000Z')
+  })
+
+  it('macht den Film nicht schmutzig', () => {
+    const id = insertMovie(db, {
+      title: 'Dune', remote_id: 42,
+      updated_at: '2020-01-01T00:00:00.000Z',
+    })
+    db.prepare('UPDATE movies SET synced_at = ? WHERE id = ?').run('2020-06-01T00:00:00.000Z', id)
+
+    setUserRating(db, id, 4)
+
+    const schmutzig = getDirtyMovies(db) as any[]
+    expect(schmutzig.map(m => m.id)).not.toContain(id)
+  })
+})
+
+describe('Sortierung nach Titel', () => {
+  it('beachtet Groß- und Kleinschreibung nicht', () => {
+    insertMovie(db, { title: 'Emergency Room' })
+    insertMovie(db, { title: 'EUReKA' })
+    insertMovie(db, { title: 'apfel' })
+
+    const { data } = listMovies(db, { sortBy: 'title', sortDir: 'ASC' })
+    expect((data as any[]).map(m => m.title)).toEqual(['apfel', 'Emergency Room', 'EUReKA'])
+  })
+
+  it('gilt auch absteigend', () => {
+    insertMovie(db, { title: 'Emergency Room' })
+    insertMovie(db, { title: 'EUReKA' })
+
+    const { data } = listMovies(db, { sortBy: 'title', sortDir: 'DESC' })
+    expect((data as any[]).map(m => m.title)).toEqual(['EUReKA', 'Emergency Room'])
   })
 })
 
