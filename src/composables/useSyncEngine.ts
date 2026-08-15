@@ -84,7 +84,26 @@ export function useSyncEngine() {
   async function loadStats() {
     localCount.value = await window.electron.db.movies.count()
     const dirty = await window.electron.db.movies.sync.dirty() as any[]
-    dirtyCount.value = dirty.length
+
+    // Bewertung und Folgenstand zaehlen mit. Beide haengen bewusst nicht an
+    // `updated_at`, sondern tragen eigene Markierungen (`synced_user_rating`,
+    // `synced_watched`) — sonst hoebe jeder Sternklick den Zeitstempel und
+    // loeste einen vollstaendigen PUT aus. Ohne sie hier meldete die Seite
+    // "Keine Aenderungen" und der Weg Desktop -> Shelf blieb verschlossen,
+    // waehrend pushUserRatings beim Abgleich sehr wohl etwas zu tun hatte.
+    //
+    // Gezaehlt werden betroffene Filme, nicht Einzelaenderungen: ein Film mit
+    // geaenderten Feldern *und* neuer Bewertung ist eine Zeile, nicht zwei.
+    const betroffen = new Set<string>()
+    for (const m of dirty) betroffen.add(m.remote_id != null ? `m${m.remote_id}` : `l${m.id}`)
+    for (const r of await window.electron.db.movies.sync.pendingUserRatings()) {
+      betroffen.add(`m${r.remote_id}`)
+    }
+    for (const e of await window.electron.db.movies.sync.pendingEpisodesWatched()) {
+      // Ohne Serie zaehlt die Folge fuer sich — uebertragen wird sie trotzdem.
+      betroffen.add(e.movie_remote_id != null ? `m${e.movie_remote_id}` : `e${e.id}`)
+    }
+    dirtyCount.value = betroffen.size
     const ts = await window.electron.settings.get('last_sync_at') as string | null
     if (ts) {
       const d = new Date(ts)
@@ -206,6 +225,57 @@ export function useSyncEngine() {
 
       // Push-side: locally dirty records
       const dirty = await window.electron.db.movies.sync.dirty() as any[]
+
+      // Welche Felder abweichen, laesst sich nur gegen den Serverstand sagen.
+      // Im Delta stehen aber nur die *dort* geaenderten Filme — eine lokal
+      // geaenderte Zeile fehlt darin im Normalfall, und ohne Vergleichsstand
+      // blieb die Aenderungsliste leer: die Vorschau zeigte "UPDATE" ohne zu
+      // sagen, was sich aendert.
+      //
+      // Der fehlende Stand wird mit *einer* zusaetzlichen Abfrage geholt statt
+      // je Zeile einzeln (N+1) — und nur dann, wenn ueberhaupt etwas fehlt.
+      const serverNachId = new Map<number, any>(movies.map((m: any) => [m.id, m]))
+      const fehlenVergleich = dirty.some(m => m.remote_id && !m.is_deleted && !serverNachId.has(m.remote_id))
+      if (since && fehlenVergleich) {
+        const voll = await apiGet('/admin/export') as { movies: any[] }
+        for (const m of voll.movies) if (!serverNachId.has(m.id)) serverNachId.set(m.id, m)
+      }
+
+      // Offene Bewertungen und Folgen-Markierungen, vorab je Film gesammelt.
+      //
+      // Beide haengen bewusst nicht an `updated_at`, sondern tragen eigene
+      // Markierungen (`synced_user_rating`, `synced_watched`) — sonst hoebe
+      // jeder Sternklick den Zeitstempel und loeste einen vollstaendigen PUT
+      // aus. Genau deshalb stehen sie nicht in `sync.dirty()` und fehlten in
+      // der Vorschau: dort stand "Aktuell", waehrend pushUserRatings und
+      // pushEpisodesWatched beim Abgleich sehr wohl etwas zu tun hatten.
+      //
+      // Erst sammeln, dann verteilen: ist der Film ohnehin schmutzig, gehoert
+      // die Bewertung in dessen Zeile statt in eine zweite mit demselben Titel.
+      const zusatzNachRemoteId = new Map<number, { titel: string, texte: string[] }>()
+      const merken = (remoteId: number | null, titel: string, text: string) => {
+        if (remoteId == null) return
+        const eintrag = zusatzNachRemoteId.get(remoteId) ?? { titel, texte: [] }
+        eintrag.texte.push(text)
+        zusatzNachRemoteId.set(remoteId, eintrag)
+      }
+
+      for (const row of await window.electron.db.movies.sync.pendingUserRatings()) {
+        merken(row.remote_id, row.title, t('sync.fields.userRating'))
+      }
+
+      // Je Serie eine Angabe statt je Folge: eine durchgesehene Staffel ergaebe
+      // sonst zwanzig gleich aussehende Zeilen.
+      const folgenJeSerie = new Map<number | null, { titel: string, anzahl: number }>()
+      for (const row of await window.electron.db.movies.sync.pendingEpisodesWatched()) {
+        const vorhanden = folgenJeSerie.get(row.movie_remote_id)
+        if (vorhanden) vorhanden.anzahl++
+        else folgenJeSerie.set(row.movie_remote_id, { titel: row.movie_title ?? '', anzahl: 1 })
+      }
+      for (const [remoteId, eintrag] of folgenJeSerie) {
+        merken(remoteId, eintrag.titel, t('sync.fields.episodesWatched', { count: eintrag.anzahl }))
+      }
+
       let pushNew = 0, pushUpdated = 0, pushDeleted = 0
       for (const m of dirty) {
         if (m.is_deleted) {
@@ -220,9 +290,35 @@ export function useSyncEngine() {
             items.push({ remoteId: null, title: m.title, year: m.year, action: 'new', direction: 'push', changes: [] })
         } else {
           pushUpdated++
-          if (items.length < PREVIEW_LIMIT)
-            items.push({ remoteId: m.remote_id, title: m.title, year: m.year, action: 'updated', direction: 'push', changes: [] })
+          if (items.length < PREVIEW_LIMIT) {
+            // Gleicher Vergleich wie auf der Pull-Seite, nur mit vertauschten
+            // Rollen: hier ist die lokale Zeile die neuere.
+            const server = serverNachId.get(m.remote_id)
+            const changed: string[] = []
+            if (server) {
+              for (const [field, label] of Object.entries(FIELD_LABELS)) {
+                if (String(server[field] ?? null) !== String(m[field] ?? null)) changed.push(t(label))
+              }
+              if (watchedDiffers(server, m)) changed.push(t('sync.fields.watched'))
+            }
+            // Bewertung und Folgenstand desselben Films hier mit hinein, statt
+            // eine zweite Zeile mit gleichem Titel zu erzeugen.
+            changed.push(...(zusatzNachRemoteId.get(m.remote_id)?.texte ?? []))
+            zusatzNachRemoteId.delete(m.remote_id)
+            items.push({ remoteId: m.remote_id, title: m.title, year: m.year, action: 'updated', direction: 'push', changes: changed })
+          }
         }
+      }
+
+      // Was jetzt noch uebrig ist, betrifft Filme, die sonst nichts zu
+      // uebertragen haben — sie brauchen eine eigene Zeile.
+      for (const [remoteId, eintrag] of zusatzNachRemoteId) {
+        pushUpdated++
+        if (items.length < PREVIEW_LIMIT)
+          items.push({
+            remoteId, title: eintrag.titel, year: null,
+            action: 'updated', direction: 'push', changes: eintrag.texte,
+          })
       }
 
       // Ganze Filme, die nur auf einer Seite bekannt sind - separat von der
@@ -627,7 +723,7 @@ export function useSyncEngine() {
 
     for (let i = 0; i < pending.length; i++) {
       const row = pending[i]
-      phaseDetail.value = row.title ?? ''
+      phaseDetail.value = row.movie_title ?? row.title ?? ''
       progressPct.value = Math.round((i / pending.length) * 100)
 
       try {
@@ -635,7 +731,11 @@ export function useSyncEngine() {
         await window.electron.db.movies.sync.markEpisodeWatchedSynced(row.id, serverState)
         pushed++
       } catch (e: any) {
-        errors.value.push(`${t('movieDetail.episodeFallback', { number: row.id })}: ${e?.response?.data?.message ?? e.message}`)
+        // Serie und Folgentitel statt der lokalen Datenbank-Kennung: mit
+        // "Folge 4711" liess sich nicht sagen, worum es überhaupt ging.
+        const bezeichnung = [row.movie_title, row.title].filter(Boolean).join(' – ')
+          || t('movieDetail.episodeFallback', { number: row.remote_id })
+        errors.value.push(`${bezeichnung}: ${e?.response?.data?.message ?? e.message}`)
         failed++
       }
     }

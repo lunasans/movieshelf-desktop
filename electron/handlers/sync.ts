@@ -76,13 +76,28 @@ export function markUserRatingSynced(db: Database.Database, id: number, rating: 
  */
 export function getPendingEpisodesWatched(db: Database.Database): {
   id: number; remote_id: number; title: string | null; is_watched: number
+  movie_remote_id: number | null; movie_title: string | null
 }[] {
+  // Die Serie kommt mit: `title` ist der Titel der *Folge* und taugt weder für
+  // die Vorschau (die je Serie eine Zeile zeigt statt zwanzig gleich
+  // aussehender) noch für eine verständliche Fehlermeldung.
+  //
+  // LEFT JOIN, nicht JOIN: eine Folge, deren Staffel oder Serie fehlt, fiele
+  // sonst lautlos aus der Warteschlange und ihr Gesehen-Stand erreichte die
+  // Shelf nie. Übertragen lässt sie sich auch ohne — dafür genügt ihre eigene
+  // remote_id; nur die Beschriftung bleibt dann leer.
   return db.prepare(`
-    SELECT e.id, e.remote_id, e.title, e.is_watched
+    SELECT e.id, e.remote_id, e.title, e.is_watched,
+           m.remote_id AS movie_remote_id, m.title AS movie_title
     FROM episodes e
+    LEFT JOIN seasons s ON s.id = e.season_id
+    LEFT JOIN movies  m ON m.id = s.movie_id
     WHERE e.remote_id IS NOT NULL
       AND COALESCE(e.is_watched, 0) IS NOT COALESCE(e.synced_watched, 0)
-  `).all() as { id: number; remote_id: number; title: string | null; is_watched: number }[]
+  `).all() as {
+    id: number; remote_id: number; title: string | null; is_watched: number
+    movie_remote_id: number | null; movie_title: string | null
+  }[]
 }
 
 export function markEpisodeWatchedSynced(db: Database.Database, id: number, isWatched: boolean): void {

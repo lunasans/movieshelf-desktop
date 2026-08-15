@@ -133,7 +133,7 @@ interface Window {
           markWatchedSynced: (id: number, isWatched: boolean) => Promise<void>
         pendingUserRatings: () => Promise<{ id: number; remote_id: number; title: string; user_rating: number | null }[]>
         markUserRatingSynced: (id: number, rating: number | null) => Promise<void>
-        pendingEpisodesWatched: () => Promise<{ id: number; remote_id: number; title: string | null; is_watched: number }[]>
+        pendingEpisodesWatched: () => Promise<{ id: number; remote_id: number; title: string | null; is_watched: number; movie_remote_id: number | null; movie_title: string | null }[]>
         markEpisodeWatchedSynced: (id: number, isWatched: boolean) => Promise<void>
         }
       }

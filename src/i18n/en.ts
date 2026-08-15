@@ -279,6 +279,8 @@ const en = {
       trailer: 'Trailer',
       watched: 'Watched',
       seasons: 'Seasons',
+      userRating: 'Your rating',
+      episodesWatched: '{count} episodes watched',
     },
     phases: {
       connecting: 'Connecting to shelf…',

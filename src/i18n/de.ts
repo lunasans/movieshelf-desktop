@@ -278,6 +278,8 @@ const de = {
       trailer: 'Trailer',
       watched: 'Gesehen',
       seasons: 'Staffeln',
+      userRating: 'Eigene Bewertung',
+      episodesWatched: '{count} Folgen gesehen',
     },
     phases: {
       connecting: 'Verbinde mit Shelf…',
