@@ -457,6 +457,14 @@ const de = {
       requestKey: 'Key beantragen →',
       apiKeyPlaceholder: 'TMDb API Key eingeben...',
     },
+    stats: {
+      title: 'Installation mitzählen',
+      hint: 'Freiwillig und standardmäßig aus. Ist es eingeschaltet, sendet die App bei der ohnehin stattfindenden Versionsabfrage eine zufällige Kennung, das Betriebssystem und die Version mit — an movieshelf.info, nicht an deine Shelf. Kein Bezug zu deinem Konto, keine IP-Adresse, kein genauer Zeitpunkt. Daraus wird nur ersichtlich, wie viele Installationen in den letzten 30 Tagen aktiv waren.',
+      onboardingQuestion: 'Darf MovieShelf diese Installation mitzählen?',
+      onboardingHint: 'Eine zufällige Kennung, Betriebssystem und Version — mehr nicht, und ohne Bezug zu deinem Konto. Du kannst es jederzeit in den Einstellungen ändern.',
+      onboardingNo: 'Nein, danke',
+      onboardingYes: 'Ja, gerne',
+    },
     updates: {
       title: 'Software Update',
       installedVersion: 'Installierte Version',

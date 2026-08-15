@@ -134,6 +134,39 @@
         <p class="text-sm text-[var(--text-muted)] opacity-70 leading-relaxed">
           {{ settings.mode === 'online' ? $t('onboarding.doneHintCloud') : $t('onboarding.doneHint') }}
         </p>
+        <!--
+          Einmalige Frage zur Zaehlung. Bewusst als zwei gleichwertige Knoepfe
+          statt eines vorangekreuzten Kaestchens: eine Einwilligung, die man
+          uebersieht, ist keine. Vorausgewaehlt ist "Nein" — wer einfach
+          weiterklickt, stimmt nicht zu.
+        -->
+        <div class="glass rounded-2xl p-4 text-left mt-2">
+          <p class="text-sm font-bold text-[var(--text-main)]">{{ $t('settings.stats.onboardingQuestion') }}</p>
+          <p class="text-xs text-[var(--text-muted)] opacity-60 mt-1 leading-relaxed">
+            {{ $t('settings.stats.onboardingHint') }}
+          </p>
+          <div class="flex gap-2 mt-3">
+            <button
+              @click="statsWahl = false"
+              class="flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border"
+              :class="statsWahl === false
+                ? 'bg-white/10 border-white/20 text-[var(--text-main)]'
+                : 'bg-transparent border-white/10 text-[var(--text-muted)] hover:border-white/20'"
+            >
+              {{ $t('settings.stats.onboardingNo') }}
+            </button>
+            <button
+              @click="statsWahl = true"
+              class="flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all border"
+              :class="statsWahl === true
+                ? 'bg-[var(--status-green)]/15 border-[var(--status-green)]/40 text-[var(--status-green)]'
+                : 'bg-transparent border-white/10 text-[var(--text-muted)] hover:border-white/20'"
+            >
+              {{ $t('settings.stats.onboardingYes') }}
+            </button>
+          </div>
+        </div>
+
         <div class="pt-4 space-y-3">
           <button @click="finish" class="w-full bg-red-600 hover:bg-red-500 text-white font-black py-3 rounded-xl transition-colors uppercase tracking-widest">
             {{ $t('onboarding.toCollection') }}
@@ -157,6 +190,8 @@ const settings = useSettingsStore()
 
 const step         = ref(0)
 const totalSteps   = 4
+// Vorgabe "Nein": wer die Frage ueberliest und weiterklickt, stimmt nicht zu.
+const statsWahl    = ref(false)
 const selectedMode = ref<'standalone' | 'online'>(settings.mode)
 const tmdbKey      = ref(settings.tmdbApiKey)
 const saving       = ref(false)
@@ -183,12 +218,25 @@ async function saveTmdb() {
   }
 }
 
-function finish() {
+/**
+ * Die Antwort auf die Zaehlungsfrage festhalten.
+ *
+ * Auch ein "Nein" wird geschrieben — sonst liesse sich spaeter nicht
+ * unterscheiden, ob jemand abgelehnt oder die Frage nie gesehen hat. Die
+ * Kennung entsteht nur bei Zustimmung (siehe setStatsEnabled).
+ */
+async function statsAntwortSichern() {
+  await settings.setStatsEnabled(statsWahl.value === true)
+}
+
+async function finish() {
+  await statsAntwortSichern()
   localStorage.setItem('onboarding_done', '1')
   router.replace('/movies')
 }
 
-function finishToSettings() {
+async function finishToSettings() {
+  await statsAntwortSichern()
   localStorage.setItem('onboarding_done', '1')
   router.replace('/settings')
 }

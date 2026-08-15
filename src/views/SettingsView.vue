@@ -292,6 +292,37 @@
             {{ checkingUpdate ? $t('settings.updates.checking') : $t('settings.updates.checkForUpdates') }}
           </button>
         </div>
+
+        <!--
+          Zaehlung aktiver Installationen. Steht hier, weil sie auf derselben
+          Abfrage mitfaehrt: die App fragt beim Start ohnehin nach der neuesten
+          Version. Vorgabe ist aus — ohne ausdrueckliches Einschalten wird
+          nichts gesendet und nichts gespeichert.
+        -->
+        <div class="glass rounded-2xl p-5 mt-4">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-[var(--text-main)]">{{ $t('settings.stats.title') }}</p>
+              <p class="text-xs text-[var(--text-muted)] opacity-60 mt-1 leading-relaxed">
+                {{ $t('settings.stats.hint') }}
+              </p>
+            </div>
+            <button
+              @click="settings.setStatsEnabled(!settings.statsEnabled)"
+              class="relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 mt-0.5"
+              :class="settings.statsEnabled ? 'bg-[var(--status-green)]' : 'bg-white/5 border border-white/10'"
+              :aria-pressed="settings.statsEnabled"
+              :aria-label="$t('settings.stats.title')"
+            >
+              <div class="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200"
+                :class="settings.statsEnabled ? 'translate-x-6' : 'translate-x-0'" />
+            </button>
+          </div>
+
+          <p v-if="settings.statsEnabled" class="text-[10px] text-[var(--text-muted)] opacity-40 mt-3 font-mono break-all">
+            {{ settings.statsInstallId }}
+          </p>
+        </div>
       </template>
 
       <!-- ── Backup ── -->

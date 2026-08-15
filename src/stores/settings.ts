@@ -23,6 +23,12 @@ export const useSettingsStore = defineStore('settings', () => {
   const tmdbLanguage = computed(() => language.value === 'en' ? 'en-US' : 'de-DE')
   const dateLocale   = computed(() => language.value === 'en' ? 'en-GB' : 'de-AT')
 
+  // Zaehlung aktiver Installationen — ausdrueckliches Opt-in, Vorgabe aus.
+  // Die Kennung entsteht erst beim Einschalten (siehe setStatsEnabled): wer nie
+  // zustimmt, hat auch keine.
+  const statsEnabled   = ref(false)
+  const statsInstallId = ref('')
+
   const appVersion      = ref('0.0.0')
   const newestVersion   = ref('')
   const updateAvailable = ref(false)
@@ -40,9 +46,34 @@ export const useSettingsStore = defineStore('settings', () => {
     shelfUrl.value   = all.shelf_url  ?? ''
     token.value      = all.shelf_token ?? ''
     tmdbApiKey.value = all.tmdb_api_key ?? ''
-    
+    statsEnabled.value   = all.stats_enabled === '1'
+    statsInstallId.value = all.stats_install_id ?? ''
+
     // Load app version from electron
     appVersion.value = await window.electron.getVersion()
+  }
+
+  /**
+   * Zaehlung ein- oder ausschalten.
+   *
+   * Beim ersten Einschalten entsteht die Kennung — zufaellig, ohne Bezug zu
+   * Person, Konto oder Hardware. Beim Ausschalten bleibt sie liegen, statt
+   * geloescht zu werden: sonst bekaeme dieselbe Installation beim naechsten
+   * Einschalten eine neue und wuerde doppelt gezaehlt. Gesendet wird sie dann
+   * ohnehin nicht mehr, und der Eintrag auf dem Server verfaellt nach 30 Tagen
+   * von selbst.
+   *
+   * Wird sofort gespeichert statt erst beim Speichern-Knopf: eine Zustimmung
+   * zur Datenerhebung darf nicht daran haengen, ob jemand danach noch eine
+   * Schaltflaeche findet.
+   */
+  async function setStatsEnabled(enabled: boolean) {
+    if (enabled && !statsInstallId.value) {
+      statsInstallId.value = crypto.randomUUID()
+      await window.electron.settings.set('stats_install_id', statsInstallId.value)
+    }
+    statsEnabled.value = enabled
+    await window.electron.settings.set('stats_enabled', enabled ? '1' : '0')
   }
 
   async function save() {
@@ -54,5 +85,5 @@ export const useSettingsStore = defineStore('settings', () => {
     await window.electron.settings.set('tmdb_api_key',  tmdbApiKey.value)
   }
 
-  return { mode, theme, language, tmdbLanguage, dateLocale, shelfUrl, token, tmdbApiKey, isOnline, hasTmdb, load, save, appVersion, newestVersion, updateAvailable, updateUrl, updateSha256, updateChangelog, updateManual }
+  return { mode, theme, language, tmdbLanguage, dateLocale, shelfUrl, token, tmdbApiKey, isOnline, hasTmdb, load, save, appVersion, newestVersion, updateAvailable, updateUrl, updateSha256, updateChangelog, updateManual, statsEnabled, statsInstallId, setStatsEnabled }
 })
