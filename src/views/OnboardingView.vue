@@ -184,9 +184,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSettingsStore } from '@/stores/settings'
+import { useUpdateService } from '@/services/updateService'
 
 const router   = useRouter()
 const settings = useSettingsStore()
+const { checkForUpdates } = useUpdateService()
 
 const step         = ref(0)
 const totalSteps   = 4
@@ -226,7 +228,15 @@ async function saveTmdb() {
  * Kennung entsteht nur bei Zustimmung (siehe setStatsEnabled).
  */
 async function statsAntwortSichern() {
-  await settings.setStatsEnabled(statsWahl.value === true)
+  const zugestimmt = statsWahl.value === true
+  await settings.setStatsEnabled(zugestimmt)
+
+  // Bei Zustimmung gleich melden: die Kennung faehrt auf der Versionsabfrage
+  // mit, und die ist beim App-Start laengst gelaufen — ohne das hier wuerde
+  // diese Installation erst beim naechsten Start ueberhaupt auftauchen.
+  if (zugestimmt) {
+    try { await checkForUpdates() } catch { /* Zaehlung darf das Onboarding nicht aufhalten */ }
+  }
 }
 
 async function finish() {

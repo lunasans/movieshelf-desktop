@@ -308,7 +308,7 @@
               </p>
             </div>
             <button
-              @click="settings.setStatsEnabled(!settings.statsEnabled)"
+              @click="toggleStats"
               class="relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 mt-0.5"
               :class="settings.statsEnabled ? 'bg-[var(--status-green)]' : 'bg-white/5 border border-white/10'"
               :aria-pressed="settings.statsEnabled"
@@ -878,6 +878,24 @@ onMounted(async () => {
 async function handleUpdateCheck() {
   checkingUpdate.value = true
   try { await checkForUpdates() } finally { checkingUpdate.value = false }
+}
+
+/**
+ * Zaehlung umschalten — beim Einschalten gleich einmal melden.
+ *
+ * Die Kennung faehrt auf der Versionsabfrage mit, und die laeuft nur beim
+ * App-Start, beim Oeffnen dieser Seite und auf Knopfdruck. Wer den Schalter
+ * umlegt, hat all das gerade hinter sich: es passierte also sichtbar nichts,
+ * und die Installation tauchte erst beim naechsten Start auf. Das sah aus, als
+ * wuerde der Schalter nicht wirken.
+ *
+ * Nur beim Einschalten. Ein Ausschalten braucht keine Meldung — der vorhandene
+ * Eintrag verfaellt auf dem Server von selbst.
+ */
+async function toggleStats() {
+  const einschalten = !settings.statsEnabled
+  await settings.setStatsEnabled(einschalten)
+  if (einschalten) await handleUpdateCheck()
 }
 
 async function generatePkce(): Promise<{ verifier: string; challenge: string }> {
