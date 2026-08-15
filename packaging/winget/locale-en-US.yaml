@@ -1,0 +1,51 @@
+# Englisches Standard-Locale — bei der Einreichung von 1.0.0 einmalig von Hand
+# in den Branch legen, den komac im Fork lunasans/winget-pkgs anlegt.
+#
+# Warum von Hand: komac schreibt nur das bereits vorhandene Standard-Locale
+# fort und erzeugt kein zweites. Ist die Datei einmal im Paket, trägt komac
+# beide Dateien weiter — dieselbe Mechanik wie beim Icons-Block nebenan.
+#
+# Zusammen damit sind zwei weitere Änderungen im selben PR nötig:
+#   1. Lunasans.MovieShelf.yaml            → DefaultLocale: en-US
+#   2. Lunasans.MovieShelf.locale.de-DE.yaml → ManifestType: locale
+#      (statt defaultLocale; sonst hat das Paket zwei Standard-Locales)
+#
+# Werte übernommen aus dem veröffentlichten Manifest 0.25.0 — mit zwei
+# Abweichungen. Publisher, Author und Copyright lauten jetzt "MovieShelf"
+# statt auf den Klarnamen; das ist im selben PR auch in
+# Lunasans.MovieShelf.locale.de-DE.yaml nachzuziehen, sonst tragen die beiden
+# Locales verschiedene Herausgeber. Ausserdem neu sind die beiden
+# Beschreibungstexte: ohne den Hinweis auf den
+# TMDb-Schlüssel liest sich der Eintrag so, als käme man ohne weitere
+# Voraussetzung an die Metadaten.
+#
+# PackageVersion muss zur eingereichten Version passen. ReleaseNotes bleiben
+# bewusst leer: komac füllt sie beim Standard-Locale aus dem Changelog, und der
+# ist deutsch. Wer sie englisch will, muss sie hier von Hand pflegen.
+
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+
+PackageIdentifier: Lunasans.MovieShelf
+PackageVersion: 1.0.0
+PackageLocale: en-US
+Publisher: MovieShelf
+PublisherUrl: https://github.com/lunasans
+PublisherSupportUrl: https://github.com/lunasans/movieshelf-desktop/issues
+Author: MovieShelf
+PackageName: MovieShelf
+PackageUrl: https://github.com/lunasans/movieshelf-desktop
+License: MIT
+LicenseUrl: https://github.com/lunasans/movieshelf-desktop/blob/HEAD/LICENSE
+Copyright: Copyright © 2026 MovieShelf
+ShortDescription: Manage your film collection locally and sync it with your MovieShelf.
+Description: MovieShelf Desktop manages your film and series collection locally, enriches it with metadata, shows it as posters, a list or a table, and syncs it with your MovieShelf account. The film search needs your own free TMDb key - created in a minute at themoviedb.org.
+Moniker: movieshelf
+Tags:
+- desktop-app
+- movie-collection-management
+- movie-rating-app
+- movie-web-app
+- movies
+- tmdb
+ManifestType: defaultLocale
+ManifestVersion: 1.12.0
