@@ -290,3 +290,43 @@ Nutzers aber ausdrücklich nicht Teil dieser Arbeit.
   warf, das leere `catch` verschluckte es, und auf einer frischen Datenbank
   fehlte die Spalte stillschweigend. Bestehende Installationen hätten sie erst
   beim zweiten Start bekommen. Jetzt steht sie nach der `CREATE TABLE`.
+
+---
+
+# Bewertung und Folgenstand synchronisieren
+
+Beides wurde bisher nur lokal gehalten. Setzt den Shelf-PR
+`feat(api): Bewertung und Folgen-Gesehen-Stand im Export mitliefern` voraus —
+**ohne den ist die Pull-Richtung wirkungslos**, weil die Felder nicht kommen.
+
+## Der Befund vorab
+
+Die Shelf konnte beides schon entgegennehmen (`movies.rate`,
+`episodes.watched.toggle`), lieferte es im Export aber nicht zurück. Ein
+reiner Push hätte bedeutet: der Desktop gewinnt immer — nicht weil er Master
+wäre, sondern weil die Shelf nichts dagegenhält. Deshalb zuerst die
+Shelf-Seite.
+
+## Umgesetzt
+
+- [x] Merker `movies.synced_user_rating` und `episodes.synced_watched`, genau
+      wie `movies.synced_watched`. Bestand gilt als übertragen, sonst schöbe
+      der erste Abgleich alles Vorhandene als vermeintliche Änderung hinaus
+- [x] `getPendingUserRatings` / `markUserRatingSynced`
+- [x] `getPendingEpisodesWatched` / `markEpisodeWatchedSynced` — nur Folgen mit
+      `remote_id`; rein lokal aus TMDb importierte kennt die Shelf nicht und sie
+      stünden sonst für immer in der Warteschlange
+- [x] `pushUserRatings()`: der Endpunkt **setzt** direkt, der Kniff mit dem
+      doppelten Aufruf erübrigt sich. Die 0 entfernt die Bewertung
+- [x] `pushEpisodesWatched()`: der Endpunkt **schaltet um**, dieselbe Lage wie
+      bei Filmen — einmal schalten, Ergebnis lesen, notfalls ein zweites Mal
+- [x] Pull übernimmt `user_rating` und `is_watched` je Folge
+- [x] Eine noch nicht übertragene Änderung überlebt den Pull — dasselbe
+      CASE-Muster wie beim Gesehen-Stand, sonst ginge sie still verloren,
+      bevor sie hinausging
+- [x] 10 Tests
+
+## Verifikation
+
+- `npm run build` grün, `npm test` grün (241)
+- **Nicht gegen eine echte Shelf geprüft**: das braucht den deployten Shelf-PR

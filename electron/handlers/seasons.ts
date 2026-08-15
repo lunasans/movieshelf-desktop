@@ -145,15 +145,23 @@ export function upsertEpisode(db: Database.Database, data: Record<string, unknow
     }
     // No local-only duplicate found: normal insert/update by remote_id
     db.prepare(`
-      INSERT INTO episodes (remote_id, season_id, episode_number, title, overview, created_at, updated_at)
-      VALUES (@remote_id, @season_id, @episode_number, @title, @overview, @created_at, @updated_at)
+      INSERT INTO episodes (remote_id, season_id, episode_number, title, overview, is_watched, synced_watched, created_at, updated_at)
+      VALUES (@remote_id, @season_id, @episode_number, @title, @overview, @is_watched, @is_watched, @created_at, @updated_at)
       ON CONFLICT(remote_id) DO UPDATE SET
         season_id = EXCLUDED.season_id,
         episode_number = EXCLUDED.episode_number,
         title = EXCLUDED.title,
         overview = EXCLUDED.overview,
+        -- Wie bei den Filmen: eine noch nicht übertragene Markierung überlebt
+        -- den Pull, sonst ginge sie still verloren, bevor sie hinausging.
+        is_watched = CASE
+          WHEN COALESCE(episodes.is_watched, 0) IS NOT COALESCE(episodes.synced_watched, 0)
+          THEN episodes.is_watched ELSE EXCLUDED.is_watched END,
+        synced_watched = CASE
+          WHEN COALESCE(episodes.is_watched, 0) IS NOT COALESCE(episodes.synced_watched, 0)
+          THEN episodes.synced_watched ELSE EXCLUDED.is_watched END,
         updated_at = EXCLUDED.updated_at
-    `).run({ remote_id: null, title: null, overview: null, ...data, created_at: now, updated_at: now })
+    `).run({ remote_id: null, title: null, overview: null, is_watched: 0, ...data, created_at: now, updated_at: now })
   } else {
     // TMDb path: conflict on (season_id, episode_number) — idempotent re-import
     db.prepare(`

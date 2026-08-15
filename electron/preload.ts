@@ -47,6 +47,12 @@ contextBridge.exposeInMainWorld('electron', {
         pendingWatched:    () => ipcRenderer.invoke('db:sync:pending-watched'),
         markWatchedSynced: (id: number, isWatched: boolean) =>
           ipcRenderer.invoke('db:sync:mark-watched-synced', { id, isWatched }),
+        pendingUserRatings: () => ipcRenderer.invoke('db:sync:pending-user-ratings'),
+        markUserRatingSynced: (id: number, rating: number | null) =>
+          ipcRenderer.invoke('db:sync:mark-user-rating-synced', { id, rating }),
+        pendingEpisodesWatched: () => ipcRenderer.invoke('db:sync:pending-episodes-watched'),
+        markEpisodeWatchedSynced: (id: number, isWatched: boolean) =>
+          ipcRenderer.invoke('db:sync:mark-episode-watched-synced', { id, isWatched }),
       },
       children:     (id: number)        => ipcRenderer.invoke('db:movies:children', id),
       resolveBoxsets: ()                => ipcRenderer.invoke('db:movies:resolve-boxsets'),

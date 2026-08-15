@@ -331,11 +331,11 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     INSERT INTO movies (title, year, genre, director, runtime, rating, rating_age, overview,
       cover_path, backdrop_path, actors_names, trailer_url, collection_type, tag, tmdb_id, remote_id,
       edition, region_code, disc_location, purchase_date, purchase_price, condition,
-      is_boxset, boxset_parent_id, boxset_parent_remote_id, view_count, is_watched, in_collection, collection_no, created_at, updated_at)
+      is_boxset, boxset_parent_id, boxset_parent_remote_id, view_count, is_watched, user_rating, synced_user_rating, in_collection, collection_no, created_at, updated_at)
     VALUES (@title, @year, @genre, @director, @runtime, @rating, @rating_age, @overview,
       @cover_path, @backdrop_path, @actors_names, @trailer_url, @collection_type, @tag, @tmdb_id, @remote_id,
       @edition, @region_code, @disc_location, @purchase_date, @purchase_price, @condition,
-      @is_boxset, @boxset_parent_id, @boxset_parent_remote_id, @view_count, @is_watched, @in_collection, @collection_no, @created_at, @updated_at)
+      @is_boxset, @boxset_parent_id, @boxset_parent_remote_id, @view_count, @is_watched, @user_rating, @user_rating, @in_collection, @collection_no, @created_at, @updated_at)
     ON CONFLICT(remote_id) DO UPDATE SET
       title = EXCLUDED.title, year = EXCLUDED.year, genre = EXCLUDED.genre,
       director = EXCLUDED.director, runtime = EXCLUDED.runtime, rating = EXCLUDED.rating,
@@ -358,6 +358,14 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
       synced_watched = CASE
         WHEN COALESCE(movies.is_watched, 0) IS NOT COALESCE(movies.synced_watched, 0)
         THEN movies.synced_watched ELSE EXCLUDED.is_watched END,
+      -- Dasselbe für die eigene Bewertung: eine noch nicht übertragene
+      -- Änderung behält recht, sonst ginge sie still verloren.
+      user_rating = CASE
+        WHEN movies.user_rating IS NOT movies.synced_user_rating
+        THEN movies.user_rating ELSE EXCLUDED.user_rating END,
+      synced_user_rating = CASE
+        WHEN movies.user_rating IS NOT movies.synced_user_rating
+        THEN movies.synced_user_rating ELSE EXCLUDED.user_rating END,
       in_collection = EXCLUDED.in_collection,
       collection_no = COALESCE(EXCLUDED.collection_no, movies.collection_no),
       updated_at = EXCLUDED.updated_at
@@ -369,7 +377,7 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     trailer_url: null, collection_type: 'Film', tag: null, tmdb_id: null, remote_id: null,
     edition: null, region_code: null, disc_location: null, purchase_date: null, purchase_price: null, condition: null,
     is_boxset: 0, boxset_parent_id: null, boxset_parent_remote_id: null,
-    view_count: 0, is_watched: 0, in_collection: 1,
+    view_count: 0, is_watched: 0, user_rating: null, in_collection: 1,
     collection_no: nextCollectionNo,
     ...data,
     created_at: data.created_at || now, updated_at: data.updated_at || now,

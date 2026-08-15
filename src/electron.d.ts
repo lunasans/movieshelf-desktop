@@ -131,6 +131,10 @@ interface Window {
           /** Filme, deren Gesehen-Markierung noch nicht bei der Shelf ist. */
           pendingWatched:    () => Promise<{ id: number; remote_id: number; title: string; is_watched: number }[]>
           markWatchedSynced: (id: number, isWatched: boolean) => Promise<void>
+        pendingUserRatings: () => Promise<{ id: number; remote_id: number; title: string; user_rating: number | null }[]>
+        markUserRatingSynced: (id: number, rating: number | null) => Promise<void>
+        pendingEpisodesWatched: () => Promise<{ id: number; remote_id: number; title: string | null; is_watched: number }[]>
+        markEpisodeWatchedSynced: (id: number, isWatched: boolean) => Promise<void>
         }
       }
       seasons: {

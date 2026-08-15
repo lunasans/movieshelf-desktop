@@ -311,6 +311,7 @@ export function useSyncEngine() {
           // nach dem Pull über resolveBoxsets() in die lokale id übersetzen.
           is_boxset: movie.is_boxset ? 1 : 0, boxset_parent_remote_id: movie.boxset_parent_id ?? null,
           view_count: movie.view_count ?? 0, is_watched: movie.is_watched ? 1 : 0,
+          user_rating: movie.user_rating ?? null,
           in_collection: movie.in_collection != null ? (movie.in_collection ? 1 : 0) : 1,
         }) as { id: number } | null
 
@@ -330,7 +331,7 @@ export function useSyncEngine() {
               const localSeasonId = await window.electron.db.seasons.upsert({ remote_id: season.id, movie_id: local.id, season_number: season.season_number, title: season.title, overview: season.overview })
               if (localSeasonId && Array.isArray(season.episodes)) {
                 for (const ep of season.episodes) {
-                  await window.electron.db.episodes.upsert({ remote_id: ep.id, season_id: localSeasonId, episode_number: ep.episode_number, title: ep.title, overview: ep.overview })
+                  await window.electron.db.episodes.upsert({ remote_id: ep.id, season_id: localSeasonId, episode_number: ep.episode_number, title: ep.title, overview: ep.overview, is_watched: ep.is_watched ? 1 : 0 })
                 }
               }
             }
@@ -486,6 +487,14 @@ export function useSyncEngine() {
     pushed += watched.pushed
     pushErrors += watched.errors
 
+    const ratings = await pushUserRatings()
+    pushed += ratings.pushed
+    pushErrors += ratings.errors
+
+    const episodes = await pushEpisodesWatched()
+    pushed += episodes.pushed
+    pushErrors += episodes.errors
+
     progressPct.value = 100
     return { pushed, pushErrors, deleted }
   }
@@ -552,6 +561,88 @@ export function useSyncEngine() {
     return { pushed, errors: failed }
   }
 
+  /**
+   * Offene Bewertungen zur Shelf bringen.
+   *
+   * Eigener Schritt wie beim Gesehen-Stand: die Bewertung hängt am Benutzer,
+   * nicht am Film, hat einen eigenen Endpunkt und steht in keinem der Felder,
+   * die der Push oben überträgt.
+   *
+   * Der Endpunkt setzt direkt statt umzuschalten, ein zweiter Aufruf wie bei
+   * applyWatchedState erübrigt sich. Die 0 entfernt die Bewertung.
+   */
+  async function pushUserRatings(): Promise<{ pushed: number; errors: number }> {
+    let pushed = 0
+    let failed = 0
+
+    const pending = await window.electron.db.movies.sync.pendingUserRatings()
+    if (pending.length === 0) return { pushed: 0, errors: 0 }
+
+    for (let i = 0; i < pending.length; i++) {
+      const row = pending[i]
+      phaseDetail.value = row.title
+      progressPct.value = Math.round((i / pending.length) * 100)
+
+      try {
+        await apiPost(`/movies/${row.remote_id}/rate`, { rating: row.user_rating ?? 0 })
+        await window.electron.db.movies.sync.markUserRatingSynced(row.id, row.user_rating)
+        pushed++
+      } catch (e: any) {
+        errors.value.push(`${t('movieDetail.yourRating')} "${row.title}": ${e?.response?.data?.message ?? e.message}`)
+        failed++
+      }
+    }
+
+    return { pushed, errors: failed }
+  }
+
+  /**
+   * Offene Folgen-Markierungen zur Shelf bringen.
+   *
+   * Die Shelf kennt für eine einzelne Folge nur ein Umschalten — dieselbe
+   * Lage wie bei Filmen, deshalb derselbe Kniff: einmal schalten, das Ergebnis
+   * lesen, notfalls ein zweites Mal.
+   *
+   * Nur Folgen mit remote_id stehen überhaupt in der Warteschlange; rein
+   * lokal aus TMDb importierte kennt die Shelf nicht.
+   */
+  async function pushEpisodesWatched(): Promise<{ pushed: number; errors: number }> {
+    let pushed = 0
+    let failed = 0
+
+    const pending = await window.electron.db.movies.sync.pendingEpisodesWatched()
+    if (pending.length === 0) return { pushed: 0, errors: 0 }
+
+    const applyEpisodeState = async (remoteId: number, desired: boolean): Promise<boolean> => {
+      const toggle = async (assumed: boolean) => {
+        const res = await apiPost(`/episodes/${remoteId}/watched`, {}) as { watched?: boolean }
+        return typeof res?.watched === 'boolean' ? res.watched : assumed
+      }
+
+      const afterFirst = await toggle(!desired)
+      if (afterFirst === desired) return afterFirst
+
+      return toggle(desired)
+    }
+
+    for (let i = 0; i < pending.length; i++) {
+      const row = pending[i]
+      phaseDetail.value = row.title ?? ''
+      progressPct.value = Math.round((i / pending.length) * 100)
+
+      try {
+        const serverState = await applyEpisodeState(row.remote_id, row.is_watched === 1)
+        await window.electron.db.movies.sync.markEpisodeWatchedSynced(row.id, serverState)
+        pushed++
+      } catch (e: any) {
+        errors.value.push(`${t('movieDetail.episodeFallback', { number: row.id })}: ${e?.response?.data?.message ?? e.message}`)
+        failed++
+      }
+    }
+
+    return { pushed, errors: failed }
+  }
+
   /** Löscht ganze Filme, die der Nutzer in der Vorschau explizit als "nur auf
    *  einer Seite vorhanden" bestätigt hat - eigener, bewusster Schritt, NIE
    *  Teil des normalen Syncs (siehe mirrorMissingLocal/mirrorMissingRemote). */
@@ -606,6 +697,7 @@ export function useSyncEngine() {
       created_at: m.created_at, updated_at: m.updated_at,
       is_boxset: m.is_boxset ? 1 : 0, boxset_parent_remote_id: m.boxset_parent_id ?? null,
       view_count: m.view_count ?? 0, is_watched: m.is_watched ? 1 : 0,
+      user_rating: m.user_rating ?? null,
       in_collection: 1,
     }) as { id: number } | null
     if (local?.id) {
