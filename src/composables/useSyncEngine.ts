@@ -206,6 +206,22 @@ export function useSyncEngine() {
 
       // Push-side: locally dirty records
       const dirty = await window.electron.db.movies.sync.dirty() as any[]
+
+      // Welche Felder abweichen, laesst sich nur gegen den Serverstand sagen.
+      // Im Delta stehen aber nur die *dort* geaenderten Filme — eine lokal
+      // geaenderte Zeile fehlt darin im Normalfall, und ohne Vergleichsstand
+      // blieb die Aenderungsliste leer: die Vorschau zeigte "UPDATE" ohne zu
+      // sagen, was sich aendert.
+      //
+      // Der fehlende Stand wird mit *einer* zusaetzlichen Abfrage geholt statt
+      // je Zeile einzeln (N+1) — und nur dann, wenn ueberhaupt etwas fehlt.
+      const serverNachId = new Map<number, any>(movies.map((m: any) => [m.id, m]))
+      const fehlenVergleich = dirty.some(m => m.remote_id && !m.is_deleted && !serverNachId.has(m.remote_id))
+      if (since && fehlenVergleich) {
+        const voll = await apiGet('/admin/export') as { movies: any[] }
+        for (const m of voll.movies) if (!serverNachId.has(m.id)) serverNachId.set(m.id, m)
+      }
+
       let pushNew = 0, pushUpdated = 0, pushDeleted = 0
       for (const m of dirty) {
         if (m.is_deleted) {
@@ -220,8 +236,19 @@ export function useSyncEngine() {
             items.push({ remoteId: null, title: m.title, year: m.year, action: 'new', direction: 'push', changes: [] })
         } else {
           pushUpdated++
-          if (items.length < PREVIEW_LIMIT)
-            items.push({ remoteId: m.remote_id, title: m.title, year: m.year, action: 'updated', direction: 'push', changes: [] })
+          if (items.length < PREVIEW_LIMIT) {
+            // Gleicher Vergleich wie auf der Pull-Seite, nur mit vertauschten
+            // Rollen: hier ist die lokale Zeile die neuere.
+            const server = serverNachId.get(m.remote_id)
+            const changed: string[] = []
+            if (server) {
+              for (const [field, label] of Object.entries(FIELD_LABELS)) {
+                if (String(server[field] ?? null) !== String(m[field] ?? null)) changed.push(t(label))
+              }
+              if (watchedDiffers(server, m)) changed.push(t('sync.fields.watched'))
+            }
+            items.push({ remoteId: m.remote_id, title: m.title, year: m.year, action: 'updated', direction: 'push', changes: changed })
+          }
         }
       }
 
