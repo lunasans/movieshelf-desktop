@@ -225,6 +225,41 @@ export function useSyncEngine() {
         }
       }
 
+      // Offene Bewertungen und Folgen-Markierungen.
+      //
+      // Beide hängen bewusst nicht an `updated_at`, sondern tragen eigene
+      // Markierungen (`synced_user_rating`, `synced_watched`) — sonst höbe jeder
+      // Sternklick den Zeitstempel und löste einen vollständigen PUT aus. Genau
+      // deshalb stehen sie nicht in `sync.dirty()` und fehlten hier: die
+      // Vorschau meldete "Aktuell", während pushUserRatings und
+      // pushEpisodesWatched beim Abgleich sehr wohl etwas zu tun hatten.
+      for (const row of await window.electron.db.movies.sync.pendingUserRatings()) {
+        pushUpdated++
+        if (items.length < PREVIEW_LIMIT)
+          items.push({
+            remoteId: row.remote_id, title: row.title, year: null,
+            action: 'updated', direction: 'push', changes: [t('sync.fields.userRating')],
+          })
+      }
+
+      // Je Serie eine Zeile statt je Folge: eine durchgesehene Staffel ergäbe
+      // sonst zwanzig gleich aussehende Einträge.
+      const jeSerie = new Map<number | null, { titel: string, anzahl: number }>()
+      for (const row of await window.electron.db.movies.sync.pendingEpisodesWatched()) {
+        const vorhanden = jeSerie.get(row.movie_remote_id)
+        if (vorhanden) vorhanden.anzahl++
+        else jeSerie.set(row.movie_remote_id, { titel: row.movie_title ?? '', anzahl: 1 })
+      }
+      for (const [remoteId, eintrag] of jeSerie) {
+        pushUpdated++
+        if (items.length < PREVIEW_LIMIT)
+          items.push({
+            remoteId, title: eintrag.titel, year: null,
+            action: 'updated', direction: 'push',
+            changes: [t('sync.fields.episodesWatched', { count: eintrag.anzahl })],
+          })
+      }
+
       // Ganze Filme, die nur auf einer Seite bekannt sind - separat von der
       // normalen Vorschau, da "fehlt hier" nicht zuverlässig "soll entfernt werden"
       // bedeutet (siehe applyMirrorDeletions). Nur beim Vollsync berechenbar.
@@ -627,7 +662,7 @@ export function useSyncEngine() {
 
     for (let i = 0; i < pending.length; i++) {
       const row = pending[i]
-      phaseDetail.value = row.title ?? ''
+      phaseDetail.value = row.movie_title ?? row.title ?? ''
       progressPct.value = Math.round((i / pending.length) * 100)
 
       try {
@@ -635,7 +670,11 @@ export function useSyncEngine() {
         await window.electron.db.movies.sync.markEpisodeWatchedSynced(row.id, serverState)
         pushed++
       } catch (e: any) {
-        errors.value.push(`${t('movieDetail.episodeFallback', { number: row.id })}: ${e?.response?.data?.message ?? e.message}`)
+        // Serie und Folgentitel statt der lokalen Datenbank-Kennung: mit
+        // "Folge 4711" liess sich nicht sagen, worum es überhaupt ging.
+        const bezeichnung = [row.movie_title, row.title].filter(Boolean).join(' – ')
+          || t('movieDetail.episodeFallback', { number: row.remote_id })
+        errors.value.push(`${bezeichnung}: ${e?.response?.data?.message ?? e.message}`)
         failed++
       }
     }

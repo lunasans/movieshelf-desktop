@@ -238,4 +238,34 @@ describe('getPendingEpisodesWatched', () => {
 
     expect(getPendingEpisodesWatched(db)).toEqual([])
   })
+
+  // Die Vorschau fasst je Serie zusammen und die Fehlermeldung nennt sie beim
+  // Namen — beides braucht den Bezug zur Serie, nicht nur zur Folge.
+  it('liefert die Serie zur Folge mit', () => {
+    const { folgen } = serieMitFolgen(2)
+    toggleEpisodeWatched(db, folgen[0].id)
+
+    const [offen] = getPendingEpisodesWatched(db)
+    expect(offen.movie_remote_id).toBe(99)
+    expect(offen.movie_title).toBeTruthy()
+    expect(offen.title).toBe('Folge 1')
+  })
+
+  // Fällt die Staffel weg, muss die Folge übertragbar bleiben: dafür genügt
+  // ihre eigene remote_id. Ein INNER JOIN hätte sie hier lautlos aus der
+  // Warteschlange fallen lassen.
+  it('behält Folgen, deren Staffel fehlt', () => {
+    const { folgen, seasonId } = serieMitFolgen(2)
+    toggleEpisodeWatched(db, folgen[0].id)
+
+    // Regulär nicht herstellbar: die Staffel zu löschen nähme die Folgen per
+    // ON DELETE CASCADE mit. Also die Fremdschlüssel kurz aussetzen.
+    db.pragma('foreign_keys = OFF')
+    db.prepare('UPDATE episodes SET season_id = 9999 WHERE season_id = ?').run(seasonId)
+    db.pragma('foreign_keys = ON')
+
+    const offen = getPendingEpisodesWatched(db)
+    expect(offen).toHaveLength(1)
+    expect(offen[0].movie_title).toBeNull()
+  })
 })
