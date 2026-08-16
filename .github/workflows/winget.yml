@@ -59,8 +59,11 @@ jobs:
           KOMAC_FORK_OWNER: lunasans
           KOMAC_CREATED_WITH: MovieShelf Release
           KOMAC_CREATED_WITH_URL: https://github.com/lunasans/movieshelf-desktop
+          # Ueber env statt direkt in die Shell interpoliert: sonst koennte ein
+          # praepariertes Tag beliebige Befehle im Runner ausfuehren.
+          RELEASE_TAG: ${{ inputs.release-tag }}
         run: |
-          TAG='${{ inputs.release-tag }}'
+          TAG="$RELEASE_TAG"
           komac update 'Lunasans.MovieShelf' \
             --version "${TAG#v}" \
             --urls "https://github.com/lunasans/movieshelf-desktop/releases/download/$TAG/MovieShelf-Setup-${TAG#v}.exe" \
@@ -72,6 +75,7 @@ jobs:
       - name: Release-Notizen je Sprache nachtragen
         env:
           GH_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release-tag }}
         run: |
-          TAG='${{ inputs.release-tag }}'
+          TAG="$RELEASE_TAG"
           python3 packaging/winget/release-notes.py --version "${TAG#v}"
