@@ -1,332 +1,112 @@
-# Desktop-Optik an die Web Shelf angleichen (Design)
+# Plan: Linux-Auslieferung über APT-Quelle und Flathub
 
-Ziel: Der Desktop soll aussehen wie die Web Shelf (`versions/v2-saas`).
-Dieser Schritt bringt Farbwelt, Themes und Flächen. Layout-Umbauten und neue
-Funktionen folgen in eigenen PRs.
-
-## Der Hebel: die Palette, nicht die Fundstellen
-
-Der Desktop ist über `red-*` aufgebaut (rund 170 Stellen), die Shelf über
-`rose-*`. Statt 170 Stellen umzuschreiben, werden — genau wie in der Shelf
-(`resources/css/app.css`, Zeilen 163-175) — die **Paletten selbst** aus
-`--accent-primary` per `color-mix` abgeleitet. Tailwind 4 kompiliert die
-Utilities zu `var(--color-red-NNN)`, deshalb folgen alle Fundstellen
-automatisch dem Theme, ohne dass eine einzige View angefasst werden muss.
-Beide Skalen werden gesetzt, damit aus der Shelf portiertes Markup passt.
-
-## Umgesetzt
-
-- [x] `src/style.css` auf die Shelf-Tokens: `--accent-*`, `--gradient-*`,
-      `--glass-*`, `--radius-lg/-xl`
-- [x] Theme-Mechanik von der `.theme-dark`-Klasse auf das `data-theme`-Attribut
-      (`App.vue`), wie in der Shelf
-- [x] 10 Themes: `dark` (Standard, Rose), `light`, `system` sowie die
-      Shelf-Themes `blue/green/red/purple/christmas/halloween/summer`.
-      Shelfs `default` (Indigo-Verlauf) bewusst weggelassen — genau der Look,
-      von dem der Desktop weg soll
-- [x] Flächen-Variablen aus der Akzentfarbe abgeleitet: Themes färben jetzt
-      die Flächen, nicht nur die Knöpfe
-- [x] Saisonale Themes tragen einen eigenen `--surface-tint` (Begleitfarbe):
-      Weihnachten ohne Tannengrün wäre nur ein zweites Rot, Halloween ohne
-      Violett nur ein Orange
-- [x] Glassmorphism portiert: `.glass`, `.glass-strong`, `.film-list-area`,
-      `.detail-panel`, `.filter-bar-field`, `accent-*`
-- [x] `ThemeSwitcher.vue` als Swatch-Popover im Shelf-Stil, i18n DE/EN
-- [x] Theme-Migration im Store: unbekannte oder alte Werte fallen auf `dark`
-
-### Flächen und Bausteine
-
-- [x] **Muster statt Dateien**: 65 Vorkommen des flachen Card-Panels
-      (`bg-[var(--bg-card)] border border-[var(--border-ui)]`) → `glass`,
-      19 Eingabefelder → `bg-white/5 border-white/10`, 8 Sekundärknöpfe
-      vereinheitlicht. Damit war der Großteil der Ansichten erledigt, bevor
-      eine einzeln angefasst wurde
-- [x] `MovieCard.vue` ← `movies/partials/grid-item.blade.php`: Glas,
-      `rounded-3xl`, Hover-Skalierung, Format als gedrehte Banderole,
-      Gesehen-Ring, einfahrende Bewertung, Titelblock mit Jahr-Punkt-Genre
-- [x] `MovieListRow.vue` ← `movies/partials/list-item.blade.php`: komplett neu
-- [x] `MovieDetailView.vue` ← `movies/partials/details.blade.php`: Cover mit
-      Tiefenschatten, Kennzeichen-Pillen, Kernangaben als Icon-Zeile,
-      physische Angaben als eigene Pillenzeile (`hasPhysicalDetails`)
-- [x] `Sidebar`, `SidebarItem`, `TitleBar`, `StatCard`, `TmdbResultGrid`
-- [x] **Legacy-Markenfarbe**: `var(--status-red)` wurde vielerorts als Akzent
-      statt als Fehlerfarbe benutzt und folgte dem Theme nicht mit → in
-      7 Dateien auf die Palette umgestellt
-
-## Bewusst nicht geändert
-
-- **Sync-Komponenten**: Blau steht dort für „aktualisiert" im Dreiklang mit
-  Grün (neu) und Rot (gelöscht). Auf Rot umgestellt kollidierte es mit
-  „gelöscht".
-- **Medien-Banderolen** (Digital violett, Stream grün, 4K cyan, Leihe
-  bernstein): identisch zur Shelf, dort ebenfalls bewusst bunt.
-- **Gesehen-Grün** an Zustandsschaltern: die Shelf färbt „gesehen" rose, der
-  Desktop hat aber Schalter mit zwei Zuständen — beide rot wäre nicht
-  unterscheidbar.
-- **Sidebar statt Topbar**: die Shelf hat eine Topbar; der Desktop behält
-  seine Seitenleiste und bekommt nur deren Optik.
-
-## Beim Nachsehen gefunden und behoben
-
-Diese vier zeigten sich erst beim Ansehen in der laufenden App, nicht im Build:
-
-1. **Kachelreihen überlappten die Beschriftung der vorigen Reihe.** Die feste
-   `ROW_HEIGHTS.grid` passt immer nur zu einer Fensterbreite, weil die
-   Kachelhöhe mit der Spaltenbreite wächst (Bild 2:3). `rowHeight` rechnet
-   die Rasterhöhe jetzt aus `containerWidth`/`cols`.
-2. **Titel der Detailansicht lief bei schmalem Fenster aus dem Bild** — feste
-   `text-5xl` → `text-3xl xl:text-5xl`, dazu `break-words` und `min-w-0`.
-3. **Der Theme-Umschalter öffnete hinter dem Inhalt.** `glass` bringt
-   `backdrop-filter` und damit einen eigenen Stacking-Context, aus dem `z-50`
-   nicht herauskommt. Die TitleBar trägt jetzt selbst `relative z-50`.
-4. **Das Panel war zu durchsichtig** — man las die Filmtitel hindurch. Es ist
-   nicht mehr aus Glas, sondern fast deckend, wie das Dropdown der Shelf.
-
-## Verifikation
-
-- `npm run build` grün
-- `npm test` grün
-- In der laufenden App angesehen: dark, light, green, christmas, summer, purple
-- E2E-Selektor angepasst: `MovieListRow` trug nach dem Umbau ebenfalls
-  `group cursor-pointer` und kollidierte mit dem Kachel-Selektor in
-  `movies.spec.ts`. `MovieCard` hat jetzt `data-testid="movie-card"`
+Stand: 17.08.2026. Ausgangslage: Der Release-Workflow baut ein `.deb`, hängt es
+ans GitHub-Release und meldet es an movieshelf.info. Aktualisiert wird aus der
+App heraus über einen eigenen Updater — der scheitert je nach Desktop an der
+Rechteabfrage (siehe #125). Beide Wege unten nehmen dem Updater diese Aufgabe ab.
 
 ---
 
-# Dashboard und Navigation nach dem Shelf-Aufbau (Layout)
+## Teil A — Eigene APT-Quelle (`apt.movieshelf.info`)
 
-Der Design-Schritt hat Farben und Flächen angeglichen, aber den **Aufbau** nicht
-angefasst. Die Shelf ist im Dashboard Netflix-artig, der Desktop hatte Kennzahlen
-plus eine senkrechte Liste. Vorlage: `movies/partials/streaming-layout.blade.php`.
+Ziel: `sudo apt install movieshelf-desktop`, danach kommen Updates über
+`apt upgrade` wie bei jedem anderen Paket. Kein Rechte-Dialog aus der App heraus.
 
-## Umgesetzt
+### A1. Signaturschlüssel
+- [ ] GPG-Schlüsselpaar erzeugen (RSA 4096, ohne Ablaufdatum oder mit 5 Jahren),
+      ausschließlich zum Signieren der Paketquelle
+- [ ] Privaten Schlüssel als GitHub-Secret `APT_GPG_PRIVATE_KEY` hinterlegen,
+      Passphrase als `APT_GPG_PASSPHRASE`
+- [ ] Öffentlichen Schlüssel als `movieshelf.gpg` (dearmored) auf dem Server
+      ablegen — Nutzer legen ihn nach `/etc/apt/keyrings/`
 
-- [x] **Hero-Slider**: Backdrop mit langsamer Fahrt, dreifacher Verlauf,
-      „Empfohlen"-Kennzeichen, großer Titel, Handlung, Details-Knopf,
-      Indikatoren, alle 8 s weiter
-- [x] `featuredMovies()` im Handler — entspricht `$featuredMovies` im
-      `MovieController` der Shelf (zufällig, mit Backdrop, ohne Boxset-Kinder),
-      Rückfall auf die neuesten. Plus Preload, Typen und 6 Tests
-- [x] `MediaRow.vue`: waagrecht scrollende Reihe mit Pfeilen beim Überfahren
-      und Kachel-Hover wie in der Shelf
-- [x] Dashboard: Hero → „Neu dabei" → „Filme" → „Serien". Die Reihen „Filme" und
-      „Serien" sortieren nach Titel aufsteigend, dieselbe Voreinstellung wie die
-      Listenansicht, damit „Alle ansehen" die Reihenfolge fortsetzt
-- [x] **Statistik-Kacheln** aus dem Dashboard entfernt, Statistik dafür als
-      eigener Punkt in die Seitenleiste (`/stats`)
-- [x] **Suchleiste** aus der Filmliste in den Hero verlegt, wie in der Shelf auf
-      dessen Unterkante. Enter führt nach `/movies?q=`, wo die Ansicht die Suche
-      schon immer aus der Route las. In der Liste zeigt ein abwählbarer Chip die
-      aktive Suche — ohne das wäre nicht erkennbar, warum sie gefiltert ist
-- [x] Akzentstriche an Überschriften und hinter den Reihen-Titeln entfernt
+### A2. Repository-Struktur auf dem Server
+Hetzner 162.55.214.77, Auslieferung über movieshelf.info (Cloudflare davor —
+statische Dateien, Caching ist erwünscht; `InRelease` mit kurzer TTL).
 
-## Beim Nachsehen gefunden und behoben
+- [ ] Verzeichnis `/var/www/apt.movieshelf.info/` anlegen, per nginx ausliefern
+- [ ] Subdomain `apt.movieshelf.info` in Cloudflare anlegen
+- [ ] Aufbau flach halten (`aptly` mit einer Distribution `stable`,
+      Komponente `main`, Architektur `amd64`)
 
-1. **`backdrop_url` ist keine DB-Spalte.** Vom Renderer-Interface aufs Schema
-   geschlossen — die Abfrage starb mit `no such column`.
-2. **Ein Fehler im Hero leerte das ganze Dashboard**, weil alles in einem
-   `Promise.all` hing. Der Hero lädt jetzt getrennt; er ist Beiwerk und darf
-   die Seite nicht mitreissen.
-3. **Handlung wurde roh ausgegeben** („`<p>`Liebe und Rebellion…"). Der Text
-   kommt mit HTML und Shortcodes aus der Shelf und wird jetzt wie in der
-   Detailansicht per `DOMParser` gesäubert.
-4. **`insertMovie` im Test-Helfer schrieb `backdrop_path` nicht** — zwei Tests
-   schlugen scheinbar wegen der Abfrage fehl, tatsächlich wegen des Helfers.
-5. **Die Hero-Section durfte kein `overflow-hidden` haben**, sonst schnitte sie
-   die überstehende Suchleiste ab. Beschnitten wird nur der innere Rahmen.
+### A3. Veröffentlichung aus dem Release-Workflow
+- [ ] Neuer Job `apt` in `release.yml`, hängt an `build-linux`
+- [ ] Läuft nur bei regulären Tags (kein `-linux`/`-win`), analog zum
+      winget-Job — Testpakete gehören nicht in die Quelle
+- [ ] Schritte: Artefakt laden → GPG-Schlüssel importieren → `aptly repo add`
+      → `aptly publish update` → per rsync/SSH auf den Server
+- [ ] SSH-Deploy-Key als Secret `APT_DEPLOY_KEY`
 
-## Statistikseite folgte dem Theme nicht
+### A4. Dokumentation
+- [ ] README und movieshelf.info: Einrichtungsblock
 
-Ursache war kein fehlender Theme-Anschluss, sondern ein Überbleibsel aus der
-Zeit, als die Statistik nur als eigenes Fenster erreichbar war:
+      ```bash
+      curl -fsSL https://apt.movieshelf.info/movieshelf.gpg | sudo tee /etc/apt/keyrings/movieshelf.gpg > /dev/null
+      echo "deb [signed-by=/etc/apt/keyrings/movieshelf.gpg] https://apt.movieshelf.info stable main" | sudo tee /etc/apt/sources.list.d/movieshelf.list
+      sudo apt update && sudo apt install movieshelf-desktop
+      ```
 
-- [x] Die Wurzel malte mit `bg-[var(--bg-app)]` eine **deckende** Fläche über
-      den Verlauf des Bodys — die Seite wirkte wie herausgeschnitten, Flächen
-      grau statt getönt, kein Glas. In der App ist sie jetzt durchsichtig
-- [x] Sie brachte eine **eigene Fensterleiste samt Schließknopf** mit, die in
-      der App neben der echten Titelleiste stand. Nur noch im Popup
-- [x] `h-screen` und ein zweites `overflow-y-auto` erzeugten eine Bildlaufleiste
-      in der Bildlaufleiste — ebenfalls nur noch im Popup
-- [x] `backgroundColor: '#0a0a0f'` am Statistikfenster war fest verdrahtet und
-      blitzte bei hellen Themes schwarz auf → `show: false` + `ready-to-show`
+### A5. Updater anpassen
+- [ ] Erkennen, ob die Installation aus der Paketquelle stammt
+      (`apt-cache policy movieshelf-desktop` nennt dann `apt.movieshelf.info`)
+- [ ] In dem Fall keinen Download anbieten, sondern auf `apt upgrade` verweisen —
+      sonst konkurrieren zwei Update-Wege um dieselbe Installation
 
-## Verifikation
-
-- `npm run build` grün, `npm test` grün (203)
-- In der laufenden App durchgeklickt: Hero, Reihen, Suche („Matrix" → 4 Treffer),
-  Statistikseite in dark/christmas/summer
+**Aufwand:** ein Arbeitstag, davon die Hälfte Server und Schlüssel.
+**Risiko:** gering, unabhängig von Dritten. Der Schlüssel muss sicher liegen —
+geht er verloren, müssen alle Nutzer die Quelle neu einrichten.
 
 ---
 
-# Funktionen: eigene Bewertung, Sortierung, FSK
+## Teil B — Flathub
 
-Ausgewählt aus dem Abgleich der Shelf-Routen gegen die des Desktops.
+Ziel: Sichtbarkeit in GNOME Software und KDE Discover, Updates über die
+Software-Verwaltung des Systems.
 
-## Eigene Bewertung (`movies.rate` der Shelf)
+### B1. Lokal bauen
+- [ ] `"flatpak"` als zusätzliches Ziel unter `build.linux.target` in
+      `package.json`
+- [ ] Probebau, App im Sandkasten starten
 
-- [x] Spalte `user_rating INTEGER` als additive Migration. Getrennt von `rating`,
-      das die TMDb-Note (0-10) trägt — beide Werte stehen nebeneinander
-- [x] `setUserRating()`: 1-5 Sterne. Erneuter Klick auf denselben Stern löscht
-      die Bewertung, sonst gäbe es keinen Weg zurück auf „nicht bewertet".
-      Werte außerhalb 1-5 gelten als Löschen, damit kein Aufrufer etwas
-      Ungültiges einschleusen kann
-- [x] Sterne in der Detailansicht mit Hover-Vorschau
-- [x] Kein Durchschnitt und keine Anzahl wie in der Shelf: Mehrbenutzer ist
-      nicht vorgesehen
-- [x] **`updated_at` bleibt unangetastet.** Die Bewertung ist rein lokal:
-      `useSyncEngine` überträgt `user_rating` weder hin noch zurück. Stiege
-      der Zeitstempel, gälte der Film in `getDirtyMovies` als schmutzig
-      (`updated_at > synced_at`) und jeder Sternklick schöbe ein vollständiges
-      `PUT /admin/movies` an die Shelf — ohne die Bewertung zu enthalten, aber
-      mit dem Risiko, dort neuere Felder zu überschreiben
-- [x] 8 Tests, zwei davon sichern genau das ab
+### B2. Sandbox-Berechtigungen klären (der eigentliche Knackpunkt)
+- [ ] `--share=network` für Shelf-Abgleich, TMDb und den Jellyfin-Server im LAN
+- [ ] `--filesystem=home` oder gezielter für Backup-Export/-Import (`.ms`-Dateien)
+- [ ] Prüfen, was der Trailer-Player und `movie-resource://` im Sandkasten brauchen
+- [ ] Autostart im Sandkasten läuft über das XDG-Background-Portal, nicht über
+      `~/.config/autostart` — der Schalter braucht dort einen eigenen Weg
+- [ ] In-App-Updater im Flatpak abschalten: Aktualisierung macht Flatpak selbst
 
-## Sortierung ohne Groß-/Kleinschreibung
+### B3. AppStream-Metadaten
+- [ ] `info.movieshelf.desktop.metainfo.xml`: Beschreibung, Kategorien,
+      Bildschirmfotos (Flathub verlangt mindestens eines), Lizenz
+- [ ] `<releases>`-Abschnitt je Version — lässt sich aus CHANGELOG.en.md erzeugen,
+      ähnlich wie `packaging/winget/release-notes.py`
 
-SQLites Standard-Collation (BINARY) stellt Großbuchstaben vor Kleinbuchstaben,
-deshalb stand „EUReKA" vor „Emergency Room" — in der Liste wie im Dashboard.
+### B4. Einreichung
+- [ ] Manifest `info.movieshelf.desktop.yml` (Quelle: das gebaute `.deb` oder ein
+      tar.gz mit fester SHA256)
+- [ ] PR gegen `flathub/flathub`, Review abwarten (erfahrungsgemäß Tage bis Wochen)
+- [ ] Nach Aufnahme: Aktualisierung je Release über einen PR im eigenen
+      Flathub-Repository — automatisierbar, aber erst nach der Aufnahme
 
-- [x] `COLLATE NOCASE` auf allen Textsortierungen: Filmliste (nur bei `title`,
-      die übrigen Sortierspalten sind Zahlen oder ISO-Daten), Boxset-Kinder,
-      Suche, Listen-Namen, Schauspielernamen
-- [x] 2 Tests
-
-## FSK in der Detailansicht
-
-- [x] Die FSK wurde **nie** angezeigt — sie war nur im Formular und beim
-      TMDb-Import erfassbar
-- [x] Die fünf Siegel aus `v2-saas/public/img/fsk` übernommen und wie in der
-      Shelf in die Kennzeichenzeile gesetzt
-- [x] TMDb liefert gelegentlich Altersstufen ohne Siegel (nur 0/6/12/16/18
-      existieren) — dafür eine Textpille statt eines fehlenden Bildes
-
-## Nebenbefund: die Merkliste ist da, aber unsichtbar
-
-Das Datenmodell kennt `in_collection`, und die TMDb-Suche hat den Schalter
-„In Sammlung übernehmen". Steht er aus, entsteht ein Eintrag mit
-`in_collection = 0` — aber **alle 13** Filmabfragen filtern auf `= 1`, und keine
-Ansicht zeigt solche Einträge. Nur die Listen filtern nicht danach.
-Heute verschwindet ein so importierter Film also spurlos. Das ist eher ein
-Fehler als eine fehlende Funktion, und eine Merkliste wäre billig, weil die
-Daten schon da sind. Nicht Teil dieses PRs.
-
-## Verifikation
-
-- `npm run build` grün, `npm test` grün (211)
-- Nicht in der laufenden App angesehen
+**Aufwand:** zwei bis drei Tage, plus Wartezeit im Review.
+**Risiko:** mittel. Die Sandbox-Fragen (Jellyfin im LAN, Backup-Dateien,
+Autostart) sind echte Änderungen an der App, kein reines Verpacken.
 
 ---
 
-# Duplikate finden
+## Reihenfolge
 
-Entspricht `duplicates()` im MovieController der Shelf, dort über Titel und Jahr.
+1. **Teil A zuerst.** Nutzt allen, die heute schon das `.deb` haben, hängt von
+   niemandem ab und macht den fragilen In-App-Updater unter Linux überflüssig.
+2. **Teil B danach**, wenn Sichtbarkeit das Ziel ist. Vorher B2 klären — wenn
+   der Jellyfin-Import oder das Backup im Sandkasten nicht sauber laufen, ist
+   Flathub eher Schaden als Nutzen.
 
-- [x] `findDuplicates()` mit **zwei** Kriterien: die TMDb-ID ist der eindeutige
-      Treffer, Titel und Jahr fangen die Fälle ohne ID ab. Was die ID schon
-      gemeldet hat, taucht im Titel-Durchgang nicht noch einmal auf
-- [x] Titelvergleich ohne Rücksicht auf Groß-/Kleinschreibung (wie
-      `findDuplicate` im Jellyfin-Import) und mit Sammlungstyp: „Fargo" als Film
-      und als Serie sind zwei Werke, keine Dublette
-- [x] Größte Gruppen zuerst
-- [x] Eigener Abschnitt in den Einstellungen: Gruppen mit Herkunfts-Kennzeichen,
-      Verweis auf den Film und Löschknopf je Eintrag. Nach dem Löschen wird neu
-      gesucht — fällt eine Gruppe auf einen Eintrag, ist sie keine Dublette mehr
-- [x] 9 Tests
+## Offen / zu entscheiden
 
-## Beim Ausprobieren gefunden
-
-- **Ein echter Datenfehler in der Sammlung**: *The Bewitching* (2003, Film) und
-  *The Walking Dead: Daryl Dixon* (2023, Serie) teilen sich eine TMDb-ID. Einer
-  von beiden wurde mit der falschen ID importiert.
-- **Die Gruppenüberschrift log.** Sie nahm den Titel des ersten Eintrags — bei
-  verschiedenen Titeln unter einer ID also eine Falschaussage. Jetzt steht die
-  Überschrift nur dann auf dem Titel, wenn alle Einträge gleich heissen, sonst
-  auf der ID selbst.
-- **`insertMovie` im Test-Helfer schrieb `tmdb_id` nicht** — derselbe Fallstrick
-  wie zuvor bei `backdrop_path`. Zwei Tests schlugen scheinbar wegen der Abfrage
-  fehl, tatsächlich wegen des Helfers.
-
-## Verifikation
-
-- `npm run build` grün, `npm test` grün (220)
-- Gegen die echte Sammlung laufen lassen und in den Einstellungen angesehen
-
----
-
-# Episoden- und Staffel-Tracking
-
-Die größte Datenlücke gegenüber der Shelf: die hat
-`episodes.watched.toggle` und `seasons.watched.toggle`, die `episodes`-Tabelle
-des Desktops hatte **gar keine** `is_watched`-Spalte. Staffeln und Folgen wurden
-importiert, ein Fortschritt liess sich aber nicht festhalten — und konnte damit
-auch nicht zurück in die Shelf laufen.
-
-- [x] Spalte `is_watched INTEGER DEFAULT 0` auf `episodes` (additive Migration)
-- [x] `toggleEpisodeWatched()` — eine Folge umschalten
-- [x] `setSeasonWatched()` — ganze Staffel. Ohne ausdrückliches Ziel wird
-      umgeschaltet: eine vollständig gesehene Staffel wird zurückgesetzt, jede
-      andere komplett markiert. **Halb geschaut gilt als ungesehen** — der Klick
-      soll fertig markieren, nicht das Erreichte verwerfen
-- [x] `getSeasonsForMovie()` liefert `watched_count` je Staffel mit; die
-      Oberfläche müsste es sonst selbst zusammenzählen
-- [x] Detailansicht: Häkchen je Folge, Fortschritt „3/8" statt blosser
-      Folgenzahl, Knopf zum Markieren der ganzen Staffel
-- [x] Eine Staffel gilt erst als gesehen, wenn **jede** Folge markiert ist —
-      dieselbe strenge Regel wie bei Boxsets in `applyBoxsetWatched`
-- [x] 15 Tests
-
-Die „Weiterschauen"-Reihe im Dashboard wäre damit möglich, ist auf Wunsch des
-Nutzers aber ausdrücklich nicht Teil dieser Arbeit.
-
-## Offen
-
-- Der Abgleich mit der Shelf überträgt den Folgenstand noch nicht. Die Spalte
-  ist da, die Sync-Anbindung wäre ein eigener Schritt.
-
-### Beim Testen gefunden
-
-- **Die Migration stand vor der Tabelle.** `ALTER TABLE episodes` lag im Block
-  der `movies`-Migrationen — dort gibt es `episodes` noch gar nicht. Der Befehl
-  warf, das leere `catch` verschluckte es, und auf einer frischen Datenbank
-  fehlte die Spalte stillschweigend. Bestehende Installationen hätten sie erst
-  beim zweiten Start bekommen. Jetzt steht sie nach der `CREATE TABLE`.
-
----
-
-# Bewertung und Folgenstand synchronisieren
-
-Beides wurde bisher nur lokal gehalten. Setzt den Shelf-PR
-`feat(api): Bewertung und Folgen-Gesehen-Stand im Export mitliefern` voraus —
-**ohne den ist die Pull-Richtung wirkungslos**, weil die Felder nicht kommen.
-
-## Der Befund vorab
-
-Die Shelf konnte beides schon entgegennehmen (`movies.rate`,
-`episodes.watched.toggle`), lieferte es im Export aber nicht zurück. Ein
-reiner Push hätte bedeutet: der Desktop gewinnt immer — nicht weil er Master
-wäre, sondern weil die Shelf nichts dagegenhält. Deshalb zuerst die
-Shelf-Seite.
-
-## Umgesetzt
-
-- [x] Merker `movies.synced_user_rating` und `episodes.synced_watched`, genau
-      wie `movies.synced_watched`. Bestand gilt als übertragen, sonst schöbe
-      der erste Abgleich alles Vorhandene als vermeintliche Änderung hinaus
-- [x] `getPendingUserRatings` / `markUserRatingSynced`
-- [x] `getPendingEpisodesWatched` / `markEpisodeWatchedSynced` — nur Folgen mit
-      `remote_id`; rein lokal aus TMDb importierte kennt die Shelf nicht und sie
-      stünden sonst für immer in der Warteschlange
-- [x] `pushUserRatings()`: der Endpunkt **setzt** direkt, der Kniff mit dem
-      doppelten Aufruf erübrigt sich. Die 0 entfernt die Bewertung
-- [x] `pushEpisodesWatched()`: der Endpunkt **schaltet um**, dieselbe Lage wie
-      bei Filmen — einmal schalten, Ergebnis lesen, notfalls ein zweites Mal
-- [x] Pull übernimmt `user_rating` und `is_watched` je Folge
-- [x] Eine noch nicht übertragene Änderung überlebt den Pull — dasselbe
-      CASE-Muster wie beim Gesehen-Stand, sonst ginge sie still verloren,
-      bevor sie hinausging
-- [x] 10 Tests
-
-## Verifikation
-
-- `npm run build` grün, `npm test` grün (241)
-- **Nicht gegen eine echte Shelf geprüft**: das braucht den deployten Shelf-PR
+- Soll die APT-Quelle auch die Testpakete (`-linux`) führen, etwa als eigene
+  Distribution `testing`? Dann könntest du Tests künftig per `apt` einspielen
+  statt per `wget` + `dpkg`.
+- Snap zusätzlich? Gleicher Nutzen wie Flathub, weniger Review-Hürden, aber
+  ein weiterer Kanal, den jemand pflegen muss.

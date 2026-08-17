@@ -477,6 +477,7 @@ const en = {
       downloading: 'Downloading...',
       manualNote: 'This update has to be downloaded and installed manually.',
       linuxHandover: 'The package was handed over to your package manager. Finish the installation there, then restart MovieShelf.',
+      aptManaged: 'MovieShelf came from our own package source — updates go through your package manager so the two paths do not collide.',
       linuxHandoverManual: 'If nothing suitable opens — for instance without a graphical package manager — install it from a terminal with:',
       installNow: 'Install now',
       download: 'Download',

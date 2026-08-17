@@ -201,6 +201,7 @@ interface Window {
       onProgress: (callback: (percent: number) => void) => void
       onReady:    (callback: () => void) => void
       onError:    (callback: (message: string) => void) => void
+      isAptManaged: () => Promise<boolean>
       onManualInstall: (callback: (filePath: string) => void) => void
     }
 

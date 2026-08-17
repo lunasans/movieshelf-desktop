@@ -26,6 +26,7 @@ import { registerOAuthHandlers } from './handlers/oauth'
 import { registerBackupHandlers } from './handlers/backup'
 import { registerSeasonHandlers } from './handlers/seasons'
 import { registerJellyfinHandlers } from './handlers/jellyfin'
+import { registerLinuxPackageHandlers, isAptManaged } from './handlers/linuxPackage'
 
 const isDev = !app.isPackaged || process.env.NODE_ENV === 'development'
 
@@ -293,6 +294,7 @@ app.whenReady().then(() => {
   registerBackupHandlers()
   registerSeasonHandlers()
   registerJellyfinHandlers()
+  registerLinuxPackageHandlers()
 
   // Register local resource protocol
   protocol.handle('movie-resource', (request) => {
@@ -548,6 +550,15 @@ ipcMain.handle('update:install',  async () => {
   // electron-updater installieren zu lassen. Der Updater ruft dort `pkexec` mit
   // abgeschaltetem eigenen Agenten auf und scheitert ohne laufenden Polkit-Agenten
   // mit Code 127; GDebi, Discover & Co. bringen ihre eigene Rechteabfrage mit.
+  // Stammt die Installation aus der eigenen Paketquelle, hält sich der Updater
+  // heraus: zwei Wege auf dieselbe Installation bedeuten dpkg-Sperrkonflikte
+  // und im schlimmsten Fall ein halb entpacktes Paket.
+  if (await isAptManaged()) {
+    updaterLog('info', 'Installation wird von apt verwaltet – Updater übernimmt nicht')
+    mainWindow?.webContents.send('update:apt-managed')
+    return
+  }
+
   if (process.platform === 'linux' && downloadedUpdateFile) {
     const error = await shell.openPath(downloadedUpdateFile)
     if (!error) {

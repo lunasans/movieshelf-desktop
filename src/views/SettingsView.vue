@@ -276,8 +276,26 @@
           </div>
         </div>
 
+        <!-- Aus der eigenen Paketquelle installiert: das System aktualisiert,
+             die App hält sich raus. Der Hinweis auf die neue Version bleibt,
+             nur der Installieren-Knopf entfällt. -->
+        <div v-if="aptManaged && settings.updateAvailable"
+          class="flex items-start gap-3 bg-[var(--bg-app)] border border-[var(--border-ui)] rounded-2xl px-4 py-3 mb-3">
+          <i class="bi bi-box-seam text-[var(--text-muted)] flex-shrink-0 mt-0.5"></i>
+          <div class="min-w-0 flex-1">
+            <p class="text-xs text-[var(--text-main)] opacity-90">{{ $t('settings.updates.aptManaged') }}</p>
+            <div class="flex items-center gap-2 mt-2">
+              <code class="text-[10px] text-[var(--text-main)] font-mono break-all bg-[var(--bg-card)] rounded-lg px-2 py-1 flex-1">{{ aptUpgradeCommand }}</code>
+              <button @click="copyAptCommand" class="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors flex-shrink-0"
+                :title="$t('common.copy')">
+                <i class="bi" :class="aptCommandCopied ? 'bi-check-lg' : 'bi-clipboard'"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Manual download notice -->
-        <div v-if="settings.updateAvailable && settings.updateManual && !downloading"
+        <div v-if="!aptManaged && settings.updateAvailable && settings.updateManual && !downloading"
           class="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 mb-3">
           <i class="bi bi-exclamation-triangle-fill text-amber-400 flex-shrink-0 mt-0.5"></i>
           <p class="text-xs text-[var(--text-main)] opacity-80">
@@ -288,7 +306,7 @@
         <div class="flex gap-3">
           <!-- Auto-install button -->
           <button
-            v-if="settings.updateAvailable && !settings.updateManual && !downloading"
+            v-if="!aptManaged && settings.updateAvailable && !settings.updateManual && !downloading"
             @click="installUpdate"
             class="flex-1 bg-[var(--status-green)] hover:opacity-90 text-white font-black py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
           >
@@ -296,7 +314,7 @@
           </button>
           <!-- Manual download button -->
           <a
-            v-if="settings.updateAvailable && settings.updateManual && settings.updateUrl && !downloading"
+            v-if="!aptManaged && settings.updateAvailable && settings.updateManual && settings.updateUrl && !downloading"
             :href="settings.updateUrl"
             target="_blank"
             class="flex-1 bg-[var(--status-green)] hover:opacity-90 text-white font-black py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
@@ -776,6 +794,17 @@ const updateError      = ref('')
 // Linux: Pfad des Pakets, das an die Paketverwaltung übergeben wurde.
 const linuxHandoverPath = ref('')
 const installCommandCopied = ref(false)
+// Linux: Installation stammt aus der eigenen Paketquelle — dann aktualisiert
+// das System, nicht die App.
+const aptManaged = ref(false)
+const aptCommandCopied = ref(false)
+const aptUpgradeCommand = 'sudo apt update && sudo apt install --only-upgrade movieshelf-desktop'
+
+async function copyAptCommand() {
+  await navigator.clipboard.writeText(aptUpgradeCommand)
+  aptCommandCopied.value = true
+  setTimeout(() => { aptCommandCopied.value = false }, 2000)
+}
 // apt statt dpkg: zieht fehlende Abhängigkeiten gleich mit.
 const linuxInstallCommand = computed(() => `sudo apt install "${linuxHandoverPath.value}"`)
 
@@ -907,6 +936,11 @@ onMounted(async () => {
   window.electron.update.onError((message: string) => {
     updateError.value = message || t('settings.updates.updateFailed')
     downloading.value = false
+  })
+  // Einmal beim Öffnen ermitteln: der Aufruf startet einen Prozess und das
+  // Ergebnis ändert sich zur Laufzeit nicht.
+  window.electron.update.isAptManaged().then((managed: boolean) => {
+    aptManaged.value = managed
   })
   window.electron.update.onManualInstall((filePath: string) => {
     linuxHandoverPath.value = filePath

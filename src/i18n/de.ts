@@ -481,6 +481,7 @@ const de = {
       checkForUpdates: 'Nach Updates suchen',
       updateFailed: 'Update fehlgeschlagen.',
       linuxHandover: 'Das Paket wurde an die Paketverwaltung übergeben. Schließe die Installation dort ab und starte MovieShelf danach neu.',
+      aptManaged: 'MovieShelf stammt aus der eigenen Paketquelle — Aktualisierungen laufen über deine Paketverwaltung, damit sich beide Wege nicht in die Quere kommen.',
       linuxHandoverManual: 'Öffnet sich nichts Passendes — etwa ohne grafische Paketverwaltung — installiere im Terminal mit:',
     },
     backup: {
