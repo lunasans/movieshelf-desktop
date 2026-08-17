@@ -1,99 +1,77 @@
 # Paketquelle apt.movieshelf.info
 
-Variante 1 aus [tasks/todo.md](../../tasks/todo.md): aptly läuft auf dem Server,
-GitHub Actions liefert nur das fertige `.deb` an. **Der private Signaturschlüssel
-verlässt den Server nie** — GitHub kennt nur einen SSH-Schlüssel, der genau ein
-Kommando ausführen darf.
+Ziel: `sudo apt install movieshelf-desktop`, danach kommen Updates über
+`apt upgrade`. Der In-App-Updater hält sich bei solchen Installationen heraus
+(siehe `electron/handlers/linuxPackage.ts`).
+
+## Bauform: der Server holt, niemand stellt zu
 
 ```
-GitHub Actions                      Hetzner 162.55.214.77
-──────────────                      ─────────────────────
-build-linux → .deb
-      │  ssh apt@server < paket.deb
-      ▼
-              /usr/local/bin/apt-publish   (erzwungenes Kommando)
-                    ├─ dpkg-deb prüft die Datei
-                    ├─ aptly repo add
-                    └─ aptly publish update   ← signiert hier
-                              │
-                              ▼  nginx + Cloudflare
-                        apt.movieshelf.info
+GitHub Release (stabil)
+        │
+        │  alle 15 min, ausgehendes HTTPS
+        ▼
+   apt-sync  (Cron-Job des Site-Benutzers)
+        ├─ Prüfsumme gegen die Release-Angabe
+        ├─ aptly repo add
+        └─ aptly publish update   ← signiert hier
+                  │
+                  ▼  Static HTML Site (CloudPanel)
+            apt.movieshelf.info
 ```
+
+Zwei Randbedingungen der Umgebung bestimmen diese Form:
+
+- **SSH nur über VPN.** GitHub Actions käme nicht an den Server. Also holt der
+  Server selbst, statt sich beliefern zu lassen — nach außen genügt ausgehendes
+  HTTPS zu GitHub, kein offener Port, kein Deploy-Schlüssel bei GitHub.
+- **Site-Benutzer ohne sudo.** Kein `/etc`, kein systemd, keine Paketinstallation.
+  Deshalb liegt alles unter `$HOME`: aptly als einzelnes statisches Programm in
+  `~/bin`, der Signaturschlüssel im Schlüsselbund des Benutzers, der Zeitgeber
+  als CloudPanel-Cron-Job. Webserver und Zertifikat stellt die Static-HTML-Site.
+
+Der private Signaturschlüssel verlässt den Server nie — er wird dort erzeugt und
+nur dort benutzt.
 
 ## Einrichtung (einmalig)
 
-### 1. Server
+### 1. Site anlegen
 
-Mit CloudPanel: dort zuerst eine **Static HTML Site** für `apt.movieshelf.info`
-anlegen. Die übernimmt vhost, Let's-Encrypt-Zertifikat und dessen Erneuerung —
-mehr braucht eine Paketquelle nicht, es sind statische Dateien. Danach deren
-Wurzelverzeichnis übergeben und den eigenen nginx-Teil überspringen:
+In CloudPanel eine **Static HTML Site** für `apt.movieshelf.info` anlegen und
+das Let's-Encrypt-Zertifikat ausstellen lassen. DNS vorher auf den Server
+zeigen lassen; bei Cloudflare für die Ausstellung kurz ungeproxyt.
 
-```bash
-scp -r packaging/apt root@162.55.214.77:/tmp/
-ssh root@162.55.214.77 'PUBLIC_DIR=/home/<site-user>/htdocs/apt.movieshelf.info SETUP_NGINX=0 bash /tmp/apt/server-setup.sh'
-```
+### 2. Einrichtung ausführen
 
-Ohne CloudPanel (eigener nginx-vhost aus `nginx-apt.conf`):
+Als Site-Benutzer (über die VPN-Verbindung):
 
 ```bash
-ssh root@162.55.214.77 'bash /tmp/apt/server-setup.sh'
+scp -r packaging/apt <site-user>@<server>:~/
+ssh <site-user>@<server>
+bash ~/apt/setup.sh /home/<site-user>/htdocs/apt.movieshelf.info
 ```
 
-aptly schreibt in beiden Fällen nach `/srv/apt/aptly/public`; `dists/` und
-`pool/` werden als Verweise ins Wurzelverzeichnis der Website gelegt. So bleibt
-der aptly-Zustand an einem Ort, egal wer den Webserver verwaltet.
+Das Skript holt aptly nach `~/bin`, legt die aptly-Konfiguration an, erzeugt den
+Signaturschlüssel, exportiert den öffentlichen Teil ins Wurzelverzeichnis der
+Website und richtet `apt-sync` ein. Mehrfaches Ausführen ist unschädlich.
 
-Das Skript installiert aptly und nginx, legt den Benutzer `apt` an, erzeugt den
-Signaturschlüssel, richtet das Veröffentlichungsskript ein und gibt am Ende den
-Fingerabdruck aus. Mehrfaches Ausführen ist unschädlich.
+### 3. Cron-Job in CloudPanel
 
-### 2. Deploy-Schlüssel
+Unter der Site → *Cron Jobs*:
 
-Lokal erzeugen, **ohne Passphrase** (Actions kann keine eingeben):
+```
+*/15 * * * * /home/<site-user>/bin/apt-sync >> /home/<site-user>/apt/apt-sync.log 2>&1
+```
+
+Viertelstündlich reicht — ein Release muss nicht auf die Minute genau ankommen.
+
+### 4. Ersten Lauf anstoßen
 
 ```bash
-ssh-keygen -t ed25519 -f apt-deploy -C "github-actions" -N ""
+~/bin/apt-sync
+tail ~/apt/apt-sync.log
+curl -s https://apt.movieshelf.info/dists/stable/InRelease | head
 ```
-
-- privaten Teil (`apt-deploy`) als GitHub-Secret `APT_DEPLOY_KEY` hinterlegen
-- öffentlichen Teil in `/home/apt/.ssh/authorized_keys` eintragen, mit
-  erzwungenem Kommando:
-
-```
-command="/usr/local/bin/apt-publish",no-port-forwarding,no-agent-forwarding,no-pty ssh-ed25519 AAAA... github-actions
-```
-
-Damit kann dieser Schlüssel nichts anderes als Veröffentlichen — kein Login,
-keine Weiterleitung, kein anderes Kommando. Was der Aufrufer sonst schickt,
-landet in `SSH_ORIGINAL_COMMAND` und wird ignoriert.
-
-Zusätzlich als Secret `APT_HOST_KEY` den Fingerabdruck des Servers hinterlegen:
-
-```bash
-ssh-keyscan -t ed25519 162.55.214.77
-```
-
-Ohne den müsste der Workflow jeden Schlüssel blind annehmen.
-
-### 3. DNS und TLS
-
-`apt.movieshelf.info` auf den Server zeigen lassen. Mit CloudPanel erledigt die
-Static-HTML-Site das Zertifikat selbst; ohne CloudPanel auf dem Server
-`certbot --nginx -d apt.movieshelf.info`.
-
-Wichtig bei Cloudflare: Für die Zertifikatsausstellung muss der Eintrag kurz
-ungeproxyt sein, danach kann der Proxy wieder an — es sind statische Dateien,
-Caching ist erwünscht. `InRelease` sollte allerdings kurz gecacht werden
-(5 Minuten), sonst sieht `apt update` nach einer Veröffentlichung noch den
-alten Stand. In der CloudPanel-Variante geht das über eine Cache-Regel in
-Cloudflare statt über die vhost-Datei.
-
-### 4. Repository-Variable
-
-Der Workflow-Job läuft erst, wenn in den Repository-Variablen
-`APT_PUBLISH = true` gesetzt ist. Bis dahin bleibt er stumm — damit kann
-dieser Stand gefahrlos vor der fertigen Servereinrichtung im Hauptzweig liegen.
 
 ## Für Nutzer
 
@@ -106,17 +84,26 @@ sudo apt update && sudo apt install movieshelf-desktop
 ## Bewusste Festlegungen
 
 - **Nur `amd64`.** Der Release-Workflow baut nichts anderes.
-- **Vorabversionen werden abgelehnt.** `apt-publish` weist alles mit Bindestrich
-  in der Version ab (`1.1.1-linux`); Testpakete gehören nicht in die stabile
-  Quelle. Ein eigener Kanal `testing` wäre später ein zweites Repository.
-- **Alte Versionen bleiben liegen.** Wer gezielt zurück will, kann
+- **Keine Vorabversionen.** `apt-sync` fragt `/releases/latest` ab, und das
+  überspringt Vorabversionen — die Testpakete (`v1.1.1-linux`) landen also gar
+  nicht erst in der stabilen Quelle.
+- **Alte Versionen bleiben liegen.** Wer zurück will, kann
   `apt install movieshelf-desktop=1.1.2`. Aufräumen ginge mit
-  `aptly repo remove` — bis die Quelle spürbar wächst, lohnt es nicht.
+  `aptly repo remove`; bis die Quelle spürbar wächst, lohnt es nicht.
+- **Verzögerung von bis zu 15 Minuten** zwischen Release und Verfügbarkeit in
+  der Quelle. Der Preis dafür, dass kein Dienst von außen erreichbar sein muss.
 
-## Prüfen
+## Cloudflare
+
+Der Proxy kann an bleiben, es sind statische Dateien. Eine Cache-Regel für
+`/dists/*` mit kurzer Gültigkeit (5 Minuten) einrichten, sonst sieht
+`apt update` nach einer Veröffentlichung noch den alten Stand. Die `.deb`-Dateien
+darunter ändern sich unter einem Namen nie und dürfen lange gecacht werden.
+
+## Wenn etwas klemmt
 
 ```bash
-ssh apt@162.55.214.77 < release/movieshelf-desktop_1.1.4_amd64.deb   # von Hand veröffentlichen
-tail /var/log/apt-publish.log                                         # was passiert ist
-curl -s https://apt.movieshelf.info/dists/stable/InRelease | head     # Metadaten da?
+tail -50 ~/apt/apt-sync.log        # was der letzte Lauf gemacht hat
+~/bin/aptly repo show -with-packages movieshelf   # was im Repo liegt
+~/bin/aptly publish list                          # was veröffentlicht ist
 ```

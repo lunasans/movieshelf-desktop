@@ -1,0 +1,94 @@
+#!/bin/bash
+# Holt das neueste stabile Release von GitHub und veröffentlicht es in der
+# Paketquelle apt.movieshelf.info.
+#
+# Holen statt zustellen: der Server ist nur über VPN erreichbar, GitHub Actions
+# käme nicht heran. Nach außen braucht es hier nur ausgehendes HTTPS.
+#
+# Läuft als CloudPanel-Cron-Job unter dem Site-Benutzer, ohne root. Mehrfaches
+# Ausführen ist unschädlich — liegt die Version schon im Repo, passiert nichts.
+set -euo pipefail
+
+REPO_SLUG="lunasans/movieshelf-desktop"
+REPO="movieshelf"
+DIST="stable"
+
+BIN="$HOME/bin"
+ROOT="$HOME/apt"
+INCOMING="$ROOT/incoming"
+APTLY="$BIN/aptly"
+HTDOCS=$(cat "$HOME/.movieshelf-htdocs")
+
+log() { echo "[$(date -Is)] $*"; }
+
+api="https://api.github.com/repos/$REPO_SLUG/releases/latest"
+
+# /releases/latest überspringt Vorabversionen von sich aus — die Testpakete
+# (v1.1.1-linux) tauchen hier also gar nicht erst auf.
+release=$(curl -fsSL -H 'Accept: application/vnd.github+json' "$api")
+
+tag=$(echo "$release" | jq -r '.tag_name')
+version="${tag#v}"
+asset=$(echo "$release" | jq -r '[.assets[] | select(.name | endswith(".deb"))] | first')
+
+if [ "$asset" = "null" ] || [ -z "$asset" ]; then
+  log "kein .deb im Release $tag — übersprungen"
+  exit 0
+fi
+
+url=$(echo "$asset" | jq -r '.browser_download_url')
+name=$(echo "$asset" | jq -r '.name')
+
+# Repository beim ersten Lauf anlegen.
+if ! "$APTLY" repo show "$REPO" > /dev/null 2>&1; then
+  log "Repository $REPO wird angelegt"
+  "$APTLY" repo create -distribution="$DIST" -component=main "$REPO"
+fi
+
+# Schon veröffentlicht? Das ist der Normalfall bei fast jedem Lauf.
+if "$APTLY" repo show -with-packages "$REPO" 2>/dev/null | grep -q "movieshelf-desktop_${version}_"; then
+  exit 0
+fi
+
+log "neue Version $version gefunden, lade $name"
+mkdir -p "$INCOMING"
+target="$INCOMING/$name"
+curl -fsSL -o "$target" "$url"
+
+# Prüfsumme gegen die Angabe im Release halten: der Download läuft
+# unbeaufsichtigt, und was hier hineingeht, wird gleich signiert.
+expected=$(echo "$asset" | jq -r '.digest // ""')
+if [ -n "$expected" ] && [ "$expected" != "null" ]; then
+  actual="sha256:$(sha256sum "$target" | cut -d' ' -f1)"
+  if [ "$expected" != "$actual" ]; then
+    rm -f "$target"
+    log "FEHLER: Prüfsumme weicht ab ($expected != $actual)"
+    exit 1
+  fi
+fi
+
+# Sicherheitshalber prüfen, dass es wirklich ein Debian-Paket ist. dpkg-deb
+# fehlt auf manchen Systemen — dann übernimmt aptly die Prüfung.
+if command -v dpkg-deb > /dev/null 2>&1 && ! dpkg-deb -I "$target" > /dev/null 2>&1; then
+  rm -f "$target"
+  log "FEHLER: keine gültige .deb-Datei"
+  exit 1
+fi
+
+"$APTLY" repo add -remove-files "$REPO" "$target"
+
+if "$APTLY" publish list -raw | grep -q " $DIST\$"; then
+  "$APTLY" publish update -batch "$DIST"
+else
+  log "Erstveröffentlichung von $DIST"
+  "$APTLY" publish repo -batch -distribution="$DIST" "$REPO"
+fi
+
+"$APTLY" db cleanup > /dev/null
+
+# aptly schreibt nach <rootDir>/public; die Website liefert aus htdocs aus.
+# Verweise statt Kopien, damit aptly weiter Herr über seine Dateien bleibt.
+ln -sfn "$ROOT/aptly/public/dists" "$HTDOCS/dists"
+ln -sfn "$ROOT/aptly/public/pool"  "$HTDOCS/pool"
+
+log "veröffentlicht: $version"

@@ -2,5 +2,4 @@ flatpak/movieshelf-launcher text eol=lf
 # Shell-Skripte immer mit LF: ein CRLF hinter der Shebang-Zeile lässt sie auf
 # dem Server mit "bad interpreter" scheitern.
 *.sh text eol=lf
-packaging/apt/apt-publish text eol=lf
-packaging/apt/nginx-apt.conf text eol=lf
+packaging/apt/apt-sync text eol=lf
