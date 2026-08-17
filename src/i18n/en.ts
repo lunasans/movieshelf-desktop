@@ -475,6 +475,7 @@ const en = {
       whatsNew: "What's new in v{version}",
       downloading: 'Downloading...',
       manualNote: 'This update has to be downloaded and installed manually.',
+      linuxHandover: 'The package was handed over to your package manager. Finish the installation there, then restart MovieShelf.',
       installNow: 'Install now',
       download: 'Download',
       checking: 'Checking...',

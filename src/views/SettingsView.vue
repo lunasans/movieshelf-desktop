@@ -245,14 +245,25 @@
             <div class="h-2 bg-[var(--status-green)] rounded-full transition-all duration-300"
               :style="{ width: downloadProgress + '%' }"></div>
           </div>
-          <p v-if="updateError" class="text-xs text-[var(--status-red)] font-bold mt-3">{{ updateError }}</p>
+          <!-- whitespace-pre-line: die Linux-Meldung nennt Pfad und Befehl in eigenen Zeilen -->
+          <p v-if="updateError" class="text-xs text-[var(--status-red)] font-bold mt-3 whitespace-pre-line break-words">{{ updateError }}</p>
         </div>
 
         <!-- Persistent error (also visible after download finished/failed) -->
         <div v-if="updateError && !downloading"
           class="flex items-start gap-3 bg-[var(--status-red)]/10 border border-[var(--status-red)]/20 rounded-2xl px-4 py-3 mb-3">
           <i class="bi bi-exclamation-octagon-fill text-[var(--status-red)] flex-shrink-0 mt-0.5"></i>
-          <p class="text-xs text-[var(--text-main)] opacity-90">{{ updateError }}</p>
+          <p class="text-xs text-[var(--text-main)] opacity-90 whitespace-pre-line break-words">{{ updateError }}</p>
+        </div>
+
+        <!-- Linux: Installation läuft in der Paketverwaltung weiter -->
+        <div v-if="linuxHandoverPath"
+          class="flex items-start gap-3 bg-[var(--status-green)]/10 border border-[var(--status-green)]/20 rounded-2xl px-4 py-3 mb-3">
+          <i class="bi bi-box-arrow-up-right text-[var(--status-green)] flex-shrink-0 mt-0.5"></i>
+          <div class="min-w-0">
+            <p class="text-xs text-[var(--text-main)] opacity-90">{{ $t('settings.updates.linuxHandover') }}</p>
+            <p class="text-[10px] text-[var(--text-muted)] opacity-60 font-mono break-all mt-1">{{ linuxHandoverPath }}</p>
+          </div>
         </div>
 
         <!-- Manual download notice -->
@@ -752,6 +763,8 @@ const checkingUpdate   = ref(false)
 const downloading      = ref(false)
 const downloadProgress = ref(0)
 const updateError      = ref('')
+// Linux: Pfad des Pakets, das an die Paketverwaltung übergeben wurde.
+const linuxHandoverPath = ref('')
 
 const changelogLines = computed(() => {
   if (!settings.updateChangelog) return []
@@ -876,6 +889,11 @@ onMounted(async () => {
     updateError.value = message || t('settings.updates.updateFailed')
     downloading.value = false
   })
+  window.electron.update.onManualInstall((filePath: string) => {
+    linuxHandoverPath.value = filePath
+    updateError.value = ''
+    downloading.value = false
+  })
 
   handleUpdateCheck()
 })
@@ -987,12 +1005,13 @@ async function doLogin() {
 }
 
 async function installUpdate() {
-  downloading.value      = true
-  downloadProgress.value = 0
-  updateError.value      = ''
+  downloading.value       = true
+  downloadProgress.value  = 0
+  updateError.value       = ''
+  linuxHandoverPath.value = ''
   try {
     await window.electron.update.download()
-    window.electron.update.install()
+    await window.electron.update.install()
   } catch (e: unknown) {
     updateError.value = String(e)
     downloading.value = false
