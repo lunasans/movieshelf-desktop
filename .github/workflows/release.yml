@@ -169,6 +169,38 @@ jobs:
               --arg changelog  "$CHANGELOG_BODY" \
               '{version: $version, download_url: $url_win, download_url_linux_deb: $url_deb, file_hash: $hash_win, file_hash_linux_deb: $hash_deb, changelog: $changelog}')"
 
+  # Paketquelle apt.movieshelf.info. Einrichtung und Begruendung der Bauform
+  # stehen in packaging/apt/README.md. Der Job laeuft erst, wenn die
+  # Repository-Variable APT_PUBLISH auf true steht - bis die Servereinrichtung
+  # fertig ist, bleibt er also stumm.
+  apt:
+    name: Paketquelle aktualisieren
+    needs: [build-linux]
+    if: ${{ vars.APT_PUBLISH == 'true' && !contains(github.ref_name, '-linux') && !contains(github.ref_name, '-win') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Artefakt herunterladen
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-deb
+          path: artifacts
+
+      # Der Schluessel darf serverseitig nur `apt-publish` ausfuehren, das Paket
+      # geht ueber die Standardeingabe. Deshalb kein scp und kein Kommando hier.
+      - name: Paket veroeffentlichen
+        env:
+          DEPLOY_KEY: ${{ secrets.APT_DEPLOY_KEY }}
+          HOST_KEY: ${{ secrets.APT_HOST_KEY }}
+          APT_TARGET: apt@162.55.214.77
+        run: |
+          umask 077
+          printf '%s\n' "$DEPLOY_KEY" > deploy_key
+          printf '%s\n' "$HOST_KEY"   > known_hosts
+          deb=$(find artifacts -name '*.deb' | head -1)
+          test -n "$deb" || { echo "kein .deb im Artefakt"; exit 1; }
+          ssh -i deploy_key -o UserKnownHostsFile=known_hosts -o StrictHostKeyChecking=yes \
+              "$APT_TARGET" < "$deb"
+
   # winget-Einreichung direkt hier statt in winget.yml: das dort genutzte
   # release-Event feuert nie, weil das Release mit dem Standard-GITHUB_TOKEN
   # erstellt wird und solche Events absichtlich keine Workflows starten.
