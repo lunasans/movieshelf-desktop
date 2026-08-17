@@ -248,6 +248,6 @@ async function finish() {
 async function finishToSettings() {
   await statsAntwortSichern()
   localStorage.setItem('onboarding_done', '1')
-  router.replace('/settings')
+  router.replace({ path: '/settings', query: { section: 'connection' } })
 }
 </script>

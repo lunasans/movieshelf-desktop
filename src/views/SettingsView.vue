@@ -22,23 +22,15 @@
     <!-- Right content -->
     <main class="flex-1 overflow-y-auto p-8 max-w-2xl">
 
-      <!-- ── Erscheinungsbild ── -->
-      <template v-if="active === 'appearance'">
-        <SectionHeader icon="palette" :title="$t('settings.appearance.title')" />
-
-        <SettingsRow :label="$t('settings.appearance.themeLabel')" :hint="$t('settings.appearance.themeHint')">
-          <ThemeSwitcher />
-        </SettingsRow>
-
-        <SettingsRow :label="$t('settings.appearance.languageLabel')" :hint="$t('settings.appearance.languageHint')">
-          <LanguageSwitcher />
-        </SettingsRow>
-      </template>
-
       <!-- ── Allgemein ── -->
+      <!-- Theme und Sprache saßen früher in einem eigenen Bereich
+           "Erscheinungsbild"; für zwei Zeilen lohnt kein eigener Reiter.
+           Die Texte liegen weiterhin unter settings.appearance.*. -->
       <template v-if="active === 'general'">
         <SectionHeader icon="gear" :title="$t('settings.general.title')" />
 
+        <!-- Zeilen alphabetisch nach der deutschen Beschriftung:
+             Beim Systemstart öffnen, Design, Sprache. -->
         <SettingsRow :label="$t('settings.general.autostartLabel')" :hint="$t('settings.general.autostartHint')">
           <button
             @click="toggleAutostart"
@@ -52,6 +44,14 @@
               :class="autostart ? 'translate-x-5' : 'translate-x-0'"
             ></span>
           </button>
+        </SettingsRow>
+
+        <SettingsRow :label="$t('settings.appearance.themeLabel')" :hint="$t('settings.appearance.themeHint')">
+          <ThemeSwitcher />
+        </SettingsRow>
+
+        <SettingsRow :label="$t('settings.appearance.languageLabel')" :hint="$t('settings.appearance.languageHint')">
+          <LanguageSwitcher />
         </SettingsRow>
       </template>
 
@@ -615,7 +615,7 @@ import ThemeSwitcher from '@/components/ui/ThemeSwitcher.vue'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher.vue'
 import JellyfinPanel from '@/components/settings/JellyfinPanel.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 // ── Inline sub-components ────────────────────────────────────────────────────
 
@@ -703,7 +703,7 @@ const { login, apiGet } = useApi()
 const { checkForUpdates } = useUpdateService()
 
 const isDev            = ref(false)
-const active           = ref('appearance')
+const active           = ref('general')
 const autostart        = ref(false)
 const logs             = ref('')
 const logsLoading      = ref(false)
@@ -798,7 +798,6 @@ const sections = [
   { id: 'backup',     icon: 'archive',       labelKey: 'settings.sections.backup'     },
   { id: 'duplicates', icon: 'files',         labelKey: 'settings.sections.duplicates' },
   { id: 'dev',        icon: 'bug',           labelKey: 'settings.sections.dev',  dev: true },
-  { id: 'appearance', icon: 'palette',      labelKey: 'settings.sections.appearance' },
   { id: 'tmdb',       icon: 'film',          labelKey: 'settings.sections.tmdb'       },
   { id: 'jellyfin',   icon: 'hdd-network',   labelKey: 'settings.sections.jellyfin'   },
   { id: 'updates',    icon: 'arrow-repeat',  labelKey: 'settings.sections.updates'    },
@@ -834,8 +833,13 @@ function openDataFolder() {
   window.electron.openDataFolder()
 }
 
+// Alphabetisch nach dem übersetzten Namen — die Reihenfolge stimmt damit auch
+// nach einem Sprachwechsel, weil t() reaktiv ist.
 const visibleSections = computed(() =>
-  sections.filter(s => !s.dev || isDev.value)
+  sections
+    .filter(s => !s.dev || isDev.value)
+    .slice()
+    .sort((a, b) => t(a.labelKey).localeCompare(t(b.labelKey), locale.value))
 )
 
 watch(active, (id) => {
@@ -846,8 +850,11 @@ watch(active, (id) => {
 // Als watch mit immediate, weil ein erneuter Aufruf nur die Query ändert und
 // die Komponente dabei nicht neu gemountet wird.
 watch(() => route.query.section, (section) => {
-  if (typeof section === 'string' && sections.some(s => s.id === section)) {
-    active.value = section
+  if (typeof section !== 'string') return
+  // 'appearance' gibt es nicht mehr, Theme/Sprache stehen jetzt unter 'general'.
+  const id = section === 'appearance' ? 'general' : section
+  if (sections.some(s => s.id === id)) {
+    active.value = id
   }
 }, { immediate: true })
 

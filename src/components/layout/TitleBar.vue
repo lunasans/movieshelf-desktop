@@ -14,8 +14,9 @@
         <i class="bi bi-list text-lg"></i>
       </button>
 
-      <div class="flex items-center gap-2">
+      <div class="relative flex items-center gap-2">
         <img src="/logo_small.png" alt="MovieShelf" class="h-5 w-auto" />
+        <SeasonalLogoBadge />
       </div>
     </div>
 
@@ -73,6 +74,7 @@ import { computed } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useUiStore } from '@/stores/ui'
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher.vue'
+import SeasonalLogoBadge from '@/components/layout/SeasonalLogoBadge.vue'
 
 const settings = useSettingsStore()
 const ui = useUiStore()

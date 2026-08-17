@@ -34,6 +34,7 @@ const en = {
     connect: 'Connect',
     connecting: 'Connecting…',
     disconnect: 'Disconnect',
+    forget: 'Remove server',
     loginFailed: 'Login failed.',
     libraries: 'Libraries',
     noLibraries: 'No movie or series libraries found.',

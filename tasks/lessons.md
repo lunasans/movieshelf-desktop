@@ -130,3 +130,16 @@ eigenen `try`, damit ein Fehler dort nur das Beiwerk kostet.
 `insertMovie` in `testDb.ts` führt die Spalten einzeln auf. Ein Override für eine
 Spalte, die dort fehlt (`backdrop_path`), wird stillschweigend ignoriert — der Test
 prüft dann etwas anderes als gedacht und schlägt scheinbar wegen der Abfrage fehl.
+
+## `npm rebuild` zerschießt better-sqlite3 für Electron
+Das Modul wird per `postinstall` mit `electron-rebuild` gegen die **Electron**-ABI
+gebaut. Ein schlichtes `npm rebuild` baut es gegen die lokale Node-Version — die App
+startet dann gar nicht mehr (`ERR_DLOPEN_FAILED`). Reparatur:
+`npx electron-rebuild -f -w better-sqlite3`. Dass die vitest-Handler-Tests dadurch
+mit ABI-Mismatch scheitern, ist der Normalzustand und kein Grund zum Rebuild.
+
+## Ein Zustand ohne Ausweg ist auch ohne Fehlermeldung ein Bug
+Der Jellyfin-Reiter zeigte "Trennen" nur im verbundenen Zustand. Bei gelöschtem Token
+mit weiterhin gespeicherter Adresse blieb nur das vorausgefüllte Login-Formular — der
+Server ließ sich nicht mehr entfernen. Bei jedem Formular mit gespeicherten Daten
+prüfen: gibt es in **jedem** Zustand einen Weg, die Daten wieder loszuwerden?

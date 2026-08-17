@@ -656,8 +656,12 @@ export function registerJellyfinHandlers(): void {
     }
   })
 
+  // Trennen entfernt den Server vollständig, inklusive Adresse und Benutzer.
+  // Blieben die stehen, tauchte der vermeintlich entfernte Server beim nächsten
+  // Öffnen der Einstellungen wieder im Formular auf.
   ipcMain.handle('jellyfin:logout', () => {
-    for (const key of ['jellyfin_token', 'jellyfin_user_id', 'jellyfin_libraries']) {
+    for (const key of ['jellyfin_url', 'jellyfin_user', 'jellyfin_token', 'jellyfin_user_id',
+                       'jellyfin_libraries', 'jellyfin_last_import_at']) {
       setSetting(db(), key, '')
     }
     return { success: true }

@@ -33,6 +33,7 @@ const de = {
     connect: 'Verbinden',
     connecting: 'Verbinde…',
     disconnect: 'Trennen',
+    forget: 'Server entfernen',
     loginFailed: 'Anmeldung fehlgeschlagen.',
     libraries: 'Bibliotheken',
     noLibraries: 'Keine Film- oder Serien-Bibliotheken gefunden.',
