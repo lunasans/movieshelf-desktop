@@ -262,7 +262,17 @@
           <i class="bi bi-box-arrow-up-right text-[var(--status-green)] flex-shrink-0 mt-0.5"></i>
           <div class="min-w-0">
             <p class="text-xs text-[var(--text-main)] opacity-90">{{ $t('settings.updates.linuxHandover') }}</p>
-            <p class="text-[10px] text-[var(--text-muted)] opacity-60 font-mono break-all mt-1">{{ linuxHandoverPath }}</p>
+            <p class="text-[11px] text-[var(--text-muted)] opacity-70 mt-2">{{ $t('settings.updates.linuxHandoverManual') }}</p>
+            <!-- Ohne grafische Paketverwaltung (WSL, schlanke Server) landet die
+                 Datei beim Dateimanager und niemand kommt weiter — der Befehl
+                 zum Kopieren ist dort der einzige Weg. -->
+            <div class="flex items-center gap-2 mt-1">
+              <code class="text-[10px] text-[var(--text-main)] font-mono break-all bg-[var(--bg-app)] rounded-lg px-2 py-1 flex-1">{{ linuxInstallCommand }}</code>
+              <button @click="copyInstallCommand" class="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors flex-shrink-0"
+                :title="$t('common.copy')">
+                <i class="bi" :class="installCommandCopied ? 'bi-check-lg' : 'bi-clipboard'"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -765,6 +775,15 @@ const downloadProgress = ref(0)
 const updateError      = ref('')
 // Linux: Pfad des Pakets, das an die Paketverwaltung übergeben wurde.
 const linuxHandoverPath = ref('')
+const installCommandCopied = ref(false)
+// apt statt dpkg: zieht fehlende Abhängigkeiten gleich mit.
+const linuxInstallCommand = computed(() => `sudo apt install "${linuxHandoverPath.value}"`)
+
+async function copyInstallCommand() {
+  await navigator.clipboard.writeText(linuxInstallCommand.value)
+  installCommandCopied.value = true
+  setTimeout(() => { installCommandCopied.value = false }, 2000)
+}
 
 const changelogLines = computed(() => {
   if (!settings.updateChangelog) return []

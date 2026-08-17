@@ -11,6 +11,7 @@ const de = {
     search: 'Suchen',
     loading: 'Lade…',
     error: 'Fehler',
+    copy: 'Kopieren',
     movie: 'Film',
     series: 'Serie',
   },
@@ -480,6 +481,7 @@ const de = {
       checkForUpdates: 'Nach Updates suchen',
       updateFailed: 'Update fehlgeschlagen.',
       linuxHandover: 'Das Paket wurde an die Paketverwaltung übergeben. Schließe die Installation dort ab und starte MovieShelf danach neu.',
+      linuxHandoverManual: 'Öffnet sich nichts Passendes — etwa ohne grafische Paketverwaltung — installiere im Terminal mit:',
     },
     backup: {
       title: 'Backup',
