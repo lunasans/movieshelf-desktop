@@ -94,14 +94,31 @@ export function useUpdateService() {
     return result.join('\n')
   }
 
+  /**
+   * Vergleicht zwei Versionen. Ein Zusatz hinter dem Bindestrich (`1.1.1-linux`,
+   * Testpakete) gilt als Vorabversion und damit als älter als dieselbe Nummer
+   * ohne Zusatz. Ohne die Trennung wäre `Number('1-linux')` gleich `NaN`, jeder
+   * Vergleich damit `false` — und die App meldete "aktuell", obwohl es ein
+   * Update gab.
+   */
   function compareVersions(v1: string, v2: string) {
-    const parts1 = v1.split('.').map(Number)
-    const parts2 = v2.split('.').map(Number)
-    for (let i = 0; i < 3; i++) {
-      if (parts1[i] > parts2[i]) return 1
-      if (parts1[i] < parts2[i]) return -1
+    const parse = (version: string) => {
+      const [core, pre] = version.split('-')
+      const numbers = core.split('.').map(n => parseInt(n, 10) || 0)
+      return { numbers, isPrerelease: !!pre }
     }
-    return 0
+    const a = parse(v1)
+    const b = parse(v2)
+
+    for (let i = 0; i < 3; i++) {
+      const left  = a.numbers[i] ?? 0
+      const right = b.numbers[i] ?? 0
+      if (left > right) return 1
+      if (left < right) return -1
+    }
+
+    if (a.isPrerelease === b.isPrerelease) return 0
+    return a.isPrerelease ? -1 : 1
   }
 
   return { checkForUpdates }
