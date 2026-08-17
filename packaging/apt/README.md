@@ -43,12 +43,12 @@ zeigen lassen; bei Cloudflare für die Ausstellung kurz ungeproxyt.
 
 ### 2. Einrichtung ausführen
 
-Als Site-Benutzer (über die VPN-Verbindung):
+Als Site-Benutzer `movieshelf-apt` (über die VPN-Verbindung):
 
 ```bash
-scp -r packaging/apt <site-user>@<server>:~/
-ssh <site-user>@<server>
-bash ~/apt/setup.sh /home/<site-user>/htdocs/apt.movieshelf.info
+scp -r packaging/apt movieshelf-apt@<server>:~/setup-files
+ssh movieshelf-apt@<server>
+bash ~/setup-files/setup.sh /home/movieshelf-apt/htdocs/apt.movieshelf.info
 ```
 
 Das Skript holt aptly nach `~/bin`, legt die aptly-Konfiguration an, erzeugt den
@@ -60,7 +60,7 @@ Website und richtet `apt-sync` ein. Mehrfaches Ausführen ist unschädlich.
 Unter der Site → *Cron Jobs*:
 
 ```
-*/15 * * * * /home/<site-user>/bin/apt-sync >> /home/<site-user>/apt/apt-sync.log 2>&1
+*/15 * * * * /home/movieshelf-apt/bin/apt-sync >> /home/movieshelf-apt/apt/apt-sync.log 2>&1
 ```
 
 Viertelstündlich reicht — ein Release muss nicht auf die Minute genau ankommen.
