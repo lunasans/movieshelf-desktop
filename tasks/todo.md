@@ -7,6 +7,13 @@ Rechteabfrage (siehe #125). Beide Wege unten nehmen dem Updater diese Aufgabe ab
 
 ---
 
+> **Stand 17.08.2026:** Teil A ist in `packaging/apt/` umgesetzt — allerdings in
+> anderer Bauform als unten geplant. SSH erreicht den Server nur über VPN und
+> der Site-Benutzer hat kein sudo, also fällt der Weg „Actions schiebt hin" aus:
+> Der Server **holt** sich das Release per Cron-Job, alles läuft unter `$HOME`.
+> Die Schritte A1–A4 unten sind damit überholt, A5 (Erkennung in der App) ist
+> gebaut. Maßgeblich ist [packaging/apt/README.md](../packaging/apt/README.md).
+
 ## Teil A — Eigene APT-Quelle (`apt.movieshelf.info`)
 
 Ziel: `sudo apt install movieshelf-desktop`, danach kommen Updates über
