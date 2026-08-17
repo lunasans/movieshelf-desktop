@@ -134,10 +134,18 @@ jobs:
         with:
           files: artifacts/*
           body: ${{ steps.changelog.outputs.body }}
+          # Plattform-Testpakete als Vorabversion kennzeichnen: electron-updater
+          # liest sonst deren latest.yml als neuesten Stand.
+          prerelease: ${{ contains(github.ref_name, '-linux') || contains(github.ref_name, '-win') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Plattform-Testpakete (-linux/-win) bleiben ein reines GitHub-Release:
+      # Der Update-Check der App fragt movieshelf.info ab, ein Webhook von hier
+      # würde die Testversion allen Plattformen anbieten — unter Windows sogar
+      # mit leerer Download-Adresse, weil dieser Build gar nicht gelaufen ist.
       - name: Website benachrichtigen
+        if: "!contains(github.ref_name, '-linux') && !contains(github.ref_name, '-win')"
         env:
           ASSETS_JSON: ${{ steps.release.outputs.assets }}
           CHANGELOG_BODY: ${{ steps.changelog.outputs.body }}
