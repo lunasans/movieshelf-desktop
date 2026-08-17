@@ -24,10 +24,25 @@ build-linux → .deb
 
 ### 1. Server
 
+Mit CloudPanel: dort zuerst eine **Static HTML Site** für `apt.movieshelf.info`
+anlegen. Die übernimmt vhost, Let's-Encrypt-Zertifikat und dessen Erneuerung —
+mehr braucht eine Paketquelle nicht, es sind statische Dateien. Danach deren
+Wurzelverzeichnis übergeben und den eigenen nginx-Teil überspringen:
+
 ```bash
 scp -r packaging/apt root@162.55.214.77:/tmp/
+ssh root@162.55.214.77 'PUBLIC_DIR=/home/<site-user>/htdocs/apt.movieshelf.info SETUP_NGINX=0 bash /tmp/apt/server-setup.sh'
+```
+
+Ohne CloudPanel (eigener nginx-vhost aus `nginx-apt.conf`):
+
+```bash
 ssh root@162.55.214.77 'bash /tmp/apt/server-setup.sh'
 ```
+
+aptly schreibt in beiden Fällen nach `/srv/apt/aptly/public`; `dists/` und
+`pool/` werden als Verweise ins Wurzelverzeichnis der Website gelegt. So bleibt
+der aptly-Zustand an einem Ort, egal wer den Webserver verwaltet.
 
 Das Skript installiert aptly und nginx, legt den Benutzer `apt` an, erzeugt den
 Signaturschlüssel, richtet das Veröffentlichungsskript ein und gibt am Ende den
@@ -63,9 +78,16 @@ Ohne den müsste der Workflow jeden Schlüssel blind annehmen.
 
 ### 3. DNS und TLS
 
-`apt.movieshelf.info` in Cloudflare auf den Server zeigen lassen, dann auf dem
-Server `certbot --nginx -d apt.movieshelf.info`. Proxy in Cloudflare kann an
-bleiben — es sind statische Dateien, das Caching ist erwünscht.
+`apt.movieshelf.info` auf den Server zeigen lassen. Mit CloudPanel erledigt die
+Static-HTML-Site das Zertifikat selbst; ohne CloudPanel auf dem Server
+`certbot --nginx -d apt.movieshelf.info`.
+
+Wichtig bei Cloudflare: Für die Zertifikatsausstellung muss der Eintrag kurz
+ungeproxyt sein, danach kann der Proxy wieder an — es sind statische Dateien,
+Caching ist erwünscht. `InRelease` sollte allerdings kurz gecacht werden
+(5 Minuten), sonst sieht `apt update` nach einer Veröffentlichung noch den
+alten Stand. In der CloudPanel-Variante geht das über eine Cache-Regel in
+Cloudflare statt über die vhost-Datei.
 
 ### 4. Repository-Variable
 
