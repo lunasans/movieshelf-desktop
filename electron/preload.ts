@@ -133,6 +133,12 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.removeAllListeners('update:error')
       ipcRenderer.on('update:error', (_event, message) => callback(message))
     },
+    // Linux: Das Paket wurde an die Paketverwaltung übergeben, die Installation
+    // läuft dort weiter – die App bleibt offen und muss danach neu gestartet werden.
+    onManualInstall: (callback: (filePath: string) => void) => {
+      ipcRenderer.removeAllListeners('update:manual-install')
+      ipcRenderer.on('update:manual-install', (_event, filePath) => callback(filePath))
+    },
   },
 
   // Trailer

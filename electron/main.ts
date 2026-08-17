@@ -491,14 +491,42 @@ autoUpdater.on('download-progress', p => {
   mainWindow?.webContents.send('update:progress', Math.round(p.percent))
 })
 
-autoUpdater.on('update-downloaded', () => {
+// Pfad der geladenen Datei merken: unter Linux ist er der Ausweg, wenn die
+// Installation an der Rechteabfrage scheitert (siehe Fehlerbehandlung unten).
+let downloadedUpdateFile: string | null = null
+
+autoUpdater.on('update-downloaded', (info) => {
+  downloadedUpdateFile = (info as { downloadedFile?: string })?.downloadedFile ?? null
   mainWindow?.webContents.send('update:ready')
 })
 
 autoUpdater.on('error', (err) => {
   updaterLog('error', err)
-  mainWindow?.webContents.send('update:error', String(err?.message || err))
+  mainWindow?.webContents.send('update:error', linuxInstallHint(err) ?? String(err?.message || err))
 })
+
+/**
+ * electron-updater installiert das .deb über `pkexec`/`sudo`. Ohne laufenden
+ * Polkit-Agenten (viele schlanke Desktops, Wayland-Sitzungen ohne Agent) bricht
+ * pkexec mit Code 127 ab — die Rohmeldung "Command pkexec exited with code 127"
+ * sagt niemandem, was zu tun ist. Stattdessen den Ordner mit dem fertigen Paket
+ * öffnen und den Befehl zum Nachinstallieren nennen.
+ */
+function linuxInstallHint(err: unknown): string | null {
+  if (process.platform !== 'linux') return null
+  const message = String((err as Error)?.message ?? err)
+  if (!/pkexec|gksudo|kdesudo|beesu|\bsudo\b/i.test(message)) return null
+
+  if (downloadedUpdateFile) {
+    shell.showItemInFolder(downloadedUpdateFile)
+    return `Die Aktualisierung konnte nicht automatisch installiert werden – die Rechteabfrage `
+      + `wurde abgebrochen oder es läuft kein Polkit-Agent. Das fertige Paket liegt hier:\n`
+      + `${downloadedUpdateFile}\n`
+      + `Installieren mit: sudo dpkg -i "${downloadedUpdateFile}"`
+  }
+  return 'Die Aktualisierung konnte nicht automatisch installiert werden – die Rechteabfrage '
+    + 'wurde abgebrochen oder es läuft kein Polkit-Agent.'
+}
 
 // Der Update-Check läuft im Renderer (updateService gegen movieshelf.info).
 // Er meldet das Ergebnis hierher, damit Tray-Icon, Tooltip und Menue den
@@ -515,7 +543,22 @@ ipcMain.handle('update:download', async () => {
   await autoUpdater.checkForUpdates()
   return autoUpdater.downloadUpdate()
 })
-ipcMain.handle('update:install',  () => {
+ipcMain.handle('update:install',  async () => {
+  // Linux: das Paket an die grafische Paketverwaltung übergeben statt es von
+  // electron-updater installieren zu lassen. Der Updater ruft dort `pkexec` mit
+  // abgeschaltetem eigenen Agenten auf und scheitert ohne laufenden Polkit-Agenten
+  // mit Code 127; GDebi, Discover & Co. bringen ihre eigene Rechteabfrage mit.
+  if (process.platform === 'linux' && downloadedUpdateFile) {
+    const error = await shell.openPath(downloadedUpdateFile)
+    if (!error) {
+      updaterLog('info', `Paket an die Paketverwaltung übergeben: ${downloadedUpdateFile}`)
+      mainWindow?.webContents.send('update:manual-install', downloadedUpdateFile)
+      return
+    }
+    // Keine Anwendung für .deb registriert – dann bleibt der Weg über den Updater.
+    updaterLog('warn', `openPath fehlgeschlagen (${error}), weiter über quitAndInstall`)
+  }
+
   ;(app as any).isQuitting = true
   // setImmediate: erst die IPC-Antwort an den Renderer flushen, dann herunterfahren –
   // sonst kann quitAndInstall den Aufruf abwürgen, bevor er beim Renderer ankommt.

@@ -1,3 +1,11 @@
+## [Unveröffentlicht]
+
+### Behoben
+
+- **Das Update unter Linux scheiterte mit "Command pkexec exited with code 127".** Die Installation lief über `pkexec` mit abgeschaltetem eigenen Abfrage-Dialog — ohne laufenden Polkit-Agenten bricht das ab, und die Rohmeldung sagte niemandem, was zu tun ist. Das geladene Paket geht jetzt an die grafische Paketverwaltung, die ihre eigene Rechteabfrage mitbringt. Klappt auch das nicht, nennt die App den Pfad zum Paket und den Befehl zum Nachinstallieren.
+
+---
+
 ## [1.1.2] - 2026-08-17
 
 ### Neu

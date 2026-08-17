@@ -479,6 +479,7 @@ const de = {
       checking: 'Prüfe...',
       checkForUpdates: 'Nach Updates suchen',
       updateFailed: 'Update fehlgeschlagen.',
+      linuxHandover: 'Das Paket wurde an die Paketverwaltung übergeben. Schließe die Installation dort ab und starte MovieShelf danach neu.',
     },
     backup: {
       title: 'Backup',
