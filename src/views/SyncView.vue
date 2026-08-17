@@ -10,7 +10,7 @@
       <i class="bi bi-cloud-slash text-3xl text-[var(--status-yellow)] block mb-3"></i>
       <p class="text-[var(--status-yellow)] text-base font-black uppercase tracking-tight mb-2">{{ $t('sync.notConnected') }}</p>
       <p class="text-[var(--text-muted)] opacity-70 text-sm max-w-xs mx-auto mb-6">{{ $t('sync.notConnectedHint') }}</p>
-      <router-link to="/settings" class="inline-block px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-red-500 text-sm font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">
+      <router-link :to="{ path: '/settings', query: { section: 'connection' } }" class="inline-block px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-red-500 text-sm font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">
         {{ $t('tmdb.toSettings') }}
       </router-link>
     </div>

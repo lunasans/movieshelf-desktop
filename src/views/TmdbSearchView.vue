@@ -20,7 +20,7 @@
       <p class="text-xs text-[var(--text-muted)] opacity-60 max-w-xs mx-auto mb-4">
         {{ $t('tmdb.noApiKeyHint') }}
       </p>
-      <router-link to="/settings"
+      <router-link :to="{ path: '/settings', query: { section: 'tmdb' } }"
         class="inline-block px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-black uppercase tracking-widest text-[var(--text-main)] hover:border-red-500/40 transition-all">
         {{ $t('tmdb.toSettings') }}
       </router-link>

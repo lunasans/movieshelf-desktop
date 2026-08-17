@@ -1,3 +1,21 @@
+## [1.1.2] - 2026-08-17
+
+### Neu
+
+- **Die saisonalen Themes verzieren das Logo.** Bei Weihnachten sitzt eine Nikolausmütze auf dem Logo in der Titelleiste, bei Halloween ein Kürbis, im Sommer eine Sonne. Reines Beiwerk, sonst ändert sich nichts.
+
+### Behoben
+
+- **Ein entfernter Jellyfin-Server kam zurück.** "Trennen" löschte nur Token und Benutzerkennung; Adresse und Benutzername blieben gespeichert und standen beim nächsten Öffnen wieder im Formular. War das Token weg, gab es überhaupt keinen Knopf mehr, um den Server loszuwerden — nur das vorausgefüllte Login. Trennen entfernt jetzt alles, und im nicht verbundenen Zustand steht "Server entfernen" bereit.
+- **Der Autostart-Schalter sprang zurück.** Der Eintrag wurde mit Startargument gesetzt, beim Auslesen aber ohne abgefragt — Windows vergleicht beides und meldete daraufhin "aus", obwohl der Autostart eingetragen war.
+- **Verweise auf die Einstellungen landeten im falschen Bereich.** Die Links aus dem Abgleich, der TMDb-Suche und dem Onboarding öffneten immer den zuerst gezeigten Bereich statt Verbindung beziehungsweise TMDb.
+
+### Intern
+
+- Der Bereich "Erscheinungsbild" ist aufgelöst: Design und Sprache stehen jetzt unter "Allgemein", die Bereichsliste ist alphabetisch sortiert.
+
+---
+
 ## [1.1.1] - 2026-08-15
 
 ### Behoben

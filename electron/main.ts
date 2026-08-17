@@ -440,15 +440,21 @@ ipcMain.handle('logs:open-folder', () => {
 
 // ── Autostart (Login Item) ───────────────────────────────────────────────────
 // Nutzt das Betriebssystem (Windows-Registry/macOS Login Items), nicht NSIS.
-ipcMain.handle('app:get-autostart', () => app.getLoginItemSettings().openAtLogin)
+// Beim Login leise ins Tray starten (von createWindow/ready-to-show ausgewertet).
+// Windows vergleicht den Registry-Eintrag mit Pfad *und* Argumenten: wird beim
+// Abfragen nicht dasselbe `args` mitgegeben wie beim Setzen, meldet Electron
+// openAtLogin: false, obwohl der Autostart eingetragen ist — der Schalter
+// sprang dadurch sofort wieder zurück.
+const autostartOptions = { path: process.execPath, args: ['--hidden'] }
+
+ipcMain.handle('app:get-autostart', () => app.getLoginItemSettings(autostartOptions).openAtLogin)
 
 ipcMain.handle('app:set-autostart', (_event, enabled: boolean) => {
   app.setLoginItemSettings({
+    ...autostartOptions,
     openAtLogin: enabled,
-    // Beim Login leise ins Tray starten (von createWindow/ready-to-show ausgewertet).
-    args: enabled ? ['--hidden'] : [],
   })
-  return app.getLoginItemSettings().openAtLogin
+  return app.getLoginItemSettings(autostartOptions).openAtLogin
 })
 
 // ── Auto-Updater (electron-updater) ──────────────────────────────────────────

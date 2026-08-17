@@ -28,6 +28,14 @@
         <i class="bi bi-box-arrow-in-right"></i>
         {{ loginLoading ? $t('jellyfin.connecting') : $t('jellyfin.connect') }}
       </button>
+      <!-- Ohne gültiges Token, aber mit gespeicherter Adresse steht hier sonst nur
+           das vorausgefüllte Formular ohne jede Möglichkeit, den Server wieder
+           loszuwerden. -->
+      <button v-if="status.url || status.user" @click="doLogout"
+        class="w-full text-xs font-bold text-[var(--text-muted)] hover:text-red-500 transition-colors py-1">
+        {{ $t('jellyfin.forget') }}
+      </button>
+
       <p v-if="error" class="text-red-500 text-xs text-center font-bold">{{ error }}</p>
     </section>
 
@@ -192,6 +200,10 @@ async function doLogout() {
   selected.value = []
   result.value = null
   progress.value = null
+  error.value = ''
+  // Formular leeren, sonst füllt refresh() die alten Werte wieder ein und der
+  // Server sieht aus, als wäre er noch hinterlegt.
+  form.value = { url: '', username: '', password: '' }
   await refresh()
 }
 
