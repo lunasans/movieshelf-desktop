@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('electron', {
       featured:(limit?: number)        => ipcRenderer.invoke('db:movies:featured', limit),
       duplicates: ()                   => ipcRenderer.invoke('db:movies:duplicates'),
       setUserRating: (id: number, rating: number | null) => ipcRenderer.invoke('db:movies:set-user-rating', id, rating),
+        setWishlisted:   (id: number, wishlisted: boolean) => ipcRenderer.invoke('db:movies:set-wishlisted', id, wishlisted),
+        wishlist:        () => ipcRenderer.invoke('db:movies:wishlist'),
       get:          (id: number)       => ipcRenderer.invoke('db:movies:get', id),
       getByRemoteId:(id: number)       => ipcRenderer.invoke('db:movies:get-by-remote-id', id),
       create:  (data: object)          => ipcRenderer.invoke('db:movies:create', data),
@@ -48,6 +50,9 @@ contextBridge.exposeInMainWorld('electron', {
         markWatchedSynced: (id: number, isWatched: boolean) =>
           ipcRenderer.invoke('db:sync:mark-watched-synced', { id, isWatched }),
         pendingUserRatings: () => ipcRenderer.invoke('db:sync:pending-user-ratings'),
+        pendingWishlist: () => ipcRenderer.invoke('db:sync:pending-wishlist'),
+        markWishlistSynced: (id: number, wishlisted: boolean) =>
+          ipcRenderer.invoke('db:sync:mark-wishlist-synced', { id, wishlisted }),
         markUserRatingSynced: (id: number, rating: number | null) =>
           ipcRenderer.invoke('db:sync:mark-user-rating-synced', { id, rating }),
         pendingEpisodesWatched: () => ipcRenderer.invoke('db:sync:pending-episodes-watched'),

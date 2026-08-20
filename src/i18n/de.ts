@@ -20,6 +20,7 @@ const de = {
     movies: 'Filme',
     series: 'Serien',
     lists: 'Listen',
+    wishlist: 'Wunschliste',
     stats: 'Statistiken',
     tmdbSearch: 'TMDb Suche',
     sync: 'Synchronisation',
@@ -43,6 +44,13 @@ const de = {
     confirmOthers: 'Alle Geräte und Apps ausser diesem verlieren den Zugriff. Dieser Rechner bleibt angemeldet.',
     needsNewerShelf: 'Dafür braucht deine Shelf mindestens Version 2.43.0.',
     retry: 'Erneut versuchen',
+  },
+  wishlist: {
+    title: 'Wunschliste',
+    subtitle: 'Titel, die du dir vorgemerkt hast',
+    empty: 'Noch nichts vorgemerkt',
+    emptyHint: 'Tippe in der Filmansicht auf das Herz, um einen Titel vorzumerken.',
+    toggle: 'Vormerken',
   },
   jellyfin: {
     title: 'Jellyfin-Import',

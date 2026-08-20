@@ -408,6 +408,7 @@ export function useSyncEngine() {
           is_boxset: movie.is_boxset ? 1 : 0, boxset_parent_remote_id: movie.boxset_parent_id ?? null,
           view_count: movie.view_count ?? 0, is_watched: movie.is_watched ? 1 : 0,
           user_rating: movie.user_rating ?? null,
+          is_wishlisted: movie.is_wishlisted ? 1 : 0,
           in_collection: movie.in_collection != null ? (movie.in_collection ? 1 : 0) : 1,
         }) as { id: number } | null
 
@@ -584,6 +585,7 @@ export function useSyncEngine() {
     pushErrors += watched.errors
 
     const ratings = await pushUserRatings()
+    const merkliste = await pushWishlist()
     pushed += ratings.pushed
     pushErrors += ratings.errors
 
@@ -667,6 +669,33 @@ export function useSyncEngine() {
    * Der Endpunkt setzt direkt statt umzuschalten, ein zweiter Aufruf wie bei
    * applyWatchedState erübrigt sich. Die 0 entfernt die Bewertung.
    */
+  /**
+   * Offene Vormerkungen hochschieben.
+   *
+   * Der Endpunkt ist ein Umschalter und antwortet mit dem Stand, den die Shelf
+   * nun führt — der gilt, nicht der gewünschte.
+   */
+  async function pushWishlist(): Promise<{ pushed: number; errors: number }> {
+    let pushed = 0
+    let errors = 0
+
+    for (const row of await window.electron.db.movies.sync.pendingWishlist()) {
+      try {
+        const res = await apiPost(`/movies/${row.remote_id}/wishlist`) as { wishlisted?: boolean }
+        const stand = res?.wishlisted ?? !!row.is_wishlisted
+        await window.electron.db.movies.sync.markWishlistSynced(row.id, stand)
+        if (stand !== !!row.is_wishlisted) {
+          await window.electron.db.movies.setWishlisted(row.id, stand)
+        }
+        pushed++
+      } catch {
+        errors++
+      }
+    }
+
+    return { pushed, errors }
+  }
+
   async function pushUserRatings(): Promise<{ pushed: number; errors: number }> {
     let pushed = 0
     let failed = 0

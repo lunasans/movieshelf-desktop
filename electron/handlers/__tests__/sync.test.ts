@@ -4,9 +4,10 @@ import { createTestDb, insertMovie } from './testDb'
 import {
   getDirtyMovies, markSynced, hardDelete, getPendingWatched, markWatchedSynced,
   getPendingUserRatings, markUserRatingSynced,
+  getPendingWishlist, markWishlistSynced,
   getPendingEpisodesWatched, markEpisodeWatchedSynced,
 } from '../sync'
-import { toggleWatched, setUserRating } from '../movies'
+import { toggleWatched, setUserRating, setWishlisted, wishlist } from '../movies'
 import { upsertSeason, upsertEpisode, toggleEpisodeWatched } from '../seasons'
 
 let db: Database.Database
@@ -267,5 +268,59 @@ describe('getPendingEpisodesWatched', () => {
     const offen = getPendingEpisodesWatched(db)
     expect(offen).toHaveLength(1)
     expect(offen[0].movie_title).toBeNull()
+  })
+})
+
+
+/**
+ * Die Wunschliste hängt am Benutzer und hat einen eigenen Endpunkt — deshalb
+ * dieselbe Bauart wie Bewertung und Gesehen-Stand: ein eigener bestätigter
+ * Stand, und eine offene Vormerkung überlebt den Pull.
+ *
+ * Nicht zu verwechseln mit `in_collection`: das hängt am Film und sagt, ob er
+ * zur Sammlung gehört. Ein Titel kann beides sein.
+ */
+describe('Wunschliste', () => {
+  it('zeigt nur vorgemerkte Titel', () => {
+    const gemerkt = insertMovie(db, { title: 'Vorgemerkt' })
+    insertMovie(db, { title: 'Nur gesammelt' })
+    setWishlisted(db, gemerkt, true)
+
+    expect((wishlist(db) as any[]).map(m => m.title)).toEqual(['Vorgemerkt'])
+  })
+
+  it('unterscheidet Vormerkung und Sammlung', () => {
+    // Genau der Fall, den ein Filter auf in_collection nie zeigen würde.
+    const beides = insertMovie(db, { title: 'Beides', in_collection: 1 })
+    setWishlisted(db, beides, true)
+
+    expect((wishlist(db) as any[]).map(m => m.title)).toEqual(['Beides'])
+  })
+
+  it('nimmt die Vormerkung wieder zurück', () => {
+    const id = insertMovie(db, { title: 'Kurz gemerkt' })
+    setWishlisted(db, id, true)
+    setWishlisted(db, id, false)
+
+    expect((wishlist(db) as any[]).length).toBe(0)
+  })
+
+  it('meldet eine frisch gesetzte Vormerkung als offen', () => {
+    const id = insertMovie(db, { title: 'Arrival', remote_id: 7 })
+    expect(getPendingWishlist(db).length).toBe(0)
+
+    setWishlisted(db, id, true)
+    expect(getPendingWishlist(db).map(r => r.title)).toEqual(['Arrival'])
+
+    markWishlistSynced(db, id, true)
+    expect(getPendingWishlist(db).length).toBe(0)
+  })
+
+  it('meldet nur Titel, die die Shelf kennt', () => {
+    // Ohne remote_id muss der Film erst selbst dorthin.
+    const id = insertMovie(db, { title: 'Nur lokal' })
+    setWishlisted(db, id, true)
+
+    expect(getPendingWishlist(db).length).toBe(0)
   })
 })

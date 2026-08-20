@@ -8,6 +8,7 @@ const ALLOWED_MOVIE_COLUMNS = new Set([
   'collection_type', 'tag', 'tmdb_id', 'remote_id', 'synced_at',
   'edition', 'region_code', 'disc_location', 'purchase_date', 'purchase_price', 'condition',
   'user_rating',
+  'is_wishlisted',
   'created_at',
 ])
 
@@ -331,11 +332,11 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     INSERT INTO movies (title, year, genre, director, runtime, rating, rating_age, overview,
       cover_path, backdrop_path, actors_names, trailer_url, collection_type, tag, tmdb_id, remote_id,
       edition, region_code, disc_location, purchase_date, purchase_price, condition,
-      is_boxset, boxset_parent_id, boxset_parent_remote_id, view_count, is_watched, synced_watched, user_rating, synced_user_rating, in_collection, collection_no, created_at, updated_at)
+      is_boxset, boxset_parent_id, boxset_parent_remote_id, view_count, is_watched, synced_watched, user_rating, synced_user_rating, is_wishlisted, synced_wishlisted, in_collection, collection_no, created_at, updated_at)
     VALUES (@title, @year, @genre, @director, @runtime, @rating, @rating_age, @overview,
       @cover_path, @backdrop_path, @actors_names, @trailer_url, @collection_type, @tag, @tmdb_id, @remote_id,
       @edition, @region_code, @disc_location, @purchase_date, @purchase_price, @condition,
-      @is_boxset, @boxset_parent_id, @boxset_parent_remote_id, @view_count, @is_watched, @synced_watched, @user_rating, @user_rating, @in_collection, @collection_no, @created_at, @updated_at)
+      @is_boxset, @boxset_parent_id, @boxset_parent_remote_id, @view_count, @is_watched, @synced_watched, @user_rating, @user_rating, @is_wishlisted, @is_wishlisted, @in_collection, @collection_no, @created_at, @updated_at)
     ON CONFLICT(remote_id) DO UPDATE SET
       title = EXCLUDED.title, year = EXCLUDED.year, genre = EXCLUDED.genre,
       director = EXCLUDED.director, runtime = EXCLUDED.runtime, rating = EXCLUDED.rating,
@@ -360,6 +361,12 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
         THEN movies.synced_watched ELSE EXCLUDED.is_watched END,
       -- Dasselbe für die eigene Bewertung: eine noch nicht übertragene
       -- Änderung behält recht, sonst ginge sie still verloren.
+      is_wishlisted = CASE
+        WHEN movies.is_wishlisted IS NOT movies.synced_wishlisted
+        THEN movies.is_wishlisted ELSE EXCLUDED.is_wishlisted END,
+      synced_wishlisted = CASE
+        WHEN movies.is_wishlisted IS NOT movies.synced_wishlisted
+        THEN movies.synced_wishlisted ELSE EXCLUDED.is_wishlisted END,
       user_rating = CASE
         WHEN movies.user_rating IS NOT movies.synced_user_rating
         THEN movies.user_rating ELSE EXCLUDED.user_rating END,
@@ -377,7 +384,7 @@ export function createMovie(db: Database.Database, data: Record<string, unknown>
     trailer_url: null, collection_type: 'Film', tag: null, tmdb_id: null, remote_id: null,
     edition: null, region_code: null, disc_location: null, purchase_date: null, purchase_price: null, condition: null,
     is_boxset: 0, boxset_parent_id: null, boxset_parent_remote_id: null,
-    view_count: 0, is_watched: 0, user_rating: null, in_collection: 1,
+    view_count: 0, is_watched: 0, user_rating: null, is_wishlisted: 0, in_collection: 1,
     collection_no: nextCollectionNo,
     ...data,
     // Kommt die Zeile vom Server, ist ihr Gesehen-Stand dort per Definition
@@ -519,6 +526,29 @@ export function setUserRating(db: Database.Database, id: number, rating: number 
   return { user_rating: ziel }
 }
 
+/**
+ * Vormerkung setzen — die Wunschliste.
+ *
+ * Zuerst lokal, wie Bewertung und Gesehen-Stand: die Liste steht damit sofort
+ * richtig, auch ohne Netz. Der Versand laeuft ueber den Abgleich, der die
+ * offenen Vormerkungen einsammelt.
+ */
+export function setWishlisted(db: Database.Database, id: number, wishlisted: boolean): { is_wishlisted: boolean } {
+  const vorhanden = db.prepare('SELECT id FROM movies WHERE id = ?').get(id)
+  if (!vorhanden) return { is_wishlisted: false }
+
+  db.prepare('UPDATE movies SET is_wishlisted = ? WHERE id = ?').run(wishlisted ? 1 : 0, id)
+
+  return { is_wishlisted: wishlisted }
+}
+
+/** Die Wunschliste: was vorgemerkt ist, ohne die geloeschten Zeilen. */
+export function wishlist(db: Database.Database): unknown[] {
+  return db.prepare(
+    'SELECT * FROM movies WHERE is_wishlisted = 1 AND is_deleted = 0 ORDER BY title COLLATE NOCASE'
+  ).all()
+}
+
 export function toggleWatched(db: Database.Database, id: number): { is_watched: boolean } {
   const now = new Date().toISOString()
 
@@ -628,6 +658,8 @@ export function registerMovieHandlers(): void {
   ipcMain.handle('db:movies:random',           (_e, f)        => randomMovie(db(), f))
   ipcMain.handle('db:movies:toggle-watched',   (_e, id)       => toggleWatched(db(), id))
   ipcMain.handle('db:movies:set-user-rating',  (_e, id, r)    => setUserRating(db(), id, r))
+  ipcMain.handle('db:movies:set-wishlisted',   (_e, id, w)    => setWishlisted(db(), id, w))
+  ipcMain.handle('db:movies:wishlist',         ()             => wishlist(db()))
   ipcMain.handle('db:movies:bulk-delete',      (_e, ids)      => bulkDelete(db(), ids))
   ipcMain.handle('db:movies:bulk-tag',         (_e, ids, tag) => bulkUpdateTag(db(), ids, tag))
   ipcMain.handle('db:movies:import',           (_e, rows)     => importMovies(db(), rows))

@@ -21,6 +21,7 @@ const en = {
     movies: 'Movies',
     series: 'Series',
     lists: 'Lists',
+    wishlist: 'Wishlist',
     stats: 'Statistics',
     tmdbSearch: 'TMDb Search',
     sync: 'Synchronization',
@@ -44,6 +45,13 @@ const en = {
     confirmOthers: 'Every device and app except this one loses access. This computer stays signed in.',
     needsNewerShelf: 'This needs shelf version 2.43.0 or newer.',
     retry: 'Try again',
+  },
+  wishlist: {
+    title: 'Wishlist',
+    subtitle: 'Titles you noted down',
+    empty: 'Nothing noted down yet',
+    emptyHint: 'Click the heart on a movie to add it to your wishlist.',
+    toggle: 'Add to wishlist',
   },
   jellyfin: {
     title: 'Jellyfin import',

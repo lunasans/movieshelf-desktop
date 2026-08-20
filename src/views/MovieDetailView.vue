@@ -131,6 +131,18 @@
                 <i class="bi bi-star-fill"></i>
               </button>
             </div>
+            <!-- Vormerkung: eigenes Merkmal neben der Bewertung, nicht zu
+                 verwechseln mit "in der Sammlung". -->
+            <button
+              @click="toggleWishlist"
+              :aria-label="$t('wishlist.toggle')"
+              :title="$t('wishlist.toggle')"
+              class="ml-4 text-xl leading-none transition-all active:scale-90"
+              :class="isWishlisted ? 'text-rose-500' : 'text-[var(--text-muted)] opacity-25 hover:opacity-60'"
+            >
+              <i :class="isWishlisted ? 'bi bi-heart-fill' : 'bi bi-heart'"></i>
+            </button>
+
             <span v-if="userRating > 0" class="text-xs font-medium text-[var(--text-muted)]">
               {{ userRating }}/5
             </span>
@@ -464,6 +476,23 @@ const userRating  = computed(() => Number(movie.value?.user_rating ?? 0))
 
 // Erneut auf denselben Stern zu klicken löscht die Bewertung; das entscheidet
 // der Handler, hier wird nur das Ergebnis übernommen.
+const isWishlisted = computed(() => !!movie.value?.is_wishlisted)
+
+/**
+ * Vormerkung umschalten.
+ *
+ * Nur lokal — der Versand läuft über den Abgleich, der die offenen
+ * Vormerkungen einsammelt. So steht das Herz sofort richtig, auch ohne Netz.
+ */
+async function toggleWishlist() {
+  if (!movie.value) return
+  const { is_wishlisted } = await window.electron.db.movies.setWishlisted(
+    movie.value.id as number,
+    !isWishlisted.value,
+  )
+  movie.value.is_wishlisted = is_wishlisted ? 1 : 0
+}
+
 async function setUserRating(stern: number) {
   if (!movie.value) return
   const { user_rating } = await window.electron.db.movies.setUserRating(movie.value.id, stern)
