@@ -8,3 +8,9 @@ release/
 
 # Python-Bytecode aus packaging/winget/release-notes.py
 __pycache__/
+
+# Ergebnisse der E2E-Laeufe (Playwright legt sie bei jedem Fehlschlag an)
+/test-results/
+/playwright-report/
+# IDE-Einstellungen des jeweiligen Rechners
+/.idea/

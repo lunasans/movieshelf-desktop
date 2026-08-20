@@ -194,6 +194,12 @@
         <JellyfinPanel />
       </template>
 
+      <!-- ── Zugriffe ── -->
+      <template v-if="active === 'access'">
+        <SectionHeader icon="key" :title="$t('access.title')" />
+        <AccessPanel />
+      </template>
+
       <!-- ── Updates ── -->
       <template v-if="active === 'updates'">
         <SectionHeader icon="arrow-repeat" :title="$t('settings.updates.title')" />
@@ -635,6 +641,7 @@ import { useUpdateService } from '@/services/updateService'
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher.vue'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher.vue'
 import JellyfinPanel from '@/components/settings/JellyfinPanel.vue'
+import AccessPanel from '@/components/settings/AccessPanel.vue'
 
 const { t, locale } = useI18n()
 
@@ -834,6 +841,7 @@ const sections = [
   { id: 'jellyfin',   icon: 'hdd-network',   labelKey: 'settings.sections.jellyfin'   },
   { id: 'updates',    icon: 'arrow-repeat',  labelKey: 'settings.sections.updates'    },
   { id: 'connection', icon: 'cloud',         labelKey: 'settings.sections.connection' },
+  { id: 'access',     icon: 'key',           labelKey: 'settings.sections.access'     },
   { id: 'about',      icon: 'info-circle',   labelKey: 'settings.sections.about'      },
 ]
 
