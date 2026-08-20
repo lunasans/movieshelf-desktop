@@ -1,3 +1,12 @@
+## [1.2.0] - 2026-08-20
+
+### Neu
+
+- **Angemeldete Geräte sehen und abmelden.** Unter *Einstellungen → Zugriffe* stehen die Geräte und verbundenen Apps, die auf dein Konto zugreifen — mit dem Datum der letzten Nutzung. Was du nicht wiedererkennst, meldest du dort ab; wer sein Notebook verliert, musste dafür bisher in die Weboberfläche. Der eigene Zugang ist gekennzeichnet, und wer ihn widerruft, wird vorher gefragt.
+- **Wunschliste.** Ein Herz in der Filmansicht merkt einen Titel vor, eine eigene Seite zeigt alle vorgemerkten. Nicht zu verwechseln mit der Sammlung: ein Titel kann vorgemerkt sein und trotzdem im Regal stehen. Die Vormerkung wird sofort gespeichert, auch ohne Netz, und geht beim nächsten Abgleich zur Shelf.
+
+---
+
 ## [1.1.3-linux] - 2026-08-17
 
 Testpaket, nur für Linux gebaut.

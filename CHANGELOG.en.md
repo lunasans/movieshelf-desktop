@@ -7,6 +7,15 @@ Bugfix releases are documented in `CHANGELOG.md` only.
 Keep the heading format identical to `CHANGELOG.md` (`## [x.y.z] - YYYY-MM-DD`); the
 release workflow cuts the section out by matching it.
 
+## [1.2.0] - 2026-08-20
+
+### New
+
+- **See and revoke signed-in devices.** *Settings → Access* lists the devices and connected apps with access to your account, along with when each was last used. Revoke anything you do not recognise — losing a laptop used to mean going to the web interface. Your current access is marked, and revoking it asks first.
+- **Wishlist.** A heart in the movie view notes a title down, and a page of its own shows everything you noted. Not the same as the collection: a title can be on the wishlist and still sit on your shelf. The note is saved immediately, even offline, and reaches the shelf on the next sync.
+
+---
+
 ## [1.1.0] - 2026-08-15
 
 Ratings and episode progress now actually reach the shelf — and the sync finally
