@@ -95,6 +95,8 @@ interface Window {
         featured:        (limit?: number) => Promise<unknown[]>
         duplicates:      () => Promise<{ reason: 'tmdb' | 'title'; label: string; movies: any[] }[]>
         setUserRating:   (id: number, rating: number | null) => Promise<{ user_rating: number | null }>
+        setWishlisted:   (id: number, wishlisted: boolean) => Promise<{ is_wishlisted: boolean }>
+        wishlist:        () => Promise<Record<string, unknown>[]>
         get:             (id: number) => Promise<unknown>
         getByRemoteId:   (id: number) => Promise<Record<string, unknown> | null>
         create:          (data: Record<string, unknown>) => Promise<unknown>
@@ -132,6 +134,8 @@ interface Window {
           pendingWatched:    () => Promise<{ id: number; remote_id: number; title: string; is_watched: number }[]>
           markWatchedSynced: (id: number, isWatched: boolean) => Promise<void>
         pendingUserRatings: () => Promise<{ id: number; remote_id: number; title: string; user_rating: number | null }[]>
+        pendingWishlist: () => Promise<{ id: number; remote_id: number; title: string; is_wishlisted: number }[]>
+        markWishlistSynced: (id: number, wishlisted: boolean) => Promise<void>
         markUserRatingSynced: (id: number, rating: number | null) => Promise<void>
         pendingEpisodesWatched: () => Promise<{ id: number; remote_id: number; title: string | null; is_watched: number; movie_remote_id: number | null; movie_title: string | null }[]>
         markEpisodeWatchedSynced: (id: number, isWatched: boolean) => Promise<void>

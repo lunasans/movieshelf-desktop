@@ -119,6 +119,14 @@ function runMigrations(instance: Database.Database = db): void {
   // Übertragung; ohne den Merker liesse sich "steht noch aus" nicht von
   // "längst übertragen" unterscheiden.
   try { instance.exec('ALTER TABLE movies ADD COLUMN synced_user_rating INTEGER') } catch (e) {}
+
+  // Wunschliste: "das will ich mir merken". Nicht zu verwechseln mit
+  // in_collection, das am Film haengt und sagt, ob er zur Sammlung gehoert —
+  // ein Titel kann beides sein. Wie bei der Bewertung fuehrt sie einen eigenen
+  // bestaetigten Stand mit, weil sie am Benutzer haengt und einen eigenen
+  // Endpunkt hat.
+  try { instance.exec('ALTER TABLE movies ADD COLUMN is_wishlisted INTEGER DEFAULT 0') } catch (e) {}
+  try { instance.exec('ALTER TABLE movies ADD COLUMN synced_wishlisted INTEGER DEFAULT 0') } catch (e) {}
   // Bestand gilt als übertragen — sonst schöbe der erste Abgleich jede schon
   // vorhandene Bewertung als vermeintliche Änderung zur Shelf.
   try { instance.exec('UPDATE movies SET synced_user_rating = user_rating WHERE synced_user_rating IS NULL') } catch (e) {}

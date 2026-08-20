@@ -71,6 +71,25 @@ export function markUserRatingSynced(db: Database.Database, id: number, rating: 
 }
 
 /**
+ * Offene Vormerkungen — dieselbe Bauart wie Bewertung und Gesehen-Stand: die
+ * Wunschliste hängt am Benutzer, hat einen eigenen Endpunkt und deshalb einen
+ * eigenen bestätigten Stand.
+ */
+export function getPendingWishlist(db: Database.Database): {
+  id: number; remote_id: number; title: string; is_wishlisted: number
+}[] {
+  return db.prepare(`
+    SELECT id, remote_id, title, is_wishlisted FROM movies
+    WHERE is_deleted = 0 AND remote_id IS NOT NULL
+      AND is_wishlisted IS NOT synced_wishlisted
+  `).all() as { id: number; remote_id: number; title: string; is_wishlisted: number }[]
+}
+
+export function markWishlistSynced(db: Database.Database, id: number, wishlisted: boolean): void {
+  db.prepare('UPDATE movies SET synced_wishlisted = ? WHERE id = ?').run(wishlisted ? 1 : 0, id)
+}
+
+/**
  * Offene Folgen-Markierungen. Nur Folgen mit remote_id lassen sich übertragen —
  * rein lokal aus TMDb importierte kennt die Shelf nicht.
  */
@@ -118,6 +137,8 @@ export function registerSyncHandlers(): void {
   ipcMain.handle('db:sync:mark-watched-synced', (_e, p) => markWatchedSynced(db(), p.id, p.isWatched))
   ipcMain.handle('db:sync:pending-user-ratings', ()     => getPendingUserRatings(db()))
   ipcMain.handle('db:sync:mark-user-rating-synced', (_e, p) => markUserRatingSynced(db(), p.id, p.rating))
+  ipcMain.handle('db:sync:pending-wishlist', ()     => getPendingWishlist(db()))
+  ipcMain.handle('db:sync:mark-wishlist-synced', (_e, p) => markWishlistSynced(db(), p.id, p.wishlisted))
   ipcMain.handle('db:sync:pending-episodes-watched', () => getPendingEpisodesWatched(db()))
   ipcMain.handle('db:sync:mark-episode-watched-synced', (_e, p) => markEpisodeWatchedSynced(db(), p.id, p.isWatched))
 }

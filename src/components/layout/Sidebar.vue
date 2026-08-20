@@ -8,6 +8,7 @@
       <SidebarItem to="/movies" icon="film" :label="$t('nav.movies')" :exact="true" />
       <SidebarItem to="/series" icon="tv" :label="$t('nav.series')" />
       <SidebarItem to="/lists" icon="collection-fill" :label="$t('nav.lists')" />
+      <SidebarItem to="/wishlist" icon="heart-fill" :label="$t('nav.wishlist')" />
       <SidebarItem to="/stats" icon="bar-chart-fill" :label="$t('nav.stats')" />
       <SidebarItem to="/tmdb" icon="search" :label="$t('nav.tmdbSearch')" />
     </nav>

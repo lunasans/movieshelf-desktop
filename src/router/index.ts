@@ -51,6 +51,11 @@ const router = createRouter({
       component: () => import('@/views/ListsView.vue'),
     },
     {
+      path: '/wishlist',
+      name: 'wishlist',
+      component: () => import('@/views/WishlistView.vue'),
+    },
+    {
       path: '/lists/:id',
       name: 'lists.show',
       component: () => import('@/views/ListDetailView.vue'),
