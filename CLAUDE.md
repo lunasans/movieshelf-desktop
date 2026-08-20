@@ -111,6 +111,40 @@ npm run test:e2e:ui   # with interactive UI
 
 **Current version:** 0.25.1
 
+### Parity with the Android app
+
+**MovieShelf Desktop and MovieShelf Android are meant to behave near-identically.**
+They are two front ends onto the same collection, and a user moving between them
+should not have to relearn anything or find that a title looks different depending
+on which one imported it. The Android sources live at `../android`.
+
+What this means in practice:
+
+- **A new feature on one side is a gap on the other.** Note it in the other app's
+  roadmap (`../android/ROADMAP.md`) rather than letting the two drift apart
+  silently. The same goes the other way: features that exist only on Android
+  (2FA management, wishlist toggle, cover upload, OAuth login) are open items here.
+- **Shared rules get ported, not reinvented.** Where both apps interpret the same
+  data — Jellyfin's runtime ticks and age ratings, TMDb match selection, duplicate
+  detection, sort keys — the logic is deliberately a port of the other side's, so
+  the same library yields the same collection. `electron/handlers/jellyfin.ts` and
+  `android/.../data/jellyfin/JellyfinMapping.kt` are a matched pair; changing a
+  rule in one is only half the change.
+- **Counts must agree.** Series are counted separately from films (`totalSeries`
+  next to `totalFilms`), boxsets count as their parts, and so on. If a number here
+  differs from the same number on Android or in the web shelf, one of the three is
+  wrong.
+- **Neither app is the reference for API behaviour.** This app takes ratings only
+  from `/admin/export`; Android also reads `GET /movies/{id}`. That difference hid
+  a server bug for months (`user_rating` missing from the single-movie response).
+  When one client works and the other does not, suspect the endpoint before
+  suspecting the client.
+
+Deliberate differences are fine where the platform demands them — a separate stats
+window makes no sense on a phone, a table view does not fit a small screen, and
+physical media fields matter more on the desktop. Record those as decisions rather
+than leaving them to look like oversights.
+
 ### Process boundary: the IPC bridge
 
 All communication between the renderer (Vue) and the main process goes through a strict IPC bridge:
