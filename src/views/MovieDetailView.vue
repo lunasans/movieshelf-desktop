@@ -503,11 +503,16 @@ async function setUserRating(stern: number) {
 // Nur für diese Stufen gibt es ein Siegel (public/img/fsk, aus der Shelf
 // übernommen). TMDb liefert gelegentlich andere Werte — die bekommen eine
 // Textpille, statt ein fehlendes Bild zu zeigen.
+//
+// BASE_URL ist noetig, weil der Pfad hier zur Laufzeit entsteht und deshalb
+// nicht vom Bundler umgeschrieben wird: die gepackte App laeuft ueber file://,
+// wo ein fuehrendes "/" auf die Wurzel des Dateisystems zeigt statt in den
+// App-Ordner. Im Dev-Server ist BASE_URL "/", im Build "./".
 const FSK_STUFEN = [0, 6, 12, 16, 18]
 const fskImage = computed(() => {
   const alter = movie.value?.rating_age
   return alter != null && FSK_STUFEN.includes(Number(alter))
-    ? `/img/fsk/fsk-${Number(alter)}.svg`
+    ? `${import.meta.env.BASE_URL}img/fsk/fsk-${Number(alter)}.svg`
     : null
 })
 
