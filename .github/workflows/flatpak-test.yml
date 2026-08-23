@@ -17,7 +17,7 @@ on:
 jobs:
   build-flatpak:
     name: Build Linux (Flatpak)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     steps:
       - uses: actions/checkout@v4
 

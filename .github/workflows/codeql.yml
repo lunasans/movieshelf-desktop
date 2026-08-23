@@ -9,7 +9,7 @@ on:
 jobs:
   analyze:
     name: Analyze (javascript-typescript)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     permissions:
       security-events: write
       actions: read
