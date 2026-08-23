@@ -18,6 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Auf GitHub-hosted Runnern ist Node vorinstalliert, auf dem eigenen
+      # Runner nicht - ohne diesen Schritt scheitert "npm install" mit 127.
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
       - name: CodeQL initialisieren
         uses: github/codeql-action/init@v3
         with:
