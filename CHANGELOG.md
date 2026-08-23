@@ -1,3 +1,15 @@
+## [1.2.1] - 2026-08-23
+
+### Behoben
+
+- **Die FSK-Siegel fehlten.** In der Filmansicht stand statt der Alterskennzeichnung nur das Symbol für ein fehlendes Bild. Der Pfad zum Siegel wurde erst beim Anzeigen zusammengesetzt und blieb dabei absolut — in der installierten App suchte er deshalb im Wurzelverzeichnis des Rechners statt im Programmordner. In der Entwicklungsfassung fiel das nicht auf, weil dort anders ausgeliefert wird.
+
+### Intern
+
+- Die Testläufe auf GitHub laufen jetzt auf einem eigenen Runner statt auf geliehenen Maschinen. Einzige Ausnahme ist der Windows-Installer: dessen Datenbankmodul lässt sich nur auf Windows selbst übersetzen.
+
+---
+
 ## [1.2.0] - 2026-08-20
 
 ### Neu
