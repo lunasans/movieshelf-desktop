@@ -28,7 +28,7 @@ on:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     steps:
       # Fuer packaging/winget/release-notes.py und die beiden Changelogs.
       # Der Tag, nicht der Standardbranch: die Notizen sollen aus dem Changelog

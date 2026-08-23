@@ -17,7 +17,7 @@ jobs:
     name: Build Linux (.deb)
     needs: [ci]
     if: "!contains(github.ref_name, '-win')"
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     steps:
       - uses: actions/checkout@v4
 
@@ -96,7 +96,7 @@ jobs:
     name: Website benachrichtigen
     needs: [build-linux, build-windows]
     if: always() && (needs.build-linux.result == 'success' || needs.build-linux.result == 'skipped') && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped') && (needs.build-linux.result == 'success' || needs.build-windows.result == 'success')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     permissions:
       contents: write
     steps:
@@ -179,7 +179,7 @@ jobs:
     name: winget einreichen
     needs: [notify]
     if: startsWith(github.ref, 'refs/tags/v') && endsWith(github.ref_name, '.0') && !contains(github.ref_name, '-linux')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     steps:
       # Fuer packaging/winget/release-notes.py und die beiden Changelogs.
       - uses: actions/checkout@v4
@@ -241,7 +241,7 @@ jobs:
     # Plattform-Testpakete (-linux/-win) werden nicht angekuendigt - gleiche
     # Begruendung wie beim uebersprungenen Webhook im notify-Job.
     if: needs.notify.result == 'success' && !contains(github.ref_name, '-linux') && !contains(github.ref_name, '-win')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     steps:
       - name: Diskussion im Forum erstellen
         env:
