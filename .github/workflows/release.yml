@@ -17,7 +17,7 @@ jobs:
     name: Build Linux (.deb)
     needs: [ci]
     if: "!contains(github.ref_name, '-win')"
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +39,9 @@ jobs:
       - name: Linux .deb bauen
         run: npx electron-builder --linux deb --publish never
 
+      # retention-days: 1 - das Artefakt reicht den Build nur an notify weiter,
+      # das es als Release-Asset anhaengt. Release-Assets zaehlen nicht gegen
+      # die Actions-Storage-Quote, dieses Zwischenartefakt schon.
       - name: Artefakt hochladen
         uses: actions/upload-artifact@v4
         with:
@@ -46,6 +49,7 @@ jobs:
           path: |
             release/*.deb
             release/latest-linux.yml
+          retention-days: 1
 
   build-windows:
     name: Build Windows (.exe)
@@ -83,6 +87,7 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
         run: npx electron-builder --win --publish never
 
+      # Siehe build-linux: reines Zwischenartefakt fuer den notify-Job.
       - name: Artefakt hochladen
         uses: actions/upload-artifact@v4
         with:
@@ -91,12 +96,13 @@ jobs:
             release/*.exe
             release/*.blockmap
             release/latest.yml
+          retention-days: 1
 
   notify:
     name: Website benachrichtigen
     needs: [build-linux, build-windows]
     if: always() && (needs.build-linux.result == 'success' || needs.build-linux.result == 'skipped') && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped') && (needs.build-linux.result == 'success' || needs.build-windows.result == 'success')
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
@@ -179,7 +185,7 @@ jobs:
     name: winget einreichen
     needs: [notify]
     if: startsWith(github.ref, 'refs/tags/v') && endsWith(github.ref_name, '.0') && !contains(github.ref_name, '-linux')
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     steps:
       # Fuer packaging/winget/release-notes.py und die beiden Changelogs.
       - uses: actions/checkout@v4
@@ -241,7 +247,7 @@ jobs:
     # Plattform-Testpakete (-linux/-win) werden nicht angekuendigt - gleiche
     # Begruendung wie beim uebersprungenen Webhook im notify-Job.
     if: needs.notify.result == 'success' && !contains(github.ref_name, '-linux') && !contains(github.ref_name, '-win')
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     steps:
       - name: Diskussion im Forum erstellen
         env:
