@@ -9,7 +9,7 @@ on:
 jobs:
   analyze:
     name: Analyze (javascript-typescript)
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     permissions:
       security-events: write
       actions: read
@@ -18,8 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Auf GitHub-hosted Runnern ist Node vorinstalliert, auf dem eigenen
-      # Runner nicht - ohne diesen Schritt scheitert "npm install" mit 127.
+      # Node ist auf ubuntu-latest zwar vorinstalliert, die Version wandert
+      # aber mit dem Runner-Image - hier dieselbe 22 wie in den CI-Jobs.
       - name: Node.js einrichten
         uses: actions/setup-node@v4
         with:

@@ -17,7 +17,7 @@ on:
 jobs:
   build-flatpak:
     name: Build Linux (Flatpak)
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -77,3 +77,4 @@ jobs:
         with:
           name: linux-flatpak
           path: release/*.flatpak
+          retention-days: 3
