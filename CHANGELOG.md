@@ -1,3 +1,21 @@
+## [1.2.2] - 2026-09-27
+
+Sicherheitsrelease. Keine Funktionsänderungen — die drei Punkte unten betreffen Bibliotheken, die mit der App ausgeliefert werden, und erreichen die Installation deshalb nur über eine neue Version.
+
+### Sicherheit
+
+- **Eine präparierte Backup-Datei konnte die App beim Einlesen zum Absturz bringen.** Die ZIP-Bibliothek legte den Speicher für einen Eintrag nach der Größe an, die in der Datei *behauptet* wird, bevor sie diese mit den tatsächlich vorhandenen Daten abglich. Eine 105 Byte kleine Datei konnte so eine Speicheranforderung im Gigabyte-Bereich auslösen und den Programmabbruch erzwingen. Betroffen war das Wiederherstellen einer `.ms`-Datei aus fremder Quelle; aktualisiert auf adm-zip 0.6.1 (#144).
+- **Dieselbe Bibliothek folgte beim Entpacken Verknüpfungen im Zielordner.** Damit ließen sich theoretisch Dateien außerhalb des Zielordners überschreiben. Die Wiederherstellung packt in einen frisch angelegten Ordner mit zufälligem Namen aus, weshalb die Lücke hier kaum auszunutzen war — geschlossen wurde sie trotzdem (#144).
+- **Die Update-Prüfung ist gegen präparierte Update-Daten gehärtet.** Der YAML-Leser, mit dem der Updater die Versionsinformationen vom Server liest, konnte über verschachtelte Verweise beliebig lange rechnen. Ausnutzbar nur für jemanden, der die Verbindung zum Update-Server kontrolliert; aktualisiert auf js-yaml 4.3.2 (#144).
+
+### Intern
+
+- **Die Testläufe laufen wieder auf GitHubs Maschinen.** Der eigene Runner aus 1.2.1 wurde nur zu angekündigten Zeiten gestartet — unangekündigte Sicherheitsmeldungen fanden deshalb keine Maschine und wurden nach 24 Stunden Wartezeit abgeräumt, ohne je geprüft worden zu sein (#143).
+- **Die Installer-Zwischenstände werden nach einem Tag gelöscht statt nach 90.** Sie dienen nur der Übergabe zwischen den Bau- und Veröffentlichungsschritten; als Anhang der Veröffentlichung bleiben die Installer unverändert erhalten. Der Speicherplatz für Bauartefakte war damit vollgelaufen (#143).
+- **Sicherheitsmeldungen zu `fast-uri`, `@xmldom/xmldom` und `browserslist` abgearbeitet.** Alle drei sind indirekte Werkzeuge des Bauvorgangs und nicht Teil der ausgelieferten App (#141).
+
+---
+
 ## [1.2.1] - 2026-08-23
 
 ### Behoben
