@@ -6,6 +6,7 @@ import { useSeasonImport } from '@/composables/useSeasonImport'
 import { useSettingsStore } from '@/stores/settings'
 import { useListStore } from '@/stores/lists'
 import { useMovieStore } from '@/stores/movies'
+import { todayLocal } from '@/utils/date'
 
 export interface TmdbResult {
   id: number
@@ -152,7 +153,7 @@ export function useTmdbSearch() {
         tmdb_id: result.id,
         cover_path: result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null,
         backdrop_path: null, actors_names: '',
-        created_at: new Date().toISOString().slice(0, 10),
+        created_at: todayLocal(),
       }
       return
     }
@@ -179,7 +180,7 @@ export function useTmdbSearch() {
           cover_path:      m.poster_path    ? `https://image.tmdb.org/t/p/w500${m.poster_path}`    : null,
           backdrop_path:   m.backdrop_path  ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
           actors_names:    (m.credits?.cast ?? []).slice(0, 10).map((c: any) => c.name).join(', '),
-          created_at:      new Date().toISOString().slice(0, 10),
+          created_at:      todayLocal(),
         }
 
         // Build season list, skip season 0 (Specials)
@@ -207,7 +208,7 @@ export function useTmdbSearch() {
           cover_path:      m.poster_path    ? `https://image.tmdb.org/t/p/w500${m.poster_path}`    : null,
           backdrop_path:   m.backdrop_path  ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
           actors_names:    (m.credits?.cast ?? []).slice(0, 10).map((c: any) => c.name).join(', '),
-          created_at:      new Date().toISOString().slice(0, 10),
+          created_at:      todayLocal(),
         }
       }
     } catch (e: any) {

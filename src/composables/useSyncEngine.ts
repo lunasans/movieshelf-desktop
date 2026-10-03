@@ -530,24 +530,10 @@ export function useSyncEngine() {
           await window.electron.db.movies.sync.hardDelete(movie.id)
           deleted++
         } else if (!movie.remote_id) {
-          let res
-          if (movie.tmdb_id) {
-            const payload: Record<string, unknown> = { tmdb_id: movie.tmdb_id, type: movie.collection_type === 'Serie' ? 'tv' : 'movie', in_collection: movie.in_collection ?? 1 }
-            if (movie.collection_type === 'Serie') {
-              // Ohne `seasons` importiert der Server alle bei TMDb bekannten Staffeln -
-              // wir besitzen aber ggf. nur einen Teil davon. Nur die lokal vorhandenen
-              // Staffelnummern mitschicken, damit Desktop und Shelf deckungsgleich bleiben.
-              const localSeasons = await window.electron.db.seasons.forMovie(movie.id) as any[]
-              payload.seasons = localSeasons.map(s => s.season_number)
-            }
-            res = await apiPost('/tmdb/import', payload)
-          } else {
-            res = await apiPost('/admin/movies', { title: movie.title, year: movie.year, genre: movie.genre, director: movie.director, runtime: movie.runtime, rating: movie.rating, rating_age: movie.rating_age, overview: movie.overview, collection_type: movie.collection_type, tag: movie.tag, tmdb_id: movie.tmdb_id, trailer_url: movie.trailer_url, edition: movie.edition, region_code: movie.region_code, disc_location: movie.disc_location, purchase_date: movie.purchase_date, purchase_price: movie.purchase_price, condition: movie.condition, in_collection: movie.in_collection ?? 1 })
-          }
-          await window.electron.db.movies.sync.markSynced({ id: movie.id, remote_id: res.data.id, synced_at: new Date().toISOString() })
+          if (!await createMovieOnServer(movie)) throw new Error('Server lieferte keine ID')
           pushed++
         } else {
-          await apiPut(`/admin/movies/${movie.remote_id}`, { title: movie.title, year: movie.year, genre: movie.genre, director: movie.director, runtime: movie.runtime, rating: movie.rating, rating_age: movie.rating_age, overview: movie.overview, collection_type: movie.collection_type, tag: movie.tag, tmdb_id: movie.tmdb_id, trailer_url: movie.trailer_url, edition: movie.edition, region_code: movie.region_code, disc_location: movie.disc_location, purchase_date: movie.purchase_date, purchase_price: movie.purchase_price, condition: movie.condition, in_collection: movie.in_collection ?? 1 })
+          await apiPut(`/admin/movies/${movie.remote_id}`, moviePayload(movie))
           await window.electron.db.movies.sync.markSynced({ id: movie.id, remote_id: movie.remote_id, synced_at: new Date().toISOString() })
           if (movie.collection_type === 'Serie') {
             // Push spiegelt die lokalen Staffeln 1:1 zur Shelf - Desktop ist für
@@ -853,20 +839,59 @@ export function useSyncEngine() {
     }) as { id: number } | null
   }
 
+  /** Felder, die POST/PUT /admin/movies für einen lokalen Film bekommen. */
+  function moviePayload(m: any) {
+    return {
+      title: m.title, year: m.year, genre: m.genre, director: m.director, runtime: m.runtime,
+      rating: m.rating, rating_age: m.rating_age, overview: m.overview, collection_type: m.collection_type,
+      tmdb_id: m.tmdb_id, trailer_url: m.trailer_url, in_collection: m.in_collection ?? 1,
+      ...ownedFields(m),
+    }
+  }
+
+  /**
+   * Was nur der Nutzer kennt und TMDb nie liefert: Medium, die Angaben zum
+   * physischen Exemplar und das Datum, an dem der Titel erfasst wurde.
+   */
+  function ownedFields(m: any) {
+    return {
+      tag: m.tag ?? null, edition: m.edition ?? null, region_code: m.region_code ?? null,
+      disc_location: m.disc_location ?? null, purchase_date: m.purchase_date ?? null,
+      purchase_price: m.purchase_price ?? null, condition: m.condition ?? null,
+      // "Hinzugefügt am" ist in der App bearbeitbar und steuert "Neueste" - auf
+      // Desktop und Shelf. `null` lässt der Server unangetastet; ältere Server
+      // ohne die Validierungsregel verwerfen das Feld still.
+      created_at: m.created_at ?? null,
+    }
+  }
+
   /** Lokalen Sammlungsfilm (neu) auf dem Server anlegen, neue remote_id lokal übernehmen. */
   async function createMovieOnServer(m: any): Promise<number | null> {
     let res
     if (m.tmdb_id) {
-      const payload: Record<string, unknown> = { tmdb_id: m.tmdb_id, type: m.collection_type === 'Serie' ? 'tv' : 'movie' }
+      const payload: Record<string, unknown> = { tmdb_id: m.tmdb_id, type: m.collection_type === 'Serie' ? 'tv' : 'movie', in_collection: m.in_collection ?? 1 }
       if (m.collection_type === 'Serie') {
-        // Siehe push(): ohne `seasons` importiert der Server alle TMDb-Staffeln statt
-        // nur der lokal vorhandenen.
+        // Ohne `seasons` importiert der Server alle bei TMDb bekannten Staffeln -
+        // wir besitzen aber ggf. nur einen Teil davon. Nur die lokal vorhandenen
+        // Staffelnummern mitschicken, damit Desktop und Shelf deckungsgleich bleiben.
         const localSeasons = await window.electron.db.seasons.forMovie(m.id) as any[]
         payload.seasons = localSeasons.map(s => s.season_number)
       }
       res = await apiPost('/tmdb/import', payload)
+      // /tmdb/import nimmt nur die TMDb-ID an und legt den Film allein aus TMDb an.
+      // Kaufdatum, Medium, Edition usw. gingen dabei verloren, und der anschließende
+      // Pull überschrieb sie auch lokal mit null. Deshalb gleich hinterherschicken.
+      // Titel/Jahr/Typ verlangt der Endpunkt, sie kommen vom Server, damit die
+      // TMDb-Metadaten unangetastet bleiben.
+      const owned = ownedFields(m)
+      const created = res?.data
+      if (created?.id && Object.values(owned).some(v => v != null && v !== '')) {
+        await apiPut(`/admin/movies/${created.id}`, {
+          title: created.title, year: created.year ?? m.year, collection_type: created.collection_type, ...owned,
+        })
+      }
     } else {
-      res = await apiPost('/admin/movies', { title: m.title, year: m.year, genre: m.genre, director: m.director, runtime: m.runtime, rating: m.rating, rating_age: m.rating_age, overview: m.overview, collection_type: m.collection_type, tag: m.tag, tmdb_id: m.tmdb_id, trailer_url: m.trailer_url, in_collection: 1 })
+      res = await apiPost('/admin/movies', moviePayload(m))
     }
     const newId = res?.data?.id ?? null
     if (newId) {
