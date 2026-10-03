@@ -850,14 +850,18 @@ export function useSyncEngine() {
   }
 
   /**
-   * Was nur der Nutzer kennt und TMDb nie liefert: Medium und die Angaben zum
-   * physischen Exemplar.
+   * Was nur der Nutzer kennt und TMDb nie liefert: Medium, die Angaben zum
+   * physischen Exemplar und das Datum, an dem der Titel erfasst wurde.
    */
   function ownedFields(m: any) {
     return {
       tag: m.tag ?? null, edition: m.edition ?? null, region_code: m.region_code ?? null,
       disc_location: m.disc_location ?? null, purchase_date: m.purchase_date ?? null,
       purchase_price: m.purchase_price ?? null, condition: m.condition ?? null,
+      // "Hinzugefügt am" ist in der App bearbeitbar und steuert "Neueste" - auf
+      // Desktop und Shelf. `null` lässt der Server unangetastet; ältere Server
+      // ohne die Validierungsregel verwerfen das Feld still.
+      created_at: m.created_at ?? null,
     }
   }
 

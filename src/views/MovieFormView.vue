@@ -246,6 +246,7 @@ import ActorPickerModal from '@/components/movies/ActorPickerModal.vue'
 import { useMovieStore } from '@/stores/movies'
 import { useTmdb } from '@/composables/useTmdb'
 import { t } from '@/i18n'
+import { todayLocal } from '@/utils/date'
 
 const route       = useRoute()
 const router      = useRouter()
@@ -284,7 +285,7 @@ const form = ref({
   disc_location: '' as string | null, purchase_date: '' as string | null,
   purchase_price: null as number | null, condition: '' as string | null,
   collection_type: 'Film', tag: '', tmdb_id: null as number | null,
-  created_at: new Date().toISOString().slice(0, 10),
+  created_at: todayLocal(),
   cover_path: null as string | null,
   backdrop_path: null as string | null,
   remote_id: null as number | null,
