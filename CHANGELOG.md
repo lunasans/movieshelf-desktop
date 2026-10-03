@@ -1,3 +1,19 @@
+## [1.2.3] - 2026-10-03
+
+Sicherheitsrelease. Keine Funktionsänderungen — die Punkte unten betreffen Bibliotheken, die mit der App ausgeliefert werden, und erreichen die Installation deshalb nur über eine neue Version.
+
+### Sicherheit
+
+- **Die Netzwerkbibliothek der App ist auf den neuesten Stand gebracht.** Über axios laufen alle Verbindungen nach außen: zur Shelf, zu TMDb und Jellyfin, für Cover-Downloads und die Update-Prüfung. Die bisherige Version hatte zwölf bekannte Schwachstellen. Am ehesten ausnutzbar war eine, bei der ein Server mit einer präparierten Weiterleitung die App minutenlang beschäftigen konnte. Die übrigen ließen sich nur zusammen mit einem weiteren Fehler ausnutzen, etwa über manipulierte Kopfzeilen oder Weiterleitungen trotz Verbots. Aktualisiert auf axios 1.20.0 (#147).
+- **Electron 41.10.7.** Behebt unter anderem eine Lücke, durch die Fenster, die aus einer abgeschotteten Seite heraus geöffnet werden, deren Einschränkungen nicht übernahmen, und eine, durch die Seiten über die Protokolle `file:` und `http:` fremde Inhalte lesen konnten. Die App zeigt nur ihre eigenen Seiten und hat eingebettete Webansichten abgeschaltet, war also kaum angreifbar — die Korrekturen kommen trotzdem mit (#147).
+
+### Intern
+
+- **Sicherheitsmeldungen zu `undici`, `brace-expansion` und `fast-uri` abgearbeitet.** Alle drei sind Werkzeuge des Bauvorgangs (u. a. für das Herunterladen der Electron-Dateien) und nicht Teil der ausgelieferten App (#147).
+- **`http-cache-semantics` bleibt vorerst offen.** Für die gemeldete Lücke gibt es noch keine korrigierte Version. Die Bibliothek läuft nur beim Bauen, und die Lücke setzt einen Zwischenspeicher voraus, den sich mehrere Nutzer teilen — beides trifft hier nicht zu.
+
+---
+
 ## [1.2.2] - 2026-09-27
 
 Sicherheitsrelease. Keine Funktionsänderungen — die drei Punkte unten betreffen Bibliotheken, die mit der App ausgeliefert werden, und erreichen die Installation deshalb nur über eine neue Version.
