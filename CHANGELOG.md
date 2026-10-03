@@ -1,3 +1,14 @@
+## [1.2.4] - 2026-10-03
+
+### Behoben
+
+- **Das Kaufdatum ging beim Abgleich mit der Shelf verloren.** Wurde ein Film über die TMDb-Suche angelegt, kam beim ersten Abgleich nur der TMDb-Bezug auf der Shelf an. Kaufdatum, Kaufpreis, Medium, Edition, Region, Lagerort und Zustand fehlten dort. Weil der Abgleich die Server-Fassung gleich wieder zurückholte, verschwanden die Angaben anschließend auch in der App. Jetzt gehen sie direkt mit. **Wer betroffen ist:** die Angaben einmal neu eintragen und abgleichen, das bringt sie an beide Stellen (#150).
+- **Dasselbe galt für Filme, die beim Abgleich einer Liste neu angelegt wurden.** Dort fehlten die Angaben zum Exemplar sogar ohne TMDb-Bezug (#150).
+- **„Hinzugefügt am“ kommt jetzt auf der Shelf an.** Das Datum lässt sich in der App ändern, und die Liste „Neueste“ sortiert danach. Auf die Shelf ging es aber nie, dort stand stattdessen der Zeitpunkt des Abgleichs. Ein auf 2009 datierter Film erschien deshalb auf der Shelf als Neuzugang, in der App dagegen weit hinten. Setzt eine aktuelle Shelf voraus, bei einer älteren bleibt alles wie bisher (#150).
+- **Neue Filme bekommen nachts das richtige Datum vorgeschlagen.** Zwischen Mitternacht und 1 bzw. 2 Uhr stand bei „Hinzugefügt am“ noch der Vortag (#150).
+
+---
+
 ## [1.2.3] - 2026-10-03
 
 Sicherheitsrelease. Keine Funktionsänderungen — die Punkte unten betreffen Bibliotheken, die mit der App ausgeliefert werden, und erreichen die Installation deshalb nur über eine neue Version.
