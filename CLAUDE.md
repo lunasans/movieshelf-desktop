@@ -109,7 +109,7 @@ npm run test:e2e:ui   # with interactive UI
 
 **Stack:** Electron 41 + Vue 3 + TypeScript + Vite + Pinia + Tailwind CSS + better-sqlite3
 
-**Current version:** 1.2.5
+**Current version:** 1.2.6
 
 ### Parity with the Android app
 

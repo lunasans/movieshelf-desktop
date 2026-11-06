@@ -1,3 +1,20 @@
+## [1.2.6] - 2026-11-06
+
+Sicherheitsrelease. Keine Funktionsänderungen.
+
+### Sicherheit
+
+- **Electron 44.** Die bisherige Reihe 41 bekommt keine Korrekturen mehr, darunter fehlte unter anderem die Reaktion auf ein kompromittiertes Zwischenzertifikat. Enthält Chromium 152 und Node 24.
+- **Anmelde-Header bleiben bei Weiterleitungen, wo sie hingehören.** `follow-redirects` ist aktualisiert, die Bibliothek hinter den Verbindungen zur Shelf.
+- **`vue-i18n` und `vue` aktualisiert.** Behebt Meldungen zu Cross-Site-Scripting. Die App nutzte die betroffenen Stellen nicht, die Korrekturen sind trotzdem drin.
+
+### Intern
+
+- **Build-Werkzeuge aktualisiert,** darunter `vite`, `vitest`, `undici`, `shell-quote` und `fast-uri`.
+- **Sechs Meldungen mittlerer Stufe zu `electron-builder` bleiben offen.** Sie betreffen nur das Packen, die vorgeschlagene Lösung wäre eine ältere Hauptversion.
+
+---
+
 ## [1.2.5] - 2026-11-06
 
 ### Geändert
