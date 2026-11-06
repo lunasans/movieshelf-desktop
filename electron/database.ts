@@ -120,11 +120,9 @@ function runMigrations(instance: Database.Database = db): void {
   // "längst übertragen" unterscheiden.
   try { instance.exec('ALTER TABLE movies ADD COLUMN synced_user_rating INTEGER') } catch (e) {}
 
-  // Wunschliste: "das will ich mir merken". Nicht zu verwechseln mit
-  // in_collection, das am Film haengt und sagt, ob er zur Sammlung gehoert —
-  // ein Titel kann beides sein. Wie bei der Bewertung fuehrt sie einen eigenen
-  // bestaetigten Stand mit, weil sie am Benutzer haengt und einen eigenen
-  // Endpunkt hat.
+  // Reste der entfallenen Wunschliste: Die App nutzt beide Spalten nicht mehr,
+  // der Abgleich schreibt is_wishlisted aber weiter mit. Bestehende Datenbanken
+  // tragen sie ohnehin, ein Umbau bringt nichts.
   try { instance.exec('ALTER TABLE movies ADD COLUMN is_wishlisted INTEGER DEFAULT 0') } catch (e) {}
   try { instance.exec('ALTER TABLE movies ADD COLUMN synced_wishlisted INTEGER DEFAULT 0') } catch (e) {}
   // Bestand gilt als übertragen — sonst schöbe der erste Abgleich jede schon

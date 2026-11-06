@@ -1,3 +1,11 @@
+## [1.2.5] - 2026-11-06
+
+### Geändert
+
+- **Die Wunschliste ist entfallen.** Herz, Menüpunkt und Seite sind weg, Listen leisten dasselbe. Auf der Shelf werden vorhandene Einträge beim Update zu einer normalen Liste „Merkliste“, die beim nächsten Abgleich hier erscheint. Vormerkungen ohne Shelf bleiben in der lokalen Datenbank, werden aber nicht mehr angezeigt.
+
+---
+
 ## [1.2.4] - 2026-10-03
 
 ### Behoben
