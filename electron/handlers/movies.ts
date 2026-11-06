@@ -8,7 +8,6 @@ const ALLOWED_MOVIE_COLUMNS = new Set([
   'collection_type', 'tag', 'tmdb_id', 'remote_id', 'synced_at',
   'edition', 'region_code', 'disc_location', 'purchase_date', 'purchase_price', 'condition',
   'user_rating',
-  'is_wishlisted',
   'created_at',
 ])
 
@@ -526,29 +525,6 @@ export function setUserRating(db: Database.Database, id: number, rating: number 
   return { user_rating: ziel }
 }
 
-/**
- * Vormerkung setzen — die Wunschliste.
- *
- * Zuerst lokal, wie Bewertung und Gesehen-Stand: die Liste steht damit sofort
- * richtig, auch ohne Netz. Der Versand laeuft ueber den Abgleich, der die
- * offenen Vormerkungen einsammelt.
- */
-export function setWishlisted(db: Database.Database, id: number, wishlisted: boolean): { is_wishlisted: boolean } {
-  const vorhanden = db.prepare('SELECT id FROM movies WHERE id = ?').get(id)
-  if (!vorhanden) return { is_wishlisted: false }
-
-  db.prepare('UPDATE movies SET is_wishlisted = ? WHERE id = ?').run(wishlisted ? 1 : 0, id)
-
-  return { is_wishlisted: wishlisted }
-}
-
-/** Die Wunschliste: was vorgemerkt ist, ohne die geloeschten Zeilen. */
-export function wishlist(db: Database.Database): unknown[] {
-  return db.prepare(
-    'SELECT * FROM movies WHERE is_wishlisted = 1 AND is_deleted = 0 ORDER BY title COLLATE NOCASE'
-  ).all()
-}
-
 export function toggleWatched(db: Database.Database, id: number): { is_watched: boolean } {
   const now = new Date().toISOString()
 
@@ -658,8 +634,6 @@ export function registerMovieHandlers(): void {
   ipcMain.handle('db:movies:random',           (_e, f)        => randomMovie(db(), f))
   ipcMain.handle('db:movies:toggle-watched',   (_e, id)       => toggleWatched(db(), id))
   ipcMain.handle('db:movies:set-user-rating',  (_e, id, r)    => setUserRating(db(), id, r))
-  ipcMain.handle('db:movies:set-wishlisted',   (_e, id, w)    => setWishlisted(db(), id, w))
-  ipcMain.handle('db:movies:wishlist',         ()             => wishlist(db()))
   ipcMain.handle('db:movies:bulk-delete',      (_e, ids)      => bulkDelete(db(), ids))
   ipcMain.handle('db:movies:bulk-tag',         (_e, ids, tag) => bulkUpdateTag(db(), ids, tag))
   ipcMain.handle('db:movies:import',           (_e, rows)     => importMovies(db(), rows))
